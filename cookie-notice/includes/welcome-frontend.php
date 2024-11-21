@@ -90,11 +90,7 @@ class Cookie_Notice_Welcome_Frontend {
 		$options = [
 			'currentLanguage'	=> 'en',
 			'previewMode'		=> true,
-			'debugMode'			=> true,
-			'config'			=> [
-				'privacyPaper'		=> true,
-				'privacyContact'	=> true
-			]
+			'debugMode'			=> true
 		];
 
 		echo '

@@ -83,11 +83,17 @@
 }
 
 .cn-welcome-wrap h1 {
-    font-size: 4em;
+    font-size: 3.35em;
     line-height: 1.1;
+    letter-spacing: -0.5px;
 }
 .cn-welcome-wrap h2 {
     font-size: 2em;
+    line-height: 1.1;
+    letter-spacing: -0.5px;
+}
+.cn-welcome-wrap h3 {
+    font-size: 1.65em;
     line-height: 1.1;
 }
 .cn-welcome-wrap h4 {
@@ -155,7 +161,7 @@
 .cn-welcome-wrap .cn-sidebar {
     width: 25%;
     min-height: 100%;
-    background: #35353F;
+    background: #35383f;
     /*
     background: rgba(7,137,145,0.7);
     background: linear-gradient(145deg, rgba(7,137,145,.7), rgba(32,193,158,.7));
@@ -283,30 +289,6 @@
 
 .cn-welcome-wrap .cn-logo-container img {
     display: inline-block;
-}
-
-.cn-welcome-wrap .cn-badge {
-    background: #ccc;
-    color: #191e23;
-    border-radius: 3px;
-    text-transform: uppercase;
-    line-height: 1;
-    display: inline-block;
-    padding: 5px;
-    margin-left: 5px;
-    margin-right: 5px;
-}
-
-.cn-welcome-wrap .cn-pricing-type .cn-badge {
-    font-size: 14px;
-    font-weight: bold;
-    color: #fff;
-    background: #20c19e;
-    padding: 2.5px 7.5px;
-}
-
-.cn-welcome-wrap .cn-pricing-type div:first-child {
-    border-right: 1px solid #ccc;
 }
 
 .cn-welcome-wrap.cn-welcome-step-2 .cn-content {
@@ -454,34 +436,42 @@
     color: #20C19E;
 }
 
+.cn-welcome-wrap .cn-badge {
+    background: #ccc;
+    color: #191e23;
+    border-radius: 3px;
+    text-transform: uppercase;
+    line-height: 1;
+    display: inline-block;
+    padding: 5px;
+    margin-left: 5px;
+    margin-right: 5px;
+}
+
+.cn-welcome-wrap .cn-pricing-type .cn-badge {
+    font-size: 14px;
+    font-weight: bold;
+    color: #20C19E;
+    background: rgba(32,193,158,0.1);
+    padding: 6px 8px;
+    text-transform: none;
+    border-radius: 10px;
+}
+
 .cn-welcome-wrap .cn-pricing-type {
-    margin-top: 1em;
-    font-size: 1.2em;
+    font-size: 1.3em;
     display: flex;
-    justify-content: space-evenly;
-    align-items: baseline;
-    text-align: left;
-}
-
-.cn-welcome-wrap .cn-pricing-type > div {
-    flex: 1;
-    padding: 0 1em;
-}
-
-.cn-welcome-wrap .cn-pricing-type > div:nth-child(1) {
-    text-align: right;
+    justify-content: center;
 }
 
 .cn-welcome-wrap .cn-pricing-type label {
-    padding: 0;
+    padding: 5px 30px;
     margin: 0;
-    text-align: left;
     position: relative;
-    display: inline-block;
 }
 
-.cn-welcome-wrap .cn-pricing-type label .cn-pricing-toggle {
-    margin-left: 1.5em;
+.cn-welcome-wrap .cn-pricing-type label:first-child {
+    border-right: 2px solid rgba(236, 236, 241, 0.5);
 }
 
 .cn-welcome-wrap #cn-pricing-plans {
@@ -548,13 +538,13 @@
 }
 
 .cn-welcome-wrap .cn-pricing-table input#cn-pricing-plan-free + .cn-pricing-info .cn-plan-price {
-    color: #515151;
+    color: #35383f;
     font-size: 1.25em;
     line-height: 1.5em;
 }
 
 .cn-welcome-wrap .cn-pricing-table input#cn-pricing-plan-pro + .cn-pricing-info {
-    background-color: rgba(32,193,158,0.05);
+    background-color: rgba(32,193,158,0.1);
 }
 
 .cn-welcome-wrap .cn-pricing-table input#cn-pricing-plan-pro + .cn-pricing-info .cn-plan-promo {
@@ -570,31 +560,36 @@
     display: inline-block;
     letter-spacing: 1px;
     border-radius: 0 0 5px 5px;
-    padding: 0.25em 2em;
+    padding: 0.5em 2em;
     transform: translateX(-50%);
 }
 
 .cn-welcome-wrap .cn-pricing-table .cn-pricing-item .cn-pricing-info .cn-pricing-head {
     border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-    padding: 3em 1.5em 2.5em;
+    padding: 3em 1.5em 2em;
+}
+
+.cn-welcome-wrap .cn-pricing-table .cn-pricing-item.cn-pricing-plan-free .cn-pricing-head {
+    padding-top: 2em;
 }
 
 .cn-welcome-wrap .cn-pricing-table .cn-pricing-info div.cn-pricing-body {
     padding-bottom: 0;
     font-size: 14px;
     text-align: left;
+    margin: 0;
 }
 
 .cn-welcome-wrap .cn-pricing-table .cn-pricing-info div.cn-pricing-body p {
     padding-left: 35px;
-    line-height: 1.5;
+    line-height: 1.25;
     margin: 1em 0;
 }
 
 .cn-welcome-wrap .cn-pricing-table .cn-plan-pricing {
     display: block;
     font-size: 1.5em;
-    color: #515151;
+    color: #35383f;
 }
 
 .cn-welcome-wrap .cn-pricing-table .cn-plan-price {
@@ -608,16 +603,21 @@
 .cn-welcome-wrap .cn-pricing-table .cn-plan-price sup {
     font-weight: normal;
     font-size: 0.5em;
-    color: #515151;
+    color: #35383f;
     vertical-align: top;
 }
 
 .cn-welcome-wrap .cn-pricing-table .cn-plan-price sub {
     font-weight: normal;
     font-size: 0.5em;
-    color: #515151;
+    color: #35383f;
     text-transform: none;
     vertical-align: bottom;
+}
+
+.cn-welcome-wrap .cn-pricing-table .cn-pricing-footer {
+    margin: 0 0 1em;
+    cursor: pointer;
 }
 
 .cn-welcome-wrap .cn-select-wrapper select {
@@ -1108,6 +1108,82 @@
     margin: 0 auto 0 -1px;
     color: #fff;
     background: none;
+}
+
+.cn-welcome-wrap .cn-checkmark-wrapper input {
+    display: none;
+}
+
+.cn-welcome-wrap .cn-checkmark-wrapper .cn-pricing-toggle {
+    display: flex;
+    align-items: center;
+    color: #35383f;
+    transition: color cubic-bezier(0.165, 0.84, 0.44, 1) 100ms;
+    cursor: pointer;
+}
+
+.cn-welcome-wrap .cn-checkmark-wrapper input:checked + .cn-pricing-toggle {
+    color: #20C19e;
+}
+
+.cn-welcome-wrap .cn-checkmark-wrapper input:checked + .cn-pricing-toggle .cn-checkmark::after {
+    width: 8px;
+    height: 15px;
+    border-right-color: currentColor;
+    border-bottom-color: currentColor;
+    transition:
+        width 100ms ease-in,
+        height 100ms ease-out 100ms,
+        border-color cubic-bezier(0.165, 0.84, 0.44, 1) 100ms;
+}
+
+
+.cn-welcome-wrap .cn-checkmark-container {
+    height: 26px;
+    width: 26px;
+    position: relative;
+    display: inline-block;
+    margin-right: calc(30px * 0.5);
+}
+
+.cn-welcome-wrap .cn-checkmark-container .cn-checkmark {
+    position: absolute;
+    height: 26px;
+    width: 26px;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%) rotate(45deg);
+}
+
+.cn-welcome-wrap .cn-checkmark-container .cn-checkmark::before,
+.cn-welcome-wrap .cn-checkmark-container .cn-checkmark::after {
+    content: "";
+    display: block;
+    position: absolute;
+}
+
+.cn-welcome-wrap .cn-checkmark-container .cn-checkmark::before {
+    height: 100%;
+    width: 100%;
+    border-radius: 100%;
+    border: 2px solid currentColor;
+    background: transparent;
+    transition: background 100ms cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.cn-welcome-wrap .cn-checkmark-container .cn-checkmark::after {
+    border: 2px solid transparent;
+    transition:
+        height 100ms ease-in,
+        width 100ms ease-out 100ms,
+        border-color cubic-bezier(0.165, 0.84, 0.44, 1) 100ms 100ms;
+    width: 0px;
+    height: 0px;
+    bottom: 4px;
+    left: 6px;
+    border-radius: 3px;
+    transform-origin: bottom left;
+    /*   transform: rotate(45deg); */
 }
 
 .cn-welcome-wrap form .cn-color-picker-wrapper input {

@@ -3,8 +3,8 @@ Contributors: humanityco
 Tags: gdpr, ccpa, cookies, consent, privacy
 Requires at least: 4.9.6
 Requires PHP: 7.4
-Tested up to: 6.6.1
-Stable tag: 2.4.18
+Tested up to: 6.7
+Stable tag: 2.5.1
 License: MIT License
 License URI: http://opensource.org/licenses/MIT
 
@@ -122,6 +122,16 @@ Yes! The plugin + web appliaction version includes technical compliance features
 4. Cookie Compliance settings
 
 == Changelog ==
+
+= 2.5.1 =
+* Fix: Missing one of the plugin files
+
+= 2.5.0 =
+* New: Introducing Privacy Consent
+* Tweak: UI updates for the Consent Logs page
+* Tweak: Onboarding screen UI improvements
+* Tweak: Switch from local to GMT time for consent logs display
+* Tweak: Admin menu reorganization
 
 = 2.4.18 =
 * Fix: Potential security issue with escaping textarea fields
@@ -520,5 +530,5 @@ Initial release
 
 == Upgrade Notice ==
 
-= 2.4.18 =
-Potential security issue with escaping textarea fields, Saving link target for Privacy Policy page
+= 2.5.0 =
+* New: Introducing Privacy Consent

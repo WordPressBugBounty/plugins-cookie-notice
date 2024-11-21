@@ -600,18 +600,32 @@
 			frame.contentWindow.postMessage( {call: 'naming', value: val} );
 		} );
 
-		$( document ).on( 'change', 'input[name="cn_privacy_paper"]', function() {
+		$( document ).on( 'change', 'input[name="cn_on_scroll"]', function() {
 			var val = $( this ).prop( 'checked' );
 			var frame = window.frames['cn_iframe_id'];
 
-			frame.contentWindow.postMessage( {call: 'privacy_paper', value: val} );
+			frame.contentWindow.postMessage( {call: 'on_scroll', value: val} );
 		} );
 
-		$( document ).on( 'change', 'input[name="cn_privacy_contact"]', function() {
+		$( document ).on( 'change', 'input[name="cn_on_click"]', function() {
 			var val = $( this ).prop( 'checked' );
 			var frame = window.frames['cn_iframe_id'];
 
-			frame.contentWindow.postMessage( {call: 'privacy_contact', value: val} );
+			frame.contentWindow.postMessage( {call: 'on_click', value: val} );
+		} );
+		
+		$( document ).on( 'change', 'input[name="cn_ui_blocking"]', function() {
+			var val = $( this ).prop( 'checked' );
+			var frame = window.frames['cn_iframe_id'];
+
+			frame.contentWindow.postMessage( {call: 'ui_blocking', value: val} );
+		} );
+		
+		$( document ).on( 'change', 'input[name="cn_revoke_consent"]', function() {
+			var val = $( this ).prop( 'checked' );
+			var frame = window.frames['cn_iframe_id'];
+
+			frame.contentWindow.postMessage( {call: 'revoke_consent', value: val} );
 		} );
 
 		$( document ).on( 'change', 'input[name="cn_color_primary"]', function() {
@@ -872,21 +886,15 @@
 						$( lastItem ).find( '.cn-compliance-status' ).text( lastItemText + ' .' );
 
 						switch ( currentProgress ) {
-							case 25:
+							case 15:
 								$( lastItem ).find( '.cn-compliance-status' ).addClass( 'cn-passed' ).text( cnWelcomeArgs.statusPassed );
 
 								$( lastItem ).next().slideDown( 200 );
 								break;
-							case 50:
-								if ( cnWelcomeArgs.complianceStatus === 'active' ) {
-									$( lastItem ).find( '.cn-compliance-status' ).addClass( 'cn-passed' ).text( cnWelcomeArgs.statusPassed );
-								} else {
-									$( lastItem ).find( '.cn-compliance-status' ).addClass( 'cn-failed' ).text( cnWelcomeArgs.statusFailed );
-								}
-
-								$( lastItem ).next().slideDown( 200 );
-								break;
+							case 35:
+							case 55:
 							case 75:
+							case 95:
 								if ( cnWelcomeArgs.complianceStatus === 'active' ) {
 									$( lastItem ).find( '.cn-compliance-status' ).addClass( 'cn-passed' ).text( cnWelcomeArgs.statusPassed );
 								} else {

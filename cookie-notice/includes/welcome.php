@@ -250,16 +250,14 @@ class Cookie_Notice_Welcome {
 					<div class="cn-inner">
 						<div class="cn-content-full">
 							<h1><b>Cookie Compliance&trade;</b></h1>
-							<h2>' . esc_html__( 'The next generation of Cookie Notice', 'cookie-notice' ) . '</h2>
+							<h2>' . esc_html__( 'Simple cookie & privacy compliance solution for your business.', 'cookie-notice' ) . '</h2>
 							<div class="cn-lead">
-								<p><b>' . esc_html__( 'Cookie Compliance is a free web application that enables websites to take a proactive approach to data protection and consent laws.', 'cookie-notice' ) . '</b></p>
 								<div class="cn-hero-image">
 									<div class="cn-flex-item">
 										<img src="' . esc_url( COOKIE_NOTICE_URL ) . '/img/screen-compliance.png" alt="Cookie Notice dashboard" />
 									</div>
 								</div>
-								<p>' . sprintf( esc_html__( 'It is the first solution to offer %sintentional consent%s, a new consent framework that incorporates the latest guidelines from over 100+ countries, and emerging standards from leading international organizations like the IEEE.', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
-								<p>' . sprintf( esc_html__( 'Cookie Notice includes %sseamless integration%s with Cookie Compliance to help your site comply with the latest updates to existing consent laws and provide a beautiful, multi-level experience to engage visitors in data privacy decisions.', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
+								<p>' . sprintf( esc_html__( 'Protect your business and take a proactive approach to data privacy laws with Cookie Compliance™. Build trust by giving your website visitors a beautiful, multi-level consent experience that complies with the latest cookie regulations in 100+ countries.', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
 							</div>';
 				$html .= '
 							<div class="cn-buttons">
@@ -287,20 +285,16 @@ class Cookie_Notice_Welcome {
 					<div class="cn-inner">
 						<div class="cn-content-full">
 							<h1><b>Cookie Compliance&trade;</b></h1>
-							<h2>' . esc_html__( 'The next generation of Cookie Notice', 'cookie-notice' ) . '</h2>
+							<h2>' . esc_html__( 'Consent Management Platform with simple, transparent pricing.', 'cookie-notice' ) . '</h2>
 							<div class="cn-lead">
-								<p>' . esc_html__( 'Take a proactive approach to data protection and consent laws by signing up for Cookie Compliance account. Then select a limited Basic Plan for free or get one of the Professional Plans for unlimited visits, consent storage, languages and customizations.', 'cookie-notice' ) . '</p>
+								<p>' . esc_html__( 'Choose monthly or yearly payment and number of domains for the fully featured, Professional plan. Or start with limited, Basic plan for free.', 'cookie-notice' ) . '</p>
 							</div>';
 
 				$html .= '
-							<h3 class="cn-pricing-select">' . esc_html__( 'Compliance Plans', 'cookie-notice' ) . ':</h3>
-							<div class="cn-pricing-type cn-radio-wrapper">
-								<div>
-									<label for="pricing-type-monthly"><input id="pricing-type-monthly" type="radio" name="cn_pricing_type" value="monthly" checked><span class="cn-pricing-toggle toggle-left"><span class="cn-label">' . esc_html__( 'Monthly', 'cookie-notice' ) . '</span></span></label>
-								</div>
-								<div>
-									<label for="pricing-type-yearly"><input id="pricing-type-yearly" type="radio" name="cn_pricing_type" value="yearly"><span class="cn-pricing-toggle toggle-right"><span class="cn-label">' . esc_html__( 'Yearly', 'cookie-notice' ) . '<span class="cn-badge">' . esc_html__( 'Save 12%', 'cookie-notice' ) . '</span></span></span></label>
-								</div>
+							<h3 class="cn-pricing-select">' . esc_html__( 'Select plan', 'cookie-notice' ) . ':</h3>
+							<div class="cn-pricing-type cn-checkmark-wrapper">
+								<label for="pricing-type-monthly"><input id="pricing-type-monthly" type="radio" name="cn_pricing_type" value="monthly" checked><span class="cn-pricing-toggle toggle-left"><span class="cn-checkmark-container"><span class="cn-checkmark"></span></span><span class="cn-label">' . esc_html__( 'Monthly', 'cookie-notice' ) . '</span></span></label>
+								<label for="pricing-type-yearly"><input id="pricing-type-yearly" type="radio" name="cn_pricing_type" value="yearly"><span class="cn-pricing-toggle toggle-right"><span class="cn-checkmark-container"><span class="cn-checkmark"></span></span><span class="cn-label">' . esc_html__( 'Yearly', 'cookie-notice' ) . '<span class="cn-badge">' . esc_html__( 'Save 12%', 'cookie-notice' ) . '</span></span></span></label>
 							</div>
 							<div class="cn-pricing-table">
 								<label class="cn-pricing-item cn-pricing-plan-free" for="cn-pricing-plan-free">
@@ -314,6 +308,7 @@ class Cookie_Notice_Welcome {
 											<p class="cn-included"><span class="cn-icon"></span>' . esc_html__( 'GDPR, CCPA, LGPD, PECR requirements', 'cookie-notice' ) . '</p>
 											<p class="cn-included"><span class="cn-icon"></span>' . esc_html__( 'Consent Analytics Dashboard', 'cookie-notice' ) . '</p>
 											<p class="cn-excluded"><span class="cn-icon"></span>' . sprintf( esc_html__( '%s1,000%s visits / month', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
+											<p class="cn-excluded"><span class="cn-icon"></span>' . sprintf( esc_html__( '%s100%s privacy consents', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
 											<p class="cn-excluded"><span class="cn-icon"></span>' . sprintf( esc_html__( '%s30 days%s consent storage', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
 											<p class="cn-excluded"><span class="cn-icon"></span>' . sprintf( esc_html__( '%sGoogle & Facebook%s consent modes', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
 											<p class="cn-excluded"><span class="cn-icon"></span>' . sprintf( esc_html__( '%sGeolocation%s support', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
@@ -345,6 +340,7 @@ class Cookie_Notice_Welcome {
 											<p class="cn-included"><span class="cn-icon"></span>' . esc_html__( 'GDPR, CCPA, LGPD, PECR requirements', 'cookie-notice' ) . '</p>
 											<p class="cn-included"><span class="cn-icon"></span>' . esc_html__( 'Consent Analytics Dashboard', 'cookie-notice' ) . '</p>
 											<p class="cn-included"><span class="cn-icon"></span>' . sprintf( esc_html__( '%sUnlimited%s visits', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
+											<p class="cn-included"><span class="cn-icon"></span>' . sprintf( esc_html__( '%sUnlimited%s privacy consents', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
 											<p class="cn-included"><span class="cn-icon"></span>' . sprintf( esc_html__( '%sLifetime%s consent storage', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
 											<p class="cn-included"><span class="cn-icon"></span>' . sprintf( esc_html__( '%sGoogle & Facebook%s consent modes', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
 											<p class="cn-included"><span class="cn-icon"></span>' . sprintf( esc_html__( '%sGeolocation%s support', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
@@ -377,9 +373,9 @@ class Cookie_Notice_Welcome {
 					<div class="cn-inner">
 						<div class="cn-content-full">
 							<h1><b>' . esc_html__( 'Congratulations', 'cookie-notice' ) . '</b></h1>
-							<h2>' . ( $subscription === 'pro' ? esc_html__( 'You have successfully signed up to a Professional plan.', 'cookie-notice' ) : esc_html__( 'You have successfully signed up to a limited, Basic plan.', 'cookie-notice' ) ) . '</h2>
+							<h2>' . esc_html__( 'You have successfully signed up to Cookie Compliance.', 'cookie-notice' ) . '</h2>
 							<div class="cn-lead">
-								<p>' . esc_html__( 'Log in to your Cookie Compliance account and continue configuring your Privacy Experience.', 'cookie-notice' ) . '</p>
+								<p>' . esc_html__( 'Log in to your account and continue configuring your website.', 'cookie-notice' ) . '</p>
 							</div>
 							<div class="cn-buttons">
 								<a href="' . esc_url( $cn->get_url( 'host', '?utm_campaign=configure&utm_source=wordpress&utm_medium=button#/login' ) ) . '" class="cn-btn cn-btn-lg" target="_blank">' . esc_html__( 'Go to Application', 'cookie-notice' ) . '</a>
@@ -403,7 +399,7 @@ class Cookie_Notice_Welcome {
 					<div class="cn-inner">
 						<div class="cn-header">
 							<div class="cn-top-bar">
-								<div class="cn-logo"><img src="' . esc_url( COOKIE_NOTICE_URL ) . '/img/cookie-notice-logo.png" alt="Cookie Notice logo" /></div>
+								<div class="cn-logo"><img src="' . esc_url( COOKIE_NOTICE_URL ) . '/img/cookie-compliance-logo.png" alt="Cookie Notice logo" /></div>
 							</div>
 						</div>
 						<div class="cn-body">
@@ -417,10 +413,12 @@ class Cookie_Notice_Welcome {
 								<div class="cn-progressbar"><div class="cn-progress-label">' . esc_html__( 'Checking...', 'cookie-notice' ) . '</div></div>
 								<div class="cn-compliance-feedback cn-hidden"></div>
 								<div class="cn-compliance-results">
-									<div class="cn-compliance-item"><p><span class="cn-compliance-label">' . esc_html__( 'Cookie Notice', 'cookie-notice' ) . ' </span><span class="cn-compliance-status"></span></p><p><span class="cn-compliance-desc">' . esc_html__( 'Notifies visitors that site uses cookies.', 'cookie-notice' ) . '</span></p></div>
-									<div class="cn-compliance-item" style="display: none"><p><span class="cn-compliance-label">' . esc_html__( 'Autoblocking', 'cookie-notice' ) . ' </span><span class="cn-compliance-status"></span></p><p><span class="cn-compliance-desc">' . esc_html__( 'Non-essential cookies blocked until consent is registered.', 'cookie-notice' ) . '</span></p></div>
-									<div class="cn-compliance-item" style="display: none"><p><span class="cn-compliance-label">' . esc_html__( 'Cookie Categories', 'cookie-notice' ) . ' </span><span class="cn-compliance-status"></span></p><p><span class="cn-compliance-desc">' . esc_html__( 'Separate consent requested per purpose of use.', 'cookie-notice' ) . '</span></p></div>
-									<div class="cn-compliance-item" style="display: none"><p><span class="cn-compliance-label">' . esc_html__( 'Proof-of-Consent', 'cookie-notice' ) . ' </span><span class="cn-compliance-status"></span></p><p><span class="cn-compliance-desc">' . esc_html__( 'Proof-of-consent stored in secure audit format.', 'cookie-notice' ) . '</span></p></div>
+									<div class="cn-compliance-item"><p><span class="cn-compliance-label">' . esc_html__( 'Cookie Notice', 'cookie-notice' ) . ' </span><span class="cn-compliance-status"></span></p><p><span class="cn-compliance-desc">' . esc_html__( 'Notify visitors to the site that it uses cookies or similar technologies.', 'cookie-notice' ) . '</span></p></div>
+									<div class="cn-compliance-item" style="display: none"><p><span class="cn-compliance-label">' . esc_html__( 'Autoblocking', 'cookie-notice' ) . ' </span><span class="cn-compliance-status"></span></p><p><span class="cn-compliance-desc">' . esc_html__( 'Block non-essential 3rd party services until consent is registered.', 'cookie-notice' ) . '</span></p></div>
+									<div class="cn-compliance-item" style="display: none"><p><span class="cn-compliance-label">' . esc_html__( 'Cookie Categories', 'cookie-notice' ) . ' </span><span class="cn-compliance-status"></span></p><p><span class="cn-compliance-desc">' . esc_html__( 'Allow to customize the consent requested per purpose of use.', 'cookie-notice' ) . '</span></p></div>
+									<div class="cn-compliance-item" style="display: none"><p><span class="cn-compliance-label">' . esc_html__( 'Cookie Consent Logs', 'cookie-notice' ) . ' </span><span class="cn-compliance-status"></span></p><p><span class="cn-compliance-desc">' . esc_html__( "Save the website visitor's cookie consent preferences.", 'cookie-notice' ) . '</span></p></div>
+									<div class="cn-compliance-item" style="display: none"><p><span class="cn-compliance-label">' . esc_html__( 'Privacy Consent Logs', 'cookie-notice' ) . ' </span><span class="cn-compliance-status"></span></p><p><span class="cn-compliance-desc">' . esc_html__( "Record the website user's consent to the processing of personal data.", 'cookie-notice' ) . '</span></p></div>
+									<div class="cn-compliance-item" style="display: none"><p><span class="cn-compliance-label">' . esc_html__( 'Proof-of-Consent', 'cookie-notice' ) . ' </span><span class="cn-compliance-status"></span></p><p><span class="cn-compliance-desc">' . esc_html__( 'Store and export a Proof-of-consent in secure audit format.', 'cookie-notice' ) . '</span></p></div>
 								</div>
 							</div>
 							' /* <div id="cn_preview_frame"><img src=" ' . esc_url( $theme->get_screenshot() ) . '" /></div>
@@ -432,7 +430,7 @@ class Cookie_Notice_Welcome {
 					<div class="cn-inner">
 						<div class="cn-header">
 							<div class="cn-top-bar">
-								<div class="cn-logo"><img src="' . esc_url( COOKIE_NOTICE_URL ) . '/img/cookie-notice-logo.png" alt="Cookie Notice logo" /></div>
+								<div class="cn-logo"><img src="' . esc_url( COOKIE_NOTICE_URL ) . '/img/cookie-compliance-logo.png" alt="Cookie Notice logo" /></div>
 							</div>
 						</div>
 						<div class="cn-body">
@@ -471,20 +469,22 @@ class Cookie_Notice_Welcome {
 											<div id="cn_naming" class="cn-field cn-field-radio">
 												<label class="cn-asterix">' . esc_html__( 'Select a naming style for the consent choices', 'cookie-notice' ) . ':</label>
 												<div class="cn-radio-wrapper">
-													<label for="cn_naming_1"><input id="cn_naming_1" type="radio" name="cn_naming" value="1" checked><span>' . esc_html__( 'Silver, Gold, Platinum (Default)​', 'cookie-notice' ) . '</span></label>
-													<label for="cn_naming_2"><input id="cn_naming_2" type="radio" name="cn_naming" value="2"><span>' . esc_html__( 'Private, Balanced, Personalized', 'cookie-notice' ) . '</span></label>
+													<label for="cn_naming_1"><input id="cn_naming_1" type="radio" name="cn_naming" value="1" checked><span>' . esc_html__( 'Private, Balanced, Personalized', 'cookie-notice' ) . '</span></label>
+													<label for="cn_naming_2"><input id="cn_naming_2" type="radio" name="cn_naming" value="2"><span>' . esc_html__( 'Silver, Gold, Platinum', 'cookie-notice' ) . '</span></label>
 													<label for="cn_naming_3"><input id="cn_naming_3" type="radio" name="cn_naming" value="3"><span>' . esc_html__( 'Reject All, Accept Some, Accept All​', 'cookie-notice' ) . '</span></label>
 												</div>
 											</div>
 											<div class="cn-field cn-field-checkbox">
-												<label>' . esc_html__( 'Select additional information to include in the banner: *', 'cookie-notice' ) . '</label>
+												<label>' . esc_html__( 'Select basic consent options:', 'cookie-notice' ) . '</label>
 												<div class="cn-checkbox-wrapper">
-													<label for="cn_privacy_paper"><input id="cn_privacy_paper" type="checkbox" name="cn_privacy_paper" value="1"><span>' . sprintf( esc_html__( 'Display %sPrivacy Paper%s to provide helpful data privacy and consent information to visitors.', 'cookie-notice' ), '<b>', '</b>' ) . '</span></label>
-													<label for="cn_privacy_contact"><input id="cn_privacy_contact" type="checkbox" name="cn_privacy_contact" value="1"><span>' . sprintf( esc_html__( 'Display %sPrivacy Contact%s to provide Data Controller contact information and links to external data privacy resources.', 'cookie-notice' ), '<b>', '</b>' ) . '</span></label>
+													<label for="cn_on_scroll"><input id="cn_on_scroll" type="checkbox" name="cn_on_scroll" value="1"><span>' . esc_html__( 'Consent on Scroll', 'cookie-notice' ) . '</span></label>
+													<label for="cn_on_click"><input id="cn_on_click" type="checkbox" name="cn_on_click" value="1"><span>' . esc_html__( 'Consent on Click', 'cookie-notice' ) . '</span></label>
+													<label for="cn_ui_blocking"><input id="cn_ui_blocking" type="checkbox" name="cn_ui_blocking" value="1"><span>' . esc_html__( 'UI Blocking', 'cookie-notice' ) . '</span></label>
+													<label for="cn_revoke_consent"><input id="cn_revoke_consent" type="checkbox" name="cn_revoke_consent" value="1" checked><span>' . esc_html__( 'Revoke Consent', 'cookie-notice' ) . '</span></label>
 												</div>
-											</div>
-											<div class="cn-small">* ' . esc_html__( 'available for Cookie Compliance&trade; Pro plans only', 'cookie-notice' ) . '</div>
-										</div>
+											</div>' . 
+											// <div class="cn-small">* ' . esc_html__( 'available for Cookie Compliance&trade; Pro plans only', 'cookie-notice' ) . '</div>
+										'</div>
 									</div>
 									<div class="cn-accordion-item cn-form-container cn-collapsed" tabindex="-1">
 										<div class="cn-accordion-header cn-form-header"><button class="cn-accordion-button" type="button">' . esc_html__( 'Banner Design', 'cookie-notice' ) . '</button></div>
@@ -510,9 +510,9 @@ class Cookie_Notice_Welcome {
 													<label for="cn_color_heading"><input id="cn_color_heading" class="cn-color-picker" type="checkbox" name="cn_color_heading" value="#434f58"><span>' . esc_html__( 'Color of the heading text.', 'cookie-notice' ) . '</span></label>
 													<label for="cn_color_button_text"><input id="cn_color_button_text" class="cn-color-picker" type="checkbox" name="cn_color_button_text" value="#ffffff"><span>' . esc_html__( 'Color of the button text.', 'cookie-notice' ) . '</span></label>
 												</div>
-											</div>
-											<div class="cn-small">* ' . esc_html__( 'available for Cookie Compliance&trade; Pro plans only', 'cookie-notice' ) . '</div>
-										</div>
+											</div>' . 
+											// <div class="cn-small">* ' . esc_html__( 'available for Cookie Compliance&trade; Pro plans only', 'cookie-notice' ) . '</div>
+										'</div>
 									</div>
 								</div>
 								<div class="cn-field cn-field-submit cn-nav">
@@ -530,7 +530,7 @@ class Cookie_Notice_Welcome {
 					<div class="cn-inner">
 						<div class="cn-header">
 							<div class="cn-top-bar">
-								<div class="cn-logo"><img src="' . esc_url( COOKIE_NOTICE_URL ) . '/img/cookie-notice-logo.png" alt="Cookie Notice logo" /></div>
+								<div class="cn-logo"><img src="' . esc_url( COOKIE_NOTICE_URL ) . '/img/cookie-compliance-logo.png" alt="Cookie Notice logo" /></div>
 							</div>
 						</div>
 						<div class="cn-body">
@@ -639,7 +639,7 @@ class Cookie_Notice_Welcome {
 					<div class="cn-inner">
 						<div class="cn-header">
 							<div class="cn-top-bar">
-								<div class="cn-logo"><img src="' . esc_url( COOKIE_NOTICE_URL ) . '/img/cookie-notice-logo.png" alt="Cookie Notice logo" /></div>
+								<div class="cn-logo"><img src="' . esc_url( COOKIE_NOTICE_URL ) . '/img/cookie-compliance-logo.png" alt="Cookie Notice logo" /></div>
 							</div>
 						</div>
 						<div class="cn-body">
@@ -748,7 +748,7 @@ class Cookie_Notice_Welcome {
 					<div class="cn-inner">
 						<div class="cn-header">
 							<div class="cn-top-bar">
-								<div class="cn-logo"><img src="' . esc_url( COOKIE_NOTICE_URL ) . '/img/cookie-notice-logo.png" alt="Cookie Notice logo" /></div>
+								<div class="cn-logo"><img src="' . esc_url( COOKIE_NOTICE_URL ) . '/img/cookie-compliance-logo.png" alt="Cookie Notice logo" /></div>
 							</div>
 						</div>
 						<div class="cn-body">

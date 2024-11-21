@@ -106,6 +106,9 @@
 .cookie-notice-settings form.cn-options-disabled .cn-section-container.misc-section,
 .cookie-notice-settings form.cn-options-disabled .cn-section-container.notice-section,
 .cookie-notice-settings form.cn-options-disabled .cn-section-container.design-section,
+.cookie-notice-settings form.cn-options-disabled .cn-section-container.privacy-section,
+.cookie-notice-settings form.cn-options-privacy-disabled .cn-section-container.privacy-section,
+.cookie-notice-settings form.cn-options-compliance-disabled .cn-section-container.compliance-section,
 form.cn-options-submit-disabled .submit {
     opacity: 0.5;
     pointer-events: none;
@@ -128,16 +131,69 @@ form.cn-options-submit-disabled .submit {
     color: #444;
 }
 
-.cookie-notice-settings .tablenav {
-    display: none;
-}
-
 .cookie-notice-settings .wp-list-table .column-more {
     width: 80px;
 }
 
-.cookie-notice-settings .logs-section > .description {
-    margin-bottom: 20px;
+.cookie-notice-settings .wp-list-table.cn-cookie-consent-logs {
+    margin-top: 30px;
+}
+
+.cookie-notice-settings .privacy-section table.wp-list-table {
+    position: relative;
+}
+.cookie-notice-settings .privacy-section table.wp-list-table {
+	margin-top: 12px;
+}
+
+.cookie-notice-settings .privacy-section table.wp-list-table th {
+	padding: 8px;
+	font-weight: normal;
+}
+
+.cookie-notice-settings .privacy-section table.wp-list-table th a {
+	padding: 0;
+}
+
+.cookie-notice-settings .privacy-section table.wp-list-table td.column-title {
+	font-weight: 600;
+}
+
+.cookie-notice-settings .privacy-section table.wp-list-table .title a {
+	pointer-events: none;
+	cursor: default;
+}
+
+.cookie-notice-settings .privacy-section table.wp-list-table.loading {
+	cursor: wait;
+	opacity: 0.5;
+}
+
+.cookie-notice-settings .privacy-section table.wp-list-table.loading a,
+.cookie-notice-settings .privacy-section table.wp-list-table.loading input {
+	pointer-events: none;
+}
+
+.cookie-notice-settings .privacy-section .cn-unavailable label {
+    opacity: 0.7;
+}
+
+.cookie-notice-settings .privacy-section .cn-inactive table.wp-list-table {
+    opacity: 0.5;
+    filter: blur(3px);
+    pointer-events: none;
+}
+
+.cookie-notice-settings .privacy-section .search-box {
+    margin-bottom: 12px;
+}
+
+.cookie-notice-settings .privacy-section .spinner.inside, .cookie-notice-settings .logs-section .spinner.inside {
+    position: relative;
+    margin: 0;
+    padding: 0;
+    float: none;
+    left: calc( 50% - 10px );
 }
 
 #cn_colors label {
@@ -575,6 +631,14 @@ form.cn-options-submit-disabled .submit {
     box-shadow: 0 0 0 1px rgba(32, 193, 158, 0.5);
 }
 
+form .cn-options .cn-section-container.logs-section > h2 {
+    margin-bottom: 0;
+}
+
+.cn-section-container.logs-section > .subsubsub {
+    margin-bottom: 1em;
+}
+
 #cn-consent-logs-upgrade {
     position: absolute;
     left: 0;
@@ -602,7 +666,7 @@ form.cn-options-submit-disabled .submit {
     border-radius: 3px;
     background-color: #fff;
     text-align: center;
-    width: 22em;
+    width: 24em;
 }
 
 #cn-consent-logs-modal p {
@@ -620,4 +684,57 @@ form.cn-options-submit-disabled .submit {
 #cn-consent-logs-modal .button {
     margin-top: 25px;
     margin-bottom: 10px;
+}
+
+input[type="checkbox"].cn-privacy-consent-form-status {
+    position: relative;
+    height: 1.2rem;
+    width: 2.4rem;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    border-radius: 9999px;
+    background-color: rgba(100, 116, 139, 0.377);
+    transition: all .3s ease;
+    border: none;
+    box-shadow: none;
+}
+
+input[type="checkbox"].cn-privacy-consent-form-status:checked {
+    background-color: rgba(32, 193, 158, 1);
+}
+
+input[type="checkbox"].cn-privacy-consent-form-status:focus {
+    border-color: inherit;
+    box-shadow: none;
+}
+
+input[type="checkbox"].cn-privacy-consent-form-status::before {
+    position: absolute;
+    content: "";
+    left: calc(1.2rem - 1.3rem);
+    top: calc(1.2rem - 1.3rem);
+    display: block;
+    height: 1.3rem;
+    width: 1.3rem;
+    cursor: pointer;
+    border: 1px solid rgba(100, 116, 139, 0.5);
+    border-radius: 9999px;
+    background-color: rgba(255, 255, 255, 1);
+    box-shadow: 0 2px 6px rgba(100, 116, 139, 0.2);
+    transition: all .3s ease;
+    margin: 0;
+}
+
+input[type="checkbox"].cn-privacy-consent-form-status:hover::before {
+    box-shadow: 0 0 0px 5px rgba(0, 0, 0, .1)
+}
+
+input[type="checkbox"].cn-privacy-consent-form-status:checked:hover::before {
+    box-shadow: 0 0 0px 5px rgba(32, 193, 158, .2)
+}
+
+input[type="checkbox"].cn-privacy-consent-form-status:checked:before {
+    transform: translateX(100%);
+    border-color: rgba(32, 193, 158, 1);
 }

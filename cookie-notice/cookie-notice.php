@@ -2,7 +2,7 @@
 /*
 Plugin Name: Cookie Notice & Compliance for GDPR / CCPA
 Description: Cookie Notice allows you to you elegantly inform users that your site uses cookies and helps you comply with GDPR, CCPA and other data privacy laws.
-Version: 2.4.18
+Version: 2.5.1
 Author: Hu-manity.co
 Author URI: https://hu-manity.co/
 Plugin URI: https://cookie-compliance.co/
@@ -29,7 +29,7 @@ if ( ! defined( 'ABSPATH' ) )
  * Cookie Notice class.
  *
  * @class Cookie_Notice
- * @version	2.4.18
+ * @version	2.5.1
  */
 class Cookie_Notice {
 
@@ -59,6 +59,8 @@ class Cookie_Notice {
 	public $frontend;
 	public $settings;
 	public $consent_logs;
+	public $privacy_consent;
+	public $privacy_consent_logs;
 	public $welcome;
 	public $welcome_api;
 	public $welcome_frontend;
@@ -127,13 +129,20 @@ class Cookie_Notice {
 			'update_delay_date'		=> 0,
 			'update_threshold_date'	=> 0
 		],
+		'privacy_consent' => [
+			'wordpress_active'		=> true,
+			'contactform7_active'	=> false,
+			'mailchimp_active'		=> false,
+			'wpforms_active'		=> false,
+			'woocommerce_active'	=> false
+		],
 		'data'	=> [
 			'status'				=> '',
 			'subscription'			=> 'basic',
 			'threshold_exceeded'	=> false,
 			'activation_datetime'	=> 0
 		],
-		'version'	=> '2.4.18'
+		'version'	=> '2.5.1'
 	];
 
 	/**
@@ -168,6 +177,8 @@ class Cookie_Notice {
 			self::$_instance->frontend = new Cookie_Notice_Frontend();
 			self::$_instance->settings = new Cookie_Notice_Settings();
 			self::$_instance->consent_logs = new Cookie_Notice_Consent_Logs();
+			self::$_instance->privacy_consent = new Cookie_Notice_Privacy_Consent();
+			self::$_instance->privacy_consent_logs = new Cookie_Notice_Privacy_Consent_Logs();
 			self::$_instance->welcome = new Cookie_Notice_Welcome();
 			self::$_instance->welcome_api = new Cookie_Notice_Welcome_API();
 			self::$_instance->welcome_frontend = new Cookie_Notice_Welcome_Frontend();
@@ -197,10 +208,12 @@ class Cookie_Notice {
 		// get options
 		if ( is_multisite() ) {
 			// get network options
-			$this->network_options = get_site_option( 'cookie_notice_options', $this->defaults['general'] );
+			$this->network_options['general'] = get_site_option( 'cookie_notice_options', $this->defaults['general'] );
+			$this->network_options['privacy_consent'] = get_site_option( 'cookie_notice_privacy_consent', $this->defaults['privacy_consent'] );
 
 			if ( $this->is_network_admin() ) {
-				$options = $this->network_options;
+				$general_options = $this->network_options['general'];
+				$privacy_consent_options = $this->network_options['privacy_consent'];
 			} else {
 				$page = isset( $_GET['page'] ) ? sanitize_key( $_GET['page'] ) : '';
 
@@ -211,20 +224,27 @@ class Cookie_Notice {
 
 					if ( is_string( $url_path ) && basename( $url_path ) === 'admin.php' ) {
 						// get site options
-						$options = get_option( 'cookie_notice_options', $this->defaults['general'] );
+						$general_options = get_option( 'cookie_notice_options', $this->defaults['general'] );
+						$privacy_consent_options = get_option( 'cookie_notice_privacy_consent', $this->defaults['privacy_consent'] );
 					}
 				} else {
-					if ( $this->is_plugin_network_active() && $this->network_options['global_override'] )
-						$options = $this->network_options;
-					else
-						$options = get_option( 'cookie_notice_options', $this->defaults['general'] );
+					if ( $this->is_plugin_network_active() && $this->network_options['general']['global_override'] ) {
+						$general_options = $this->network_options['general'];
+						$privacy_consent_options = $this->network_options['privacy_consent'];
+					} else {
+						$general_options = get_option( 'cookie_notice_options', $this->defaults['general'] );
+						$privacy_consent_options = get_option( 'cookie_notice_privacy_consent', $this->defaults['privacy_consent'] );
+					}
 				}
 			}
-		} else
-			$options = get_option( 'cookie_notice_options', $this->defaults['general'] );
+		} else {
+			$general_options = get_option( 'cookie_notice_options', $this->defaults['general'] );
+			$privacy_consent_options = get_option( 'cookie_notice_privacy_consent', $this->defaults['privacy_consent'] );
+		}
 
 		// merge old options with new ones
-		$this->options['general'] = $this->multi_array_merge( $this->defaults['general'], $options );
+		$this->options['general'] = $this->multi_array_merge( $this->defaults['general'], $general_options );
+		$this->options['privacy_consent'] = $this->multi_array_merge( $this->defaults['privacy_consent'], $privacy_consent_options );
 
 		if ( ! isset( $this->options['general']['see_more_opt']['sync'] ) )
 			$this->options['general']['see_more_opt']['sync'] = $this->defaults['general']['see_more_opt']['sync'];
@@ -355,13 +375,13 @@ class Cookie_Notice {
 			if ( $this->is_plugin_network_active() ) {
 				// network
 				if ( $this->is_network_admin() ) {
-					if ( $this->network_options['global_override'] )
+					if ( $this->network_options['general']['global_override'] )
 						$status_data = get_site_option( 'cookie_notice_status', $default_data );
 					else
 						$status_data = $default_data;
 				// site
 				} else {
-					if ( $this->network_options['global_override'] )
+					if ( $this->network_options['general']['global_override'] )
 						$status_data = get_site_option( 'cookie_notice_status', $default_data );
 					else
 						$status_data = get_option( 'cookie_notice_status', $default_data );
@@ -554,6 +574,8 @@ class Cookie_Notice {
 		include_once( COOKIE_NOTICE_PATH . 'includes/functions.php' );
 		include_once( COOKIE_NOTICE_PATH . 'includes/settings.php' );
 		include_once( COOKIE_NOTICE_PATH . 'includes/consent-logs.php' );
+		include_once( COOKIE_NOTICE_PATH . 'includes/privacy-consent.php' );
+		include_once( COOKIE_NOTICE_PATH . 'includes/privacy-consent-logs.php' );
 		include_once( COOKIE_NOTICE_PATH . 'includes/welcome.php' );
 		include_once( COOKIE_NOTICE_PATH . 'includes/welcome-api.php' );
 		include_once( COOKIE_NOTICE_PATH . 'includes/welcome-frontend.php' );
@@ -581,6 +603,7 @@ class Cookie_Notice {
 		if ( is_multisite() && $network ) {
 			// add network options
 			add_site_option( 'cookie_notice_options', $this->defaults['general'] );
+			add_site_option( 'cookie_notice_privacy_consent', $this->defaults['privacy_consent'] );
 			add_site_option( 'cookie_notice_status', $this->defaults['data'] );
 			add_site_option( 'cookie_notice_version', $this->defaults['version'] );
 
@@ -609,9 +632,10 @@ class Cookie_Notice {
 	 */
 	public function activate_site() {
 		// add default options
-		add_option( 'cookie_notice_options', $this->defaults['general'], '', false );
-		add_option( 'cookie_notice_status', $this->defaults['data'], '', false );
-		add_option( 'cookie_notice_version', $this->defaults['version'], '', false );
+		add_option( 'cookie_notice_options', $this->defaults['general'], null, false );
+		add_option( 'cookie_notice_privacy_consent', $this->defaults['privacy_consent'], null, false );
+		add_option( 'cookie_notice_status', $this->defaults['data'], null, false );
+		add_option( 'cookie_notice_version', $this->defaults['version'], null, false );
 	}
 
 	/**
@@ -630,6 +654,7 @@ class Cookie_Notice {
 			// delete network options?
 			if ( $delete ) {
 				delete_site_option( 'cookie_notice_options' );
+				delete_site_option( 'cookie_notice_privacy_consent' );
 				delete_site_option( 'cookie_notice_status' );
 				delete_site_option( 'cookie_notice_app_analytics' );
 				delete_site_option( 'cookie_notice_app_blocking' );
@@ -665,6 +690,7 @@ class Cookie_Notice {
 		if ( $force_deletion || $this->options['general']['deactivation_delete'] ) {
 			// delete options
 			delete_option( 'cookie_notice_options' );
+			delete_option( 'cookie_notice_privacy_consent' );
 			delete_option( 'cookie_notice_status' );
 			delete_option( 'cookie_notice_app_analytics' );
 			delete_option( 'cookie_notice_app_blocking' );
@@ -702,7 +728,7 @@ class Cookie_Notice {
 		$subscription = $this->get_subscription();
 
 		// update number
-		$current_update = 11;
+		$current_update = 12;
 
 		// new version?
 		if ( version_compare( $this->db_version, $this->defaults['version'], '<' ) ) {
@@ -768,15 +794,15 @@ class Cookie_Notice {
 				update_option( 'cookie_notice_options', $this->options['general'] );
 		}
 
-		if ( is_multisite() && ( ( $this->is_plugin_network_active() && ! $network && $this->network_options['global_override'] ) || ( $network && ! $this->is_plugin_network_active() ) ) )
+		if ( is_multisite() && ( ( $this->is_plugin_network_active() && ! $network && $this->network_options['general']['global_override'] ) || ( $network && ! $this->is_plugin_network_active() ) ) )
 			$this->options['general']['update_notice'] = false;
 
 		// show notice, if no compliance only
 		if ( $this->options['general']['update_notice'] === true ) {
 			if ( empty( $status ) ) {
-				$this->add_notice( '<div class="cn-notice-text cn-no-compliance"><h2>' . esc_html__( 'Automatic Google Consent Mode support in Cookie Compliance', 'cookie-notice' ) . '</h2><p>' . __( 'Cookie Compliance integration with Google Consent Mode ensures that your Google Analytics and other services you use through Google Tag Manager tags respond dynamically to user consent status. <b>It requires no technical expertise to set up.</b> When users choose their preferences, Cookie Compliance automatically signals this information to Google services so that cookies are set only if consent is given for each type of data processing.', 'cookie-notice' ) . '<br>' . esc_html__( 'Click "Run Compliance Check" to proceed and test other compliance features.', 'cookie-notice' ) . '</p><p class="cn-notice-actions"><a href="' . esc_url( $network ? network_admin_url( 'admin.php?page=cookie-notice&welcome=1' ) : admin_url( 'admin.php?page=cookie-notice&welcome=1' ) ) . '" class="button button-primary cn-button">' . esc_html__( 'Run Compliance Check', 'cookie-notice' ) . '</a> <a href="#" class="button-link cn-notice-dismiss">' . esc_html__( 'Dismiss Notice', 'cookie-notice' ) . '</a></p></div>', 'error', 'div' );
+				$this->add_notice( '<div class="cn-notice-text cn-no-compliance"><h2>' . esc_html__( 'New! Cookie Compliance introduces Privacy Consent.', 'cookie-notice' ) . '</h2><p>' . __( 'Privacy Consent is a key component of data protection regulations and policies that refers to the explicit and informed agreement given by an individual (data subject) for the collection, use, processing, and storage of their personal data. Whenever a user of your website submits personal information, for example an email, you should record and store their consent, specify what purposes or preferences it relates to, and keep a proof of their consent. With Cookie Compliance, you can easily implement Privacy Consent to your website through built-in support for WordPress or WooCommerce forms and popular form or newsletter plugins.', 'cookie-notice' ) . '<br>' . esc_html__( 'Click "Add Compliance features" to run compliance check and sign up to Cookie Compliance.', 'cookie-notice' ) . '</p><p class="cn-notice-actions"><a href="' . esc_url( $network ? network_admin_url( 'admin.php?page=cookie-notice&welcome=1' ) : admin_url( 'admin.php?page=cookie-notice&welcome=1' ) ) . '" class="button button-primary cn-button">' . esc_html__( 'Add Compliance features', 'cookie-notice' ) . '</a> <a href="#" class="button-link cn-notice-dismiss">' . esc_html__( 'Dismiss Notice', 'cookie-notice' ) . '</a></p></div>', 'error', 'div' );
 			} else if ( $subscription !== 'pro' ) {
-				$this->add_notice( '<div class="cn-notice-text cn-no-compliance"><h2>' . esc_html__( 'Automatic Google Consent Mode support in Cookie Compliance', 'cookie-notice' ) . '</h2><p>' . __( 'Cookie Compliance integration with Google Consent Mode ensures that your Google Analytics and other services you use through Google Tag Manager tags respond dynamically to user consent status. <b>It requires no technical expertise to set up.</b> When users choose their preferences, Cookie Compliance automatically signals this information to Google services so that cookies are set only if consent is given for each type of data processing.', 'cookie-notice' ) . '<br>' . esc_html__( 'Upgrade to Pro and make sure your site is compatible with it with.', 'cookie-notice' ) . '</p><p class="cn-notice-actions"><a href="' . esc_url( $this->get_url( 'host', '?utm_campaign=upgrade+to+pro&utm_source=wordpress&utm_medium=link#/dashboard?app-id=' . $this->options['general']['app_id'] . '&open-modal=payment' ) ) . '" class="button button-primary cn-button" target="_blank">' . esc_html__( 'Upgrade to Pro', 'cookie-notice' ) . '</a> <a href="#" class="button-link cn-notice-dismiss">' . esc_html__( 'Dismiss Notice', 'cookie-notice' ) . '</a></p></div>', 'error', 'div' );
+				$this->add_notice( '<div class="cn-notice-text cn-no-compliance"><h2>' . esc_html__( 'New! Cookie Compliance introduces Privacy Consent.', 'cookie-notice' ) . '</h2><p>' . __( 'Privacy Consent is a key component of data protection regulations and policies that refers to the explicit and informed agreement given by an individual (data subject) for the collection, use, processing, and storage of their personal data. Whenever a user of your website submits personal information, for example an email, you should record and store their consent, specify what purposes or preferences it relates to, and keep a proof of their consent. With Cookie Compliance, you can easily implement Privacy Consent to your website through built-in support for WordPress or WooCommerce forms and popular form or newsletter plugins.', 'cookie-notice' ) . '<br>' . esc_html__( 'Click "Upgrade to Pro" and make sure you record and store all cookie and privacy consent logs.', 'cookie-notice' ) . '</p><p class="cn-notice-actions"><a href="' . esc_url( $this->get_url( 'host', '?utm_campaign=upgrade+to+pro&utm_source=wordpress&utm_medium=link#/dashboard?app-id=' . $this->options['general']['app_id'] . '&open-modal=payment' ) ) . '" class="button button-secondary cn-button" target="_blank">' . esc_html__( 'Upgrade to Pro', 'cookie-notice' ) . '</a> <a href="#" class="button-link cn-notice-dismiss">' . esc_html__( 'Dismiss Notice', 'cookie-notice' ) . '</a></p></div>', 'error', 'div' );
 			}
 		}
 
@@ -788,7 +814,7 @@ class Cookie_Notice {
 			else
 				$analytics = get_option( 'cookie_notice_app_analytics', [] );
 
-			if ( is_multisite() && ( ( $network && ! $this->is_plugin_network_active() && ! $this->network_options['global_override'] ) || ( ! $network && $this->is_plugin_network_active() && $this->network_options['global_override'] ) ) )
+			if ( is_multisite() && ( ( $network && ! $this->is_plugin_network_active() && ! $this->network_options['general']['global_override'] ) || ( ! $network && $this->is_plugin_network_active() && $this->network_options['general']['global_override'] ) ) )
 				$allow_notice = false;
 			else
 				$allow_notice = true;
@@ -1089,7 +1115,7 @@ class Cookie_Notice {
 
 		if ( $options['see_more_opt']['link_type'] === 'page' ) {
 			// multisite with global override?
-			if ( is_multisite() && $this->is_plugin_network_active() && $this->network_options['global_override'] ) {
+			if ( is_multisite() && $this->is_plugin_network_active() && $this->network_options['general']['global_override'] ) {
 				// get main site id
 				$main_site_id = get_main_site_id();
 
@@ -1278,7 +1304,7 @@ class Cookie_Notice {
 			$status = $this->get_status();
 
 			if ( is_multisite() ) {
-				$check_status = empty( $status ) && ( ( $this->is_network_admin() && $this->is_plugin_network_active() && $this->network_options['global_override'] ) || ( ! $this->is_network_admin() && ( ( $this->is_plugin_network_active() && ! $this->network_options['global_override'] ) || ! $this->is_plugin_network_active() ) ) );
+				$check_status = empty( $status ) && ( ( $this->is_network_admin() && $this->is_plugin_network_active() && $this->network_options['general']['global_override'] ) || ( ! $this->is_network_admin() && ( ( $this->is_plugin_network_active() && ! $this->network_options['general']['global_override'] ) || ! $this->is_plugin_network_active() ) ) );
 			} else
 				$check_status = empty( $status );
 

@@ -4,14 +4,24 @@ if ( ! defined( 'ABSPATH' ) )
 	exit;
 
 /**
- * Cookie_Notice_Consent_Logs_List_Table class.
+ * Cookie_Notice_Privacy_Consent_Logs_List_Table class.
  *
- * @class Cookie_Notice_Consent_Logs_List_Table
+ * @class Cookie_Notice_Privacy_Consent_Logs_List_Table
  */
-class Cookie_Notice_Consent_Logs_List_Table extends WP_List_Table {
+class Cookie_Notice_Privacy_Consent_Logs_List_Table extends WP_List_Table {
 
 	private $cn_data = [];
 	private $cn_item_number = 0;
+	private $cn_empty_init = false;
+
+	/**
+	 * Set empty init.
+	 *
+	 * @return void
+	 */
+	public function cn_empty_init() {
+		$this->cn_empty_init = true;
+	}
 
 	/**
 	 * Set data.
@@ -25,7 +35,28 @@ class Cookie_Notice_Consent_Logs_List_Table extends WP_List_Table {
 	}
 
 	/**
-	 * Prepare the items for the table to process.
+	 * Display content.
+	 *
+	 * @return void
+	 */
+	public function views() {
+		// get main instance
+		$cn = Cookie_Notice();
+		
+		$login_url = esc_url( $cn->get_url( 'login', '?utm_campaign=consentlogs&utm_source=wordpress&utm_medium=link' ) );
+
+		$message = __( 'The table below shows the latest privacy consent records collected from the forms on your website.', 'cookie-notice' );
+		$message .= ' ' . sprintf( __( 'Log in to the <a href="%s" target="_blank">Cookie Compliance</a> dashboard to view details or export proof of consent.', 'cookie-notice' ), $login_url );
+		
+		// disable if basic plan and data older than 7 days
+		if ( $cn->get_subscription() === 'basic' )
+			$message .= '<br/><span class="cn-asterix">*</span> ' . __( 'Note: domains using Cookie Compliance limited, Basic plan allow you to collect up to 100 records.', 'cookie-notice' );
+
+		echo '<p class="description">' . wp_kses_post( $message ) . '</p>';
+	}
+
+	/**
+	 * Prepare items for table.
 	 *
 	 * @return void
 	 */
@@ -35,45 +66,13 @@ class Cookie_Notice_Consent_Logs_List_Table extends WP_List_Table {
 
 		// no data?
 		if ( ! empty( $this->cn_data ) ) {
-			foreach ( $this->cn_data as $no => $consent_log ) {
-				$categories = [];
-
-				if ( $consent_log->ev_essential )
-					$categories[] = esc_html__( 'Basic Operations', 'cookie-notice' );
-
-				if ( $consent_log->ev_functional )
-					$categories[] = esc_html__( 'Content Personalization', 'cookie-notice' );
-
-				if ( $consent_log->ev_analytics )
-					$categories[] = esc_html__( 'Site Optimization', 'cookie-notice' );
-
-				if ( $consent_log->ev_marketing )
-					$categories[] = esc_html__( 'Ad Personalization', 'cookie-notice' );
-
-				// get current date
-				$timestamp = new DateTime( $consent_log->timestamp );
-
-				// get deuration in days
-				$duration = (int) $consent_log->ev_eventdetails_expiry;
-
-				if ( $duration === 30 )
-					$duration = __( '1 month', 'cookie-notice' );
-				elseif ( $duration === 90 )
-					$duration = __( '3 months', 'cookie-notice' );
-				elseif ( $duration === 182 )
-					$duration = __( '6 months', 'cookie-notice' );
-				elseif ( $duration === 365 )
-					$duration = __( '1 year', 'cookie-notice' );
-				elseif ( $duration === 730 )
-					$duration = __( '2 years', 'cookie-notice' );
-
+			foreach ( $this->cn_data as $consent ) {
 				$items[] = [
-					'consent_id'			=> $consent_log->ev_eventdetails_consentid,
-					'consent_level'			=> sprintf( __( 'Level %d', 'cookie-notice' ), $consent_log->ev_consentlevel ),
-					'consent_categories'	=> implode( ', ', $categories ),
-					'consent_duration'		=> $duration,
-					'consent_time'			=> $timestamp->format( get_option( 'time_format' ) ) . ' ' . __( 'GMT', 'cookie-notice' ),
-					'consent_ip_address'	=> $consent_log->rj_ip
+					'subject'		=> $consent->subject_id,
+					'preferences'	=> $consent->preferences,
+					'form_id'		=> $consent->form_id,
+					'date'			=> $consent->created_at,
+					'ip_address'	=> $consent->ip_address
 				];
 			}
 		}
@@ -81,7 +80,7 @@ class Cookie_Notice_Consent_Logs_List_Table extends WP_List_Table {
 		// count items
 		$noi = count( $items );
 
-		$per_page = 10;
+		$per_page = 20;
 
 		$this->set_pagination_args(
 			[
@@ -97,45 +96,6 @@ class Cookie_Notice_Consent_Logs_List_Table extends WP_List_Table {
 	}
 
 	/**
-	 * Define columns in listing table.
-	 *
-	 * @return array
-	 */
-	public function get_columns() {
-		$columns = [
-			'consent_id'			=> __( 'Consent ID', 'cookie-notice' ),
-			'consent_level'			=> __( 'Consent Level', 'cookie-notice' ),
-			'consent_categories'	=> __( 'Categories', 'cookie-notice' ),
-			'consent_duration'		=> __( 'Duration', 'cookie-notice' ),
-			'consent_time'			=> __( 'Time', 'cookie-notice' ),
-			'consent_ip_address'	=> __( 'IP address', 'cookie-notice' )
-		];
-
-		return $columns;
-	}
-
-	/**
-	 * Define sortable columns.
-	 *
-	 * @return array
-	 */
-	public function get_sortable_columns() {
-		return [];
-	}
-
-	/**
-	 * Define what data to show on each column of the table.
-	 *
-	 * @param array $item
-	 * @param string $column_name
-	 *
-	 * @return string
-	 */
-	public function column_default( $item, $column_name ) {
-		return esc_html( $item[$column_name] );
-	}
-
-	/**
 	 * Generate table navigation.
 	 *
 	 * @param string $which
@@ -143,7 +103,37 @@ class Cookie_Notice_Consent_Logs_List_Table extends WP_List_Table {
 	 * @return void
 	 */
 	protected function display_tablenav( $which ) {
-		parent::display_tablenav( $which );
+		// avoid different nonce and skip top navigation
+		if ( $which === 'top' ) {
+			echo '
+			<div class="tablenav top">';
+
+			$this->pagination( $which );
+
+			echo '
+				<br class="clear" />
+			</div>';
+		} else {
+			echo '
+			<div class="tablenav bottom">';
+
+			if ( $this->has_items() ) {
+				echo '
+				<div class="alignleft actions bulkactions">';
+
+				$this->bulk_actions( $which );
+
+				echo '
+				</div>';
+			}
+
+			$this->pagination( $which );
+			$this->extra_tablenav( $which );
+
+			echo '
+				<br class="clear" />
+			</div>';
+		}
 	}
 
 	/**
@@ -268,15 +258,77 @@ class Cookie_Notice_Consent_Logs_List_Table extends WP_List_Table {
 	}
 
 	/**
-	 * Print column headers.
+	 * Get a list of CSS classes.
 	 *
-	 * @param bool $with_id
-	 *
-	 * @return void
+	 * @return array
 	 */
-	public function print_column_headers( $with_id = true ) {
-		// do not print column ids
-		parent::print_column_headers( false );
+	protected function get_table_classes() {
+		return [ 'widefat', 'fixed', 'striped', esc_attr( 'table-view-' . get_user_setting( 'posts_list_mode', 'list' ) ), $this->_args['plural'], 'loading' ];
+	}
+
+	/**
+	 * Define columns in listing table.
+	 *
+	 * @return array
+	 */
+	public function get_columns() {
+		$columns = [
+			'subject'		=> __( 'Subject', 'cookie-notice' ),
+			'preferences'	=> __( 'Preferences', 'cookie-notice' ),
+			'form_id'		=> __( 'Form ID', 'cookie-notice' ),
+			'date'			=> __( 'Date', 'cookie-notice' ),
+			'ip_address'	=> __( 'IP address', 'cookie-notice' )
+		];
+
+		return $columns;
+	}
+
+	/**
+	 * Define sortable columns.
+	 *
+	 * @return array
+	 */
+	public function get_sortable_columns() {
+		return [];
+	}
+
+	/**
+	 * Define what data to show on each column of the table.
+	 *
+	 * @param array $item
+	 * @param string $column_name
+	 *
+	 * @return string
+	 */
+	public function column_default( $item, $column_name ) {
+		return esc_html( $item[$column_name] );
+	}
+
+	/**
+	 * Display date.
+	 *
+	 * @param array $item
+	 *
+	 * @return string
+	 */
+	public function column_date( $item ) {
+		// get current date
+		$datetime = new DateTime( $item['date'] );
+
+		return esc_html( $datetime->format( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ) ) . ' ' . __( 'GMT', 'cookie-notice' ) );
+	}
+
+	/**
+	 * Display preferences.
+	 *
+	 * @param array $item
+	 *
+	 * @return string
+	 */
+	public function column_preferences( $item ) {
+		$preferences = (array) $item['preferences'];
+
+		return esc_html( empty( $preferences ) ? '—' : implode( ', ', array_keys( $preferences ) ) );
 	}
 
 	/**
@@ -294,6 +346,12 @@ class Cookie_Notice_Consent_Logs_List_Table extends WP_List_Table {
 	 * @return void
 	 */
 	public function no_items() {
-		echo __( 'No cookie consent logs found.', 'cookie-notice' );
+		// display spinner for the first visit
+		if ( $this->cn_empty_init ) {
+			$this->cn_empty_init = false;
+
+			echo '<span class="spinner inside is-active"></span>';
+		} else
+			echo __( 'No privacy consent logs found.', 'cookie-notice' );
 	}
 }

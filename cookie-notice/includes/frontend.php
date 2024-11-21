@@ -27,10 +27,13 @@ class Cookie_Notice_Frontend {
 		// compliance actions
 		add_action( 'wp_head', [ $this, 'add_dns_prefetch' ], -1 );
 		add_action( 'wp_head', [ $this, 'add_cookie_compliance' ], 0 );
+		add_action( 'login_head', [ $this, 'add_cookie_compliance' ], 0 );
 
 		// notice actions
 		add_action( 'wp_footer', [ $this, 'add_cookie_notice' ], 1000 );
+		add_action( 'login_footer', [ $this, 'add_cookie_notice' ], 1000 );
 		add_action( 'wp_enqueue_scripts', [ $this, 'wp_enqueue_notice_scripts' ] );
+		add_action( 'login_enqueue_scripts', [ $this, 'wp_enqueue_notice_scripts' ] );
 
 		// filters
 		add_filter( 'body_class', [ $this, 'change_body_class' ] );
@@ -46,7 +49,7 @@ class Cookie_Notice_Frontend {
 		$cn = Cookie_Notice();
 
 		// set compliance status
-		$this->compliance = (bool) ( $cn->get_status() === 'active' );
+		$this->compliance = ( $cn->get_status() === 'active' );
 
 		// cookie compliance initialization
 		if ( $this->compliance ) {
@@ -95,7 +98,7 @@ class Cookie_Notice_Frontend {
 			// is blocking active?
 			if ( $cn->options['general']['app_blocking'] ) {
 				// contact form 7 compatibility
-				if ( cn_is_plugin_active( 'contactform7' ) )
+				if ( cn_is_plugin_active( 'contactform7', 'captcha' ) )
 					include_once( COOKIE_NOTICE_PATH . 'includes/modules/contact-form-7/contact-form-7.php' );
 			}
 		}
@@ -188,7 +191,7 @@ class Cookie_Notice_Frontend {
 
 					switch ( $rule['param'] ) {
 						case 'page_type':
-							if ( ( $rule['operator'] === 'equal' && $rule['value'] === 'front' && is_front_page() ) || ( $rule['operator'] === 'not_equal' && $rule['value'] === 'front' && ! is_front_page() ) || ( $rule['operator'] === 'equal' && $rule['value'] === 'home' && is_home() ) || ( $rule['operator'] === 'not_equal' && $rule['value'] === 'home' && ! is_home() ) )
+							if ( ( $rule['operator'] === 'equal' && $rule['value'] === 'front' && is_front_page() ) || ( $rule['operator'] === 'not_equal' && $rule['value'] === 'front' && ! is_front_page() ) || ( $rule['operator'] === 'equal' && $rule['value'] === 'home' && is_home() ) || ( $rule['operator'] === 'not_equal' && $rule['value'] === 'home' && ! is_home() ) || ( $rule['operator'] === 'equal' && $rule['value'] === 'login' && $this->is_login() ) || ( $rule['operator'] === 'not_equal' && $rule['value'] === 'login' && ! $this->is_login() ) )
 								$give_rule_access = true;
 							break;
 
@@ -259,6 +262,15 @@ class Cookie_Notice_Frontend {
 	}
 
 	/**
+	 * Determine whether the current request is for the login screen.
+	 *
+	 * @return bool
+	 */
+	public function is_login() {
+		return ( function_exists( 'is_login' ) ? is_login() : ( stripos( wp_login_url(), $_SERVER['SCRIPT_NAME'] ) !== false ) );
+	}
+
+	/**
 	 * Get Cookie Compliance options.
 	 *
 	 * @return array
@@ -275,18 +287,26 @@ class Cookie_Notice_Frontend {
 		if ( is_array( $locale_code ) && in_array( $locale_code[0], [ 'nb', 'nn' ] ) )
 			$locale_code[0] = 'no';
 
-		$options = apply_filters(
-			'cn_cookie_compliance_args',
-			[
-				'appID'				=> $cn->options['general']['app_id'],
-				'currentLanguage'	=> $locale_code[0],
-				'blocking'			=> ! is_user_logged_in() ? $cn->options['general']['app_blocking'] : false,
-				'globalCookie'		=> is_multisite() && $cn->options['general']['global_cookie'] && is_subdomain_install()
-			]
-		);
+		$options = [
+			'appID'				=> $cn->options['general']['app_id'],
+			'currentLanguage'	=> $locale_code[0],
+			'blocking'			=> ! is_user_logged_in() ? $cn->options['general']['app_blocking'] : false,
+			'globalCookie'		=> is_multisite() && $cn->options['general']['global_cookie'] && is_subdomain_install(),
+			'privacyConsent'	=> true
+		];
+
+		// get active sources
+		$sources = $cn->privacy_consent->get_active_sources();
+
+		// any active source?
+		if ( ! empty( $sources ) )
+			$options['forms'] = [];
+
+		// filter options
+		$options = apply_filters( 'cn_cookie_compliance_args', $options );
 
 		// get config timestamp
-		if ( is_multisite() && $cn->is_plugin_network_active() && $cn->network_options['global_override'] )
+		if ( is_multisite() && $cn->is_plugin_network_active() && $cn->network_options['general']['global_override'] )
 			$timestamp = (int) get_site_transient( 'cookie_notice_config_update' );
 		else
 			$timestamp = (int) get_transient( 'cookie_notice_config_update' );
@@ -303,7 +323,7 @@ class Cookie_Notice_Frontend {
 
 		// custom scripts?
 		if ( $cn->options['general']['app_blocking'] ) {
-			if ( is_multisite() && $cn->is_network_admin() && $cn->is_plugin_network_active() && $cn->network_options['global_override'] )
+			if ( is_multisite() && $cn->is_network_admin() && $cn->is_plugin_network_active() && $cn->network_options['general']['global_override'] )
 				$blocking = get_site_option( 'cookie_notice_app_blocking' );
 			else
 				$blocking = get_option( 'cookie_notice_app_blocking' );
@@ -368,6 +388,11 @@ class Cookie_Notice_Frontend {
 	 * @return void
 	 */
 	public function add_cookie_compliance() {
+		// skip modal login iframe
+		if ( current_filter() === 'login_head' && ! empty( $_REQUEST['interim-login'] ) )
+			return;
+
+		// allow only for compliance
 		if ( ! $this->compliance )
 			return;
 
@@ -388,6 +413,10 @@ class Cookie_Notice_Frontend {
 	 * @return void
 	 */
 	public function add_cookie_notice() {
+		// skip modal login iframe
+		if ( current_filter() === 'login_head' && ! empty( $_REQUEST['interim-login'] ) )
+			return;
+
 		if ( $this->compliance )
 			return;
 
@@ -420,7 +449,7 @@ class Cookie_Notice_Frontend {
 
 		if ( $cn->options['general']['see_more_opt']['link_type'] === 'page' ) {
 			// multisite with global override?
-			if ( is_multisite() && $cn->is_plugin_network_active() && $cn->network_options['global_override'] ) {
+			if ( is_multisite() && $cn->is_plugin_network_active() && $cn->network_options['general']['global_override'] ) {
 				// get main site id
 				$main_site_id = get_main_site_id();
 
@@ -608,6 +637,10 @@ class Cookie_Notice_Frontend {
 	 * @return void
 	 */
 	public function wp_enqueue_notice_scripts() {
+		// skip modal login iframe
+		if ( current_filter() === 'login_enqueue_scripts' && ! empty( $_REQUEST['interim-login'] ) )
+			return;
+
 		if ( $this->compliance )
 			return;
 
@@ -781,9 +814,9 @@ class Cookie_Notice_Frontend {
 		// get main instance
 		$cn = Cookie_Notice();
 
-		if ( is_multisite() && $cn->is_plugin_network_active() && $cn->network_options['global_override'] ) {
-			$app_id = $cn->network_options['app_id'];
-			$app_key = $cn->network_options['app_key'];
+		if ( is_multisite() && $cn->is_plugin_network_active() && $cn->network_options['general']['global_override'] ) {
+			$app_id = $cn->network_options['general']['app_id'];
+			$app_key = $cn->network_options['general']['app_key'];
 		} else {
 			$app_id = $cn->options['general']['app_id'];
 			$app_key = $cn->options['general']['app_key'];

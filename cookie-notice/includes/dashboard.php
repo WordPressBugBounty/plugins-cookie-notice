@@ -44,13 +44,13 @@ class Cookie_Notice_Dashboard {
 		// check when to hide widget
 		if ( is_multisite() ) {
 			// site dashboard
-			if ( current_action() === 'wp_dashboard_setup' && $cn->is_plugin_network_active() && $cn->network_options['global_override'] )
+			if ( current_action() === 'wp_dashboard_setup' && $cn->is_plugin_network_active() && $cn->network_options['general']['global_override'] )
 				return;
 
 			// network dashboard
 			if ( current_action() === 'wp_network_dashboard_setup' ) {
 				if ( $cn->is_plugin_network_active() ) {
-					if ( ! $cn->network_options['global_override'] )
+					if ( ! $cn->network_options['general']['global_override'] )
 						return;
 				} else
 					return;
@@ -108,7 +108,7 @@ class Cookie_Notice_Dashboard {
 
 		$date_format = get_option( 'date_format' );
 
-		if ( is_multisite() && $cn->is_network_admin() && $cn->is_plugin_network_active() && $cn->network_options['global_override'] )
+		if ( is_multisite() && $cn->is_network_admin() && $cn->is_plugin_network_active() && $cn->network_options['general']['global_override'] )
 			$analytics = get_site_option( 'cookie_notice_app_analytics', [] );
 		else
 			$analytics = get_option( 'cookie_notice_app_analytics', [] );
@@ -122,7 +122,7 @@ class Cookie_Notice_Dashboard {
 			return;
 
 		// scripts
-		wp_register_script( 'cookie-notice-admin-chartjs', COOKIE_NOTICE_URL . '/assets/chartjs/chart.min.js', [ 'jquery' ], '4.4.3', true );
+		wp_register_script( 'cookie-notice-admin-chartjs', COOKIE_NOTICE_URL . '/assets/chartjs/chart.min.js', [ 'jquery' ], '4.4.4', true );
 		wp_enqueue_script( 'cookie-notice-admin-dashboard', COOKIE_NOTICE_URL . '/js/admin-dashboard.js', [ 'jquery', 'cookie-notice-admin-chartjs' ], $cn->defaults['version'], true );
 
 		// cycle usage data
@@ -377,7 +377,7 @@ class Cookie_Notice_Dashboard {
 				$date_format = get_option( 'date_format' );
 
 				// get analytics data options
-				if ( is_multisite() && $cn->is_network_admin() && $cn->is_plugin_network_active() && $cn->network_options['global_override'] )
+				if ( is_multisite() && $cn->is_network_admin() && $cn->is_plugin_network_active() && $cn->network_options['general']['global_override'] )
 					$analytics = get_site_option( 'cookie_notice_app_analytics', [] );
 				else
 					$analytics = get_option( 'cookie_notice_app_analytics', [] );

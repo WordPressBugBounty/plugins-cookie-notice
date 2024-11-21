@@ -768,8 +768,10 @@ class Cookie_Notice_Welcome_API {
 					'cn_color_button_text',
 					'cn_laws',
 					'cn_naming',
-					'cn_privacy_paper',
-					'cn_privacy_contact'
+					'cn_on_scroll',
+					'cn_on_click',
+					'cn_ui_blocking',
+					'cn_revoke_consent'
 				];
 
 				$options = [];
@@ -889,14 +891,14 @@ class Cookie_Notice_Welcome_API {
 							// english only for now
 							$level_names = [
 								1 => [
-									1 => 'Silver',
-									2 => 'Gold',
-									3 => 'Platinum'
-								],
-								2 => [
 									1 => 'Private',
 									2 => 'Balanced',
 									3 => 'Personalized'
+								],
+								2 => [
+									1 => 'Silver',
+									2 => 'Gold',
+									3 => 'Platinum'
 								],
 								3 => [
 									1 => 'Reject All',
@@ -912,12 +914,20 @@ class Cookie_Notice_Welcome_API {
 							];
 							break;
 
-						case 'cn_privacy_paper':
-							$options['config']['privacyPaper'] = false; // isset( $_POST[$field] );
+						case 'cn_on_scroll':
+							$options['config']['onScroll'] = isset( $_POST[$field] );
 							break;
 
-						case 'cn_privacy_contact':
-							$options['config']['privacyContact'] = false; // isset( $_POST[$field] );
+						case 'cn_on_click':
+							$options['config']['onClick'] = isset( $_POST[$field] );
+							break;
+						
+						case 'cn_ui_blocking':
+							$options['config']['uiBlocking'] = isset( $_POST[$field] );
+							break;
+						
+						case 'cn_revoke_consent':
+							$options['config']['revokeConsent'] = isset( $_POST[$field] );
 							break;
 					}
 				}
@@ -1033,10 +1043,20 @@ class Cookie_Notice_Welcome_API {
 				$api_args['headers'] = array_merge( $api_args['headers'], $app_data );
 				break;
 
-			case 'get_consent_logs_by_date':
+			case 'get_cookie_consent_logs':
 				$require_app_id = true;
 				$api_url = $cn->get_url( 'transactional_api', '/api/transactional/analytics/consent-logs' );
 				$api_args['method'] = 'POST';
+				$api_args['headers']['app-id'] = $cn->options['general']['app_id'];
+				$api_args['headers']['app-secret-key'] = $cn->options['general']['app_key'];
+				break;
+
+			case 'get_privacy_consent_logs':
+				$require_app_id = true;
+				$api_url = $cn->get_url( 'transactional_api', '/api/transactional/privacy/consent-logs' );
+				$api_args['method'] = 'POST';
+				$api_args['headers']['app-id'] = $cn->options['general']['app_id'];
+				$api_args['headers']['app-secret-key'] = $cn->options['general']['app_key'];
 				break;
 
 			case 'get_config':
@@ -1243,9 +1263,9 @@ class Cookie_Notice_Welcome_API {
 		// get main instance
 		$cn = Cookie_Notice();
 
-		if ( is_multisite() && $cn->is_plugin_network_active() && $cn->network_options['global_override'] ) {
-			$app_id = $cn->network_options['app_id'];
-			$app_key = $cn->network_options['app_key'];
+		if ( is_multisite() && $cn->is_plugin_network_active() && $cn->network_options['general']['global_override'] ) {
+			$app_id = $cn->network_options['general']['app_id'];
+			$app_key = $cn->network_options['general']['app_key'];
 		} else {
 			$app_id = $cn->options['general']['app_id'];
 			$app_key = $cn->options['general']['app_key'];
@@ -1277,18 +1297,52 @@ class Cookie_Notice_Welcome_API {
 	}
 
 	/**
-	 * Get consent logs.
+	 * Get privacy consent logs.
 	 *
-	 * @param string $date
 	 * @return string|array
 	 */
-	public function get_consent_logs_by_date( $date ) {
+	public function get_privacy_consent_logs() {
 		// get main instance
 		$cn = Cookie_Notice();
 
 		// get consent logs for specific date
 		$result = $this->request(
-			'get_consent_logs_by_date',
+			'get_privacy_consent_logs',
+			[
+				'AppID'			=> $cn->options['general']['app_id'],
+				// 'AppSecretKey'	=> $cn->options['general']['app_key'],
+				'Latest'		=> 100
+			]
+		);
+
+		// message?
+		if ( ! empty( $result->message ) )
+			$result = $result->message;
+		// error?
+		elseif ( ! empty( $result->error ) )
+			$result = $result->error;
+		// valid data?
+		elseif ( ! empty( $result->data ) )
+			$result = $result->data;
+		else
+			$result = [];
+		return $result;
+	}
+
+	/**
+	 * Get cookie consent logs.
+	 *
+	 * @param string $date
+	 *
+	 * @return string|array
+	 */
+	public function get_cookie_consent_logs( $date ) {
+		// get main instance
+		$cn = Cookie_Notice();
+
+		// get consent logs for specific date
+		$result = $this->request(
+			'get_cookie_consent_logs',
 			[
 				'AppID'			=> $cn->options['general']['app_id'],
 				'AppSecretKey'	=> $cn->options['general']['app_key'],
@@ -1325,9 +1379,9 @@ class Cookie_Notice_Welcome_API {
 
 		$allow_one_cron_per_hour = false;
 
-		if ( is_multisite() && $cn->is_plugin_network_active() && $cn->network_options['global_override'] ) {
+		if ( is_multisite() && $cn->is_plugin_network_active() && $cn->network_options['general']['global_override'] ) {
 			if ( empty( $app_id ) )
-				$app_id = $cn->network_options['app_id'];
+				$app_id = $cn->network_options['general']['app_id'];
 
 			$network = true;
 			$allow_one_cron_per_hour = true;
@@ -1416,9 +1470,9 @@ class Cookie_Notice_Welcome_API {
 
 		$allow_one_cron_per_hour = false;
 
-		if ( is_multisite() && $cn->is_plugin_network_active() && $cn->network_options['global_override'] ) {
+		if ( is_multisite() && $cn->is_plugin_network_active() && $cn->network_options['general']['global_override'] ) {
 			if ( empty( $app_id ) )
-				$app_id = $cn->network_options['app_id'];
+				$app_id = $cn->network_options['general']['app_id'];
 
 			$network = true;
 			$allow_one_cron_per_hour = true;
