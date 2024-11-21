@@ -171,11 +171,12 @@ class Cookie_Notice_Modules_ContactForm7_Privacy_Consent {
 		$output = (string) $output;
 
 		// get form id
-		$form = wpcf7_get_contact_form_by_hash( $attr['id'] );
-		$form_id = $form->id();
+		$form_id = isset( $attr['id'] ) ? (int) $attr['id'] : 0;
+		$form = wpcf7_get_contact_form_by_hash( $form_id );
+		// $form_id = $form->id();
 
 		// active form?
-		if ( Cookie_Notice()->privacy_consent->is_form_active( $form_id, $this->source['id'] ) ) {
+		if ( $form_id && Cookie_Notice()->privacy_consent->is_form_active( $form_id, $this->source['id'] ) ) {
 			// get form data
 			$form_data = $this->get_form( [
 				'form_id' => $form_id
