@@ -109,10 +109,6 @@ class Cookie_Notice_Privacy_Consent {
 		// get main instance
 		$cn = Cookie_Notice();
 
-		// check compliance status
-		// if ( $cn->get_status() !== 'active' )
-			// return;
-
 		if ( is_admin() ) {
 			// handle ajax requests
 			add_action( 'wp_ajax_cn_privacy_consent_form_status', [ $this, 'set_form_status' ] );

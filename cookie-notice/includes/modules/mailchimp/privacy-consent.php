@@ -40,6 +40,10 @@ class Cookie_Notice_Modules_Mailchimp_Privacy_Consent {
 
 		add_action( 'admin_init', [ $this, 'register_source' ] );
 
+		// check compliance status
+		if ( $cn->get_status() !== 'active' )
+			return;
+
 		// forms
 		add_filter( 'mc4wp_form_after_fields', [ $this, 'form_html' ], 10, 2 );
 		add_action( 'mc4wp_form_success', [ $this, 'handle_form' ] );
@@ -173,12 +177,13 @@ class Cookie_Notice_Modules_Mailchimp_Privacy_Consent {
 
 			$html .= '
 			<script>
-			var huFormData = ' . wp_json_encode( $form_data ) . ';
-			var huFormNode = document.querySelector( \'form[class*="mc4wp-form-' . (int) $form->ID . '"]\' );
+			if ( typeof huOptions !== \'undefined\' ) {
+				var huFormData = ' . wp_json_encode( $form_data ) . ';
+				var huFormNode = document.querySelector( \'form[class*="mc4wp-form-' . (int) $form->ID . '"]\' );
 
-			huFormData[\'node\'] = huFormNode;
-
-			huOptions[\'forms\'].push( huFormData );
+				huFormData[\'node\'] = huFormNode;
+				huOptions[\'forms\'].push( huFormData );
+			}
 			</script>';
 		}
 

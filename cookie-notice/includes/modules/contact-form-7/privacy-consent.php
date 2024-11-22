@@ -40,6 +40,10 @@ class Cookie_Notice_Modules_ContactForm7_Privacy_Consent {
 
 		add_action( 'admin_init', [ $this, 'register_source' ] );
 
+		// check compliance status
+		if ( $cn->get_status() !== 'active' )
+			return;
+
 		// forms
 		add_filter( 'do_shortcode_tag', [ $this, 'shortcode' ], 10, 4 );
 	}
@@ -168,29 +172,49 @@ class Cookie_Notice_Modules_ContactForm7_Privacy_Consent {
 		if ( $tag !== 'contact-form-7' )
 			return $output;
 
-		$output = (string) $output;
+		// check form id
+		$form_id = isset( $attr['id'] ) ? trim( $attr['id'] ) : '';
 
-		// get form id
-		$form_id = isset( $attr['id'] ) ? (int) $attr['id'] : 0;
-		$form = wpcf7_get_contact_form_by_hash( $form_id );
-		// $form_id = $form->id();
+		if ( empty( $form_id ) )
+			return $output;
 
-		// active form?
-		if ( $form_id && Cookie_Notice()->privacy_consent->is_form_active( $form_id, $this->source['id'] ) ) {
-			// get form data
-			$form_data = $this->get_form( [
-				'form_id' => $form_id
-			] );
+		$form = null;
 
-			$output .= '
-			<script>
-			var huFormData = ' . wp_json_encode( $form_data ) . ';
-			var huFormNode = document.querySelector( \'[id^="wpcf7-f' . (int) $form_id . '-"] form\' );
+		// sanitize form id
+		$form_id = preg_replace( '/[^a-z0-9]/i', '', $form_id );
 
-			huFormData[\'node\'] = huFormNode;
+		// get form by hash, since cf7 5.8
+		if ( function_exists( 'wpcf7_get_contact_form_by_hash' ) )
+			$form = wpcf7_get_contact_form_by_hash( $form_id );
 
-			huOptions[\'forms\'].push( huFormData );
-			</script>';
+		// get form by integer id
+		if ( ! $form && function_exists( 'wpcf7_contact_form' ) )
+			$form = wpcf7_contact_form( $form_id );
+
+		// valid form?
+		if ( $form && is_a( $form, 'WPCF7_ContactForm' ) ) {
+			// get id
+			$form_id = (int) $form->id();
+
+			// active form?
+			if ( $form_id && Cookie_Notice()->privacy_consent->is_form_active( $form_id, $this->source['id'] ) ) {
+				// get form data
+				$form_data = $this->get_form( [
+					'form_id' => $form_id
+				] );
+
+				$output = (string) $output;
+				$output .= '
+				<script>
+				if ( typeof huOptions !== \'undefined\' ) {
+					var huFormData = ' . wp_json_encode( $form_data ) . ';
+					var huFormNode = document.querySelector( \'[id^="wpcf7-f' . (int) $form_id . '-"] form\' );
+
+					huFormData[\'node\'] = huFormNode;
+					huOptions[\'forms\'].push( huFormData );
+				}
+				</script>';
+			}
 		}
 
 		return $output;

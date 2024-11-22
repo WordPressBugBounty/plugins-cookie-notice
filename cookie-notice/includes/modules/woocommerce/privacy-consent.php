@@ -95,6 +95,10 @@ class Cookie_Notice_Modules_WooCommerce_Privacy_Consent {
 
 		add_action( 'admin_init', [ $this, 'register_source' ] );
 
+		// check compliance status
+		if ( $cn->get_status() !== 'active' )
+			return;
+
 		// registration
 		add_action( 'woocommerce_register_form', [ $this, 'register_form' ] );
 		add_action( 'wp_loaded', [ $this, 'registration_end' ], 21 );
@@ -203,12 +207,13 @@ class Cookie_Notice_Modules_WooCommerce_Privacy_Consent {
 
 			echo '
 			<script>
-			var huFormData = ' . wp_json_encode( $form_data ) . ';
-			var huFormNode = document.querySelector( \'.woocommerce-form-register\' );
+			if ( typeof huOptions !== \'undefined\' ) {
+				var huFormData = ' . wp_json_encode( $form_data ) . ';
+				var huFormNode = document.querySelector( \'.woocommerce-form-register\' );
 
-			huFormData[\'node\'] = huFormNode;
-
-			huOptions[\'forms\'].push( huFormData );
+				huFormData[\'node\'] = huFormNode;
+				huOptions[\'forms\'].push( huFormData );
+			}
 			</script>';
 		}
 	}
@@ -275,14 +280,15 @@ class Cookie_Notice_Modules_WooCommerce_Privacy_Consent {
 
 			echo '
 			<script>
-			jQuery( document.body ).on( \'init_checkout\', function() {
-				console.log( "LOADED CLASSIC" );
-				var huFormData = ' . wp_json_encode( $form_data ) . ';
-				var huFormNode = document.querySelector( \'form.woocommerce-checkout\' );
+			if ( typeof huOptions !== \'undefined\' ) {
+				jQuery( document.body ).on( \'init_checkout\', function() {
+					var huFormData = ' . wp_json_encode( $form_data ) . ';
+					var huFormNode = document.querySelector( \'form.woocommerce-checkout\' );
 
-				huFormData[\'node\'] = huFormNode;
-				huOptions[\'forms\'].push( huFormData );
-			} );
+					huFormData[\'node\'] = huFormNode;
+					huOptions[\'forms\'].push( huFormData );
+				} );
+			}
 			</script>';
 		}
 	}
@@ -319,16 +325,18 @@ class Cookie_Notice_Modules_WooCommerce_Privacy_Consent {
 			<div class="wp-block" data-blockType="' . esc_attr( $block['blockName'] ) . '">
 				' . $block_content . '
 				<script>
-				document.addEventListener( \'DOMContentLoaded\', function() {
-					var huFormData = ' . wp_json_encode( $form_data ) . ';
-					var huFormNode = null;
+				if ( typeof huOptions !== \'undefined\' ) {
+					document.addEventListener( \'DOMContentLoaded\', function() {
+						var huFormData = ' . wp_json_encode( $form_data ) . ';
+						var huFormNode = null;
 
-					setTimeout( function() {
-						huFormNode = document.querySelector( \'.wc-block-checkout__form\' );
-						huFormData[\'node\'] = huFormNode;
-						huOptions[\'forms\'].push( huFormData );
-					}, 0 );
-				} );
+						setTimeout( function() {
+							huFormNode = document.querySelector( \'.wc-block-checkout__form\' );
+							huFormData[\'node\'] = huFormNode;
+							huOptions[\'forms\'].push( huFormData );
+						}, 0 );
+					} );
+				}
 				</script>
 			</div>';
 		}

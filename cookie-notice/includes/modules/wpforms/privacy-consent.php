@@ -40,6 +40,10 @@ class Cookie_Notice_Modules_WPForms_Privacy_Consent {
 
 		add_action( 'admin_init', [ $this, 'register_source' ] );
 
+		// check compliance status
+		if ( $cn->get_status() !== 'active' )
+			return;
+
 		// forms
 		add_action( 'wpforms_frontend_output', [ $this, 'wpforms_shortcode' ], 19, 5 );
 	}
@@ -174,17 +178,22 @@ class Cookie_Notice_Modules_WPForms_Privacy_Consent {
 
 			echo '
 			<script>
-			var huFormData = ' . wp_json_encode( $form_data ) . ';
-			var huFormNode = document.querySelector( \'[id="wpforms-' . (int) $data['id'] . '"] form\' );
+			if ( typeof huOptions !== \'undefined\' ) {
+				var huFormData = ' . wp_json_encode( $form_data ) . ';
+				var huFormNode = document.querySelector( \'[id="wpforms-' . (int) $data['id'] . '"] form\' );
 
-			var firstName = huFormNode.querySelector( \'input.wpforms-field-name-first\' );
-			var lastName = huFormNode.querySelector( \'input.wpforms-field-name-last\' );
+				var firstName = huFormNode.querySelector( \'input.wpforms-field-name-first\' );
+				var lastName = huFormNode.querySelector( \'input.wpforms-field-name-last\' );
 
-			huFormData[\'fields\'][\'subject\'][\'first_name\'] = firstName.getAttribute( \'name\' );
-			huFormData[\'fields\'][\'subject\'][\'last_name\'] = lastName.getAttribute( \'name\' );
-			huFormData[\'node\'] = huFormNode;
+				if ( firstName )
+					huFormData[\'fields\'][\'subject\'][\'first_name\'] = firstName.getAttribute( \'name\' );
 
-			huOptions[\'forms\'].push( huFormData );
+				if ( lastName )
+					huFormData[\'fields\'][\'subject\'][\'last_name\'] = lastName.getAttribute( \'name\' );
+
+				huFormData[\'node\'] = huFormNode;
+				huOptions[\'forms\'].push( huFormData );
+			}
 			</script>';
 		}
 	}

@@ -121,7 +121,7 @@ class Cookie_Notice_Privacy_Consent_List_Table extends WP_List_Table {
 		if ( empty( $_REQUEST['s'] ) && ! $this->has_items() )
 			return;
 
-		// update input id
+		/* update input id
 		$input_id .= '-search-input';
 
 		echo '
@@ -130,6 +130,7 @@ class Cookie_Notice_Privacy_Consent_List_Table extends WP_List_Table {
 			<input type="search" id="' . esc_attr( $input_id ) . '" name="s" value="" />
 			<a id="' . esc_attr( $this->cn_source['id'] . '-search-submit' ) . '" class="button" href="' .esc_url( remove_query_arg( wp_removable_query_args(), set_url_scheme( 'https://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'] ) ) ) . '">' . esc_html( $text ) . '</a>
 		</p>';
+		*/
 	}
 
 	/**

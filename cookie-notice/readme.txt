@@ -3,8 +3,8 @@ Contributors: humanityco
 Tags: gdpr, ccpa, cookies, consent, privacy
 Requires at least: 4.9.6
 Requires PHP: 7.4
-Tested up to: 6.7
-Stable tag: 2.5.2
+Tested up to: 6.7.1
+Stable tag: 2.5.3
 License: MIT License
 License URI: http://opensource.org/licenses/MIT
 
@@ -122,6 +122,11 @@ Yes! The plugin + web appliaction version includes technical compliance features
 4. Cookie Compliance settings
 
 == Changelog ==
+
+= 2.5.3 =
+* Fix: Undefined huOptions variable
+* Fix: Prevent loading Privacy Consent modules without Cookie Compliance
+* Tweak: Updated Chart.js to 4.4.6
 
 = 2.5.2 =
 * Fix: Fatal error on pages with embedded contact form 7 forms

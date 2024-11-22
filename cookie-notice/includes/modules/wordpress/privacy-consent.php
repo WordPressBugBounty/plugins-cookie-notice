@@ -91,6 +91,10 @@ class Cookie_Notice_Modules_WordPress_Privacy_Consent {
 
 		add_action( 'admin_init', [ $this, 'register_source' ] );
 
+		// check compliance status
+		if ( $cn->get_status() !== 'active' )
+			return;
+
 		// comments
 		add_action( 'comment_form', [ $this, 'comment_form' ] );
 		add_action( 'comment_post', [ $this, 'comment_post' ], 10, 3 );
@@ -171,12 +175,13 @@ class Cookie_Notice_Modules_WordPress_Privacy_Consent {
 
 			echo '
 			<script>
-			var huFormData = ' . wp_json_encode( $form_data ) . ';
-			var huFormNode = document.querySelector( \'[id="commentform"]\' );
+			if ( typeof huOptions !== \'undefined\' ) {
+				var huFormData = ' . wp_json_encode( $form_data ) . ';
+				var huFormNode = document.querySelector( \'[id="commentform"]\' );
 
-			huFormData[\'node\'] = huFormNode;
-
-			huOptions[\'forms\'].push( huFormData );
+				huFormData[\'node\'] = huFormNode;
+				huOptions[\'forms\'].push( huFormData );
+			}
 			</script>';
 		}
 	}
@@ -256,12 +261,13 @@ class Cookie_Notice_Modules_WordPress_Privacy_Consent {
 
 			echo '
 			<script>
-			var huFormData = ' . wp_json_encode( $form_data ) . ';
-			var huFormNode = document.querySelector( \'[id="registerform"]\' );
+			if ( typeof huOptions !== \'undefined\' ) {
+				var huFormData = ' . wp_json_encode( $form_data ) . ';
+				var huFormNode = document.querySelector( \'[id="registerform"]\' );
 
-			huFormData[\'node\'] = huFormNode;
-
-			huOptions[\'forms\'].push( huFormData );
+				huFormData[\'node\'] = huFormNode;
+				huOptions[\'forms\'].push( huFormData );
+			}
 			</script>';
 		}
 	}

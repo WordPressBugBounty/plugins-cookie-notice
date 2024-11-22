@@ -178,7 +178,7 @@ form.cn-options-submit-disabled .submit {
     opacity: 0.7;
 }
 
-.cookie-notice-settings .privacy-section .cn-inactive table.wp-list-table {
+.cookie-notice-settings .privacy-section .cn-inactive .cn-privacy-consent-list-table-container {
     opacity: 0.5;
     filter: blur(3px);
     pointer-events: none;
