@@ -31,6 +31,7 @@ class Cookie_Notice_Modules_WPForms_Privacy_Consent {
 			'type'			=> 'dynamic',
 			'availability'	=> cn_is_plugin_active( 'wpforms', 'privacy-consent' ),
 			'status'		=> $cn->options['privacy_consent']['wpforms_active'],
+			'status_type'	=> $cn->options['privacy_consent']['wpforms_active_type'],
 			'forms'			=> []
 		];
 
@@ -72,8 +73,28 @@ class Cookie_Notice_Modules_WPForms_Privacy_Consent {
 	 */
 	public function validate( $input ) {
 		$input['wpforms_active'] = isset( $input['wpforms_active'] );
+		$input['wpforms_active_type'] = isset( $input['wpforms_active_type'] ) && in_array( $input['wpforms_active_type'], [ 'all', 'selected'], true ) ? $input['wpforms_active_type'] : 'all';
 
 		return $input;
+	}
+
+	/**
+	 * Check whether form exists.
+	 *
+	 * @param int $form_id
+	 *
+	 * @return bool
+	 */
+	public function form_exists( $form_id ) {
+		$query = new WP_Query( [
+			'p'				=> $form_id,
+			'post_status'	=> 'publish',
+			'post_type'		=> 'wpforms',
+			'fields'		=> 'ids',
+			'no_found_rows'	=> true
+		] );
+
+		return $query->have_posts();
 	}
 
 	/**
@@ -91,7 +112,6 @@ class Cookie_Notice_Modules_WPForms_Privacy_Consent {
 			'order'				=> $args['order'],
 			'orderby'			=> $args['orderby'],
 			'fields'			=> 'all',
-			'numberposts'		=> -1,
 			'posts_per_page'	=> 10,
 			'no_found_rows'		=> false,
 			'paged'				=> $args['page'],
@@ -129,12 +149,11 @@ class Cookie_Notice_Modules_WPForms_Privacy_Consent {
 	public function get_form( $args ) {
 		// get only published forms
 		$query = new WP_Query( [
-			'p'					=> (int) $args['form_id'],
-			'post_status'		=> 'publish',
-			'post_type'			=> 'wpforms',
-			'fields'			=> 'all',
-			'numberposts'		=> 1,
-			'no_found_rows'		=> true
+			'p'				=> (int) $args['form_id'],
+			'post_status'	=> 'publish',
+			'post_type'		=> 'wpforms',
+			'fields'		=> 'all',
+			'no_found_rows'	=> true
 		] );
 
 		// any forms?

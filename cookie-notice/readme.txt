@@ -4,7 +4,7 @@ Tags: gdpr, ccpa, cookies, consent, privacy
 Requires at least: 4.9.6
 Requires PHP: 7.4
 Tested up to: 6.7.1
-Stable tag: 2.5.3
+Stable tag: 2.5.4
 License: MIT License
 License URI: http://opensource.org/licenses/MIT
 
@@ -122,6 +122,10 @@ Yes! The plugin + web appliaction version includes technical compliance features
 4. Cookie Compliance settings
 
 == Changelog ==
+
+= 2.5.4 =
+* New: Option to handle all or selected forms in Privacy Consent
+* Fix: Undefined array key "form_type" when switching WooCommerce forms
 
 = 2.5.3 =
 * Fix: Undefined huOptions variable

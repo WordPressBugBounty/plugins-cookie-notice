@@ -41,6 +41,7 @@ class Cookie_Notice_Modules_WordPress_Privacy_Consent {
 			'type'			=> 'static',
 			'availability'	=> true,
 			'status'		=> $cn->options['privacy_consent']['wordpress_active'],
+			'status_type'	=> $cn->options['privacy_consent']['wordpress_active_type'],
 			'forms'			=> [
 				'wp_registration_form'	=> [
 					'name'				=> __( 'Registration Form', 'cookie-notice' ),
@@ -130,8 +131,20 @@ class Cookie_Notice_Modules_WordPress_Privacy_Consent {
 	 */
 	public function validate( $input ) {
 		$input['wordpress_active'] = isset( $input['wordpress_active'] );
+		$input['wordpress_active_type'] = isset( $input['wordpress_active_type'] ) && in_array( $input['wordpress_active_type'], [ 'all', 'selected'], true ) ? $input['wordpress_active_type'] : 'all';
 
 		return $input;
+	}
+
+	/**
+	 * Check whether form exists.
+	 *
+	 * @param string $form_id
+	 *
+	 * @return bool
+	 */
+	public function form_exists( $form_id ) {
+		return array_key_exists( $form_id, $this->source['forms'] );
 	}
 
 	/**
@@ -143,7 +156,7 @@ class Cookie_Notice_Modules_WordPress_Privacy_Consent {
 	 */
 	public function get_form( $args ) {
 		// invalid form?
-		if ( ! array_key_exists( $args['form_id'], $this->source['forms'] ) )
+		if ( ! $this->form_exists( $args['form_id'] ) )
 			return [];
 
 		$form_data = $this->source['forms'][$args['form_id']];

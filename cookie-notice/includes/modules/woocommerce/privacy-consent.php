@@ -40,6 +40,7 @@ class Cookie_Notice_Modules_WooCommerce_Privacy_Consent {
 			'type'			=> 'static',
 			'availability'	=> cn_is_plugin_active( 'woocommerce', 'privacy-consent' ),
 			'status'		=> $cn->options['privacy_consent']['woocommerce_active'],
+			'status_type'	=> $cn->options['privacy_consent']['woocommerce_active_type'],
 			'forms'			=> [
 				'wc_registration_form'	=> [
 					'name'				=> __( 'Registration Form', 'cookie-notice' ),
@@ -135,8 +136,21 @@ class Cookie_Notice_Modules_WooCommerce_Privacy_Consent {
 	 */
 	public function validate( $input ) {
 		$input['woocommerce_active'] = isset( $input['woocommerce_active'] );
+		$input['woocommerce_active_type'] = isset( $input['woocommerce_active_type'] ) && in_array( $input['woocommerce_active_type'], [ 'all', 'selected'], true ) ? $input['woocommerce_active_type'] : 'all';
+
 
 		return $input;
+	}
+
+	/**
+	 * Check whether form exists.
+	 *
+	 * @param string $form_id
+	 *
+	 * @return bool
+	 */
+	public function form_exists( $form_id ) {
+		return array_key_exists( $form_id, $this->source['forms'] );
 	}
 
 	/**
@@ -148,7 +162,7 @@ class Cookie_Notice_Modules_WooCommerce_Privacy_Consent {
 	 */
 	public function get_form( $args ) {
 		// invalid form?
-		if ( ! array_key_exists( $args['form_id'], $this->source['forms'] ) )
+		if ( ! $this->form_exists( $args['form_id'] ) )
 			return [];
 
 		$form_data = $this->source['forms'][$args['form_id']];

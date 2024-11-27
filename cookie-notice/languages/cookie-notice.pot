@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Cookie Notice\n"
-"POT-Creation-Date: 2024-11-20 16:49+0100\n"
+"POT-Creation-Date: 2024-11-27 18:01+0100\n"
 "PO-Revision-Date: 2015-03-24 11:30+0100\n"
 "Last-Translator: Bartosz Arendt <info@dfactory.eu>\n"
 "Language-Team: dFactory <info@dfactory.eu>\n"
@@ -16,131 +16,131 @@ msgstr ""
 "X-Poedit-SourceCharset: UTF-8\n"
 "X-Poedit-SearchPath-0: ..\n"
 
-#: ../cookie-notice.php:803 ../cookie-notice.php:805
+#: ../cookie-notice.php:808 ../cookie-notice.php:810
 msgid "New! Cookie Compliance introduces Privacy Consent."
 msgstr ""
 
-#: ../cookie-notice.php:803 ../cookie-notice.php:805
+#: ../cookie-notice.php:808 ../cookie-notice.php:810
 msgid "Privacy Consent is a key component of data protection regulations and policies that refers to the explicit and informed agreement given by an individual (data subject) for the collection, use, processing, and storage of their personal data. Whenever a user of your website submits personal information, for example an email, you should record and store their consent, specify what purposes or preferences it relates to, and keep a proof of their consent. With Cookie Compliance, you can easily implement Privacy Consent to your website through built-in support for WordPress or WooCommerce forms and popular form or newsletter plugins."
 msgstr ""
 
-#: ../cookie-notice.php:803
+#: ../cookie-notice.php:808
 msgid "Click \"Add Compliance features\" to run compliance check and sign up to Cookie Compliance."
 msgstr ""
 
-#: ../cookie-notice.php:803 ../includes/privacy-consent.php:266
+#: ../cookie-notice.php:808 ../includes/privacy-consent.php:262
 #: ../includes/settings.php:973 ../includes/settings.php:1029
 msgid "Add Compliance features"
 msgstr ""
 
-#: ../cookie-notice.php:803 ../cookie-notice.php:805
+#: ../cookie-notice.php:808 ../cookie-notice.php:810
 msgid "Dismiss Notice"
 msgstr ""
 
-#: ../cookie-notice.php:805
+#: ../cookie-notice.php:810
 msgid "Click \"Upgrade to Pro\" and make sure you record and store all cookie and privacy consent logs."
 msgstr ""
 
-#: ../cookie-notice.php:805 ../includes/settings.php:660
+#: ../cookie-notice.php:810 ../includes/settings.php:660
 msgid "Upgrade to Pro"
 msgstr ""
 
-#: ../cookie-notice.php:842
+#: ../cookie-notice.php:847
 msgid "Cookie Compliance Warning"
 msgstr ""
 
-#: ../cookie-notice.php:842
+#: ../cookie-notice.php:847
 #, php-format
 msgid "Your website has reached the <b>%1$s visits usage limit for the Cookie Compliance Basic Plan</b>. Compliance services such as Consent Record Storage, Autoblocking, and Consent Analytics have been deactivated until current usage cycle ends on %2$s."
 msgstr ""
 
-#: ../cookie-notice.php:842
+#: ../cookie-notice.php:847
 #, php-format
 msgid "To reactivate compliance services now, <a href=\"%s\" target=\"_blank\">upgrade your domain to a Pro plan.</a>"
 msgstr ""
 
-#: ../cookie-notice.php:866
+#: ../cookie-notice.php:871
 msgid "We Value Your Feedback"
 msgstr ""
 
-#: ../cookie-notice.php:866
+#: ../cookie-notice.php:871
 #, php-format
 msgid "Hi, you've been using <strong>Cookie Notice & Compliance for GDPR / CCPA</strong> for more than %s. We hope it has been a valuable addition to your WordPress site. We would be grateful if you could take a few minutes to share your thoughts by leaving a review."
 msgstr ""
 
-#: ../cookie-notice.php:866
+#: ../cookie-notice.php:871
 msgid "Thank you for helping us improve and grow!"
 msgstr ""
 
-#: ../cookie-notice.php:866
+#: ../cookie-notice.php:871
 msgid "Review"
 msgstr ""
 
-#: ../cookie-notice.php:866
+#: ../cookie-notice.php:871
 msgid "Delay"
 msgstr ""
 
-#: ../cookie-notice.php:866
+#: ../cookie-notice.php:871
 msgid "Dismiss"
 msgstr ""
 
-#: ../cookie-notice.php:1235
+#: ../cookie-notice.php:1240
 msgid "Cookie Notice & Compliance - Deactivation survey"
 msgstr ""
 
-#: ../cookie-notice.php:1300
+#: ../cookie-notice.php:1305
 msgid "Settings"
 msgstr ""
 
-#: ../cookie-notice.php:1315
+#: ../cookie-notice.php:1320
 msgid "Free Upgrade"
 msgstr ""
 
-#: ../cookie-notice.php:1341
+#: ../cookie-notice.php:1346
 msgid "We're sorry to see you go. Could you please tell us what happened?"
 msgstr ""
 
-#: ../cookie-notice.php:1345
+#: ../cookie-notice.php:1350
 msgid "I couldn't figure out how to make it work."
 msgstr ""
 
-#: ../cookie-notice.php:1346
+#: ../cookie-notice.php:1351
 msgid "I found another plugin to use for the same task."
 msgstr ""
 
-#: ../cookie-notice.php:1347
+#: ../cookie-notice.php:1352
 msgid "The Cookie Compliance banner is too big."
 msgstr ""
 
-#: ../cookie-notice.php:1348
+#: ../cookie-notice.php:1353
 msgid "The Cookie Compliance consent choices (Silver, Gold, Platinum) are confusing."
 msgstr ""
 
-#: ../cookie-notice.php:1349
+#: ../cookie-notice.php:1354
 msgid "The Cookie Compliance default settings are too strict."
 msgstr ""
 
-#: ../cookie-notice.php:1350
+#: ../cookie-notice.php:1355
 msgid "The web application user interface is not clear to me."
 msgstr ""
 
-#: ../cookie-notice.php:1351
+#: ../cookie-notice.php:1356
 msgid "Support isn't timely."
 msgstr ""
 
-#: ../cookie-notice.php:1352
+#: ../cookie-notice.php:1357
 msgid "Other"
 msgstr ""
 
-#: ../cookie-notice.php:1366
+#: ../cookie-notice.php:1371
 msgid "Cancel"
 msgstr ""
 
-#: ../cookie-notice.php:1367
+#: ../cookie-notice.php:1372
 msgid "Deactivate"
 msgstr ""
 
-#: ../cookie-notice.php:1368
+#: ../cookie-notice.php:1373
 msgid "Deactivate & Submit"
 msgstr ""
 
@@ -412,12 +412,12 @@ msgstr ""
 msgid "WooCommerce"
 msgstr ""
 
-#: ../includes/modules/woocommerce/privacy-consent.php:45
-#: ../includes/modules/wordpress/privacy-consent.php:46
+#: ../includes/modules/woocommerce/privacy-consent.php:46
+#: ../includes/modules/wordpress/privacy-consent.php:47
 msgid "Registration Form"
 msgstr ""
 
-#: ../includes/modules/woocommerce/privacy-consent.php:61
+#: ../includes/modules/woocommerce/privacy-consent.php:62
 msgid "Checkout Form"
 msgstr ""
 
@@ -425,7 +425,7 @@ msgstr ""
 msgid "WordPress"
 msgstr ""
 
-#: ../includes/modules/wordpress/privacy-consent.php:64
+#: ../includes/modules/wordpress/privacy-consent.php:65
 msgid "Comment Form"
 msgstr ""
 
@@ -484,28 +484,28 @@ msgstr ""
 msgid "No privacy consent logs found."
 msgstr ""
 
-#: ../includes/privacy-consent.php:193 ../includes/settings.php:744
+#: ../includes/privacy-consent.php:189 ../includes/settings.php:744
 #: ../includes/settings.php:789 ../includes/settings.php:808
 msgid "Compliance Integration"
 msgstr ""
 
-#: ../includes/privacy-consent.php:195 ../includes/settings.php:746
+#: ../includes/privacy-consent.php:191 ../includes/settings.php:746
 #: ../includes/settings.php:790
 msgid "Compliance Status"
 msgstr ""
 
-#: ../includes/privacy-consent.php:198
+#: ../includes/privacy-consent.php:194
 msgid "Privacy Consent Settings"
 msgstr ""
 
-#: ../includes/privacy-consent.php:235 ../includes/privacy-consent.php:248
-#: ../includes/privacy-consent.php:261 ../includes/settings.php:131
+#: ../includes/privacy-consent.php:231 ../includes/privacy-consent.php:244
+#: ../includes/privacy-consent.php:257 ../includes/settings.php:131
 #: ../includes/settings.php:327
 msgid "Privacy Consent"
 msgstr ""
 
-#: ../includes/privacy-consent.php:235 ../includes/privacy-consent.php:236
-#: ../includes/privacy-consent.php:237 ../includes/settings.php:934
+#: ../includes/privacy-consent.php:231 ../includes/privacy-consent.php:232
+#: ../includes/privacy-consent.php:233 ../includes/settings.php:934
 #: ../includes/settings.php:935 ../includes/settings.php:936
 #: ../includes/settings.php:937 ../includes/settings.php:948
 #: ../includes/settings.php:967 ../includes/settings.php:1001
@@ -513,69 +513,77 @@ msgstr ""
 msgid "Active"
 msgstr ""
 
-#: ../includes/privacy-consent.php:236 ../includes/privacy-consent.php:249
-#: ../includes/privacy-consent.php:262
+#: ../includes/privacy-consent.php:232 ../includes/privacy-consent.php:245
+#: ../includes/privacy-consent.php:258
 msgid "Privacy Consent Storage"
 msgstr ""
 
-#: ../includes/privacy-consent.php:237 ../includes/privacy-consent.php:250
-#: ../includes/privacy-consent.php:263 ../includes/welcome.php:421
+#: ../includes/privacy-consent.php:233 ../includes/privacy-consent.php:246
+#: ../includes/privacy-consent.php:259 ../includes/welcome.php:421
 msgid "Proof-of-Consent"
 msgstr ""
 
-#: ../includes/privacy-consent.php:240 ../includes/settings.php:940
+#: ../includes/privacy-consent.php:236 ../includes/settings.php:940
 #: ../includes/settings.php:1005
 msgid "Log in & Configure"
 msgstr ""
 
-#: ../includes/privacy-consent.php:241 ../includes/settings.php:941
+#: ../includes/privacy-consent.php:237 ../includes/settings.php:941
 #: ../includes/settings.php:1006
 msgid "Log in to the Cookie Compliance&trade; dashboard to explore, configure and manage its functionalities."
 msgstr ""
 
-#: ../includes/privacy-consent.php:248 ../includes/privacy-consent.php:249
-#: ../includes/privacy-consent.php:250 ../includes/settings.php:949
+#: ../includes/privacy-consent.php:244 ../includes/privacy-consent.php:245
+#: ../includes/privacy-consent.php:246 ../includes/settings.php:949
 #: ../includes/settings.php:950 ../includes/settings.php:951
 #: ../includes/settings.php:1013 ../includes/settings.php:1014
 msgid "Pending"
 msgstr ""
 
-#: ../includes/privacy-consent.php:253 ../includes/settings.php:954
+#: ../includes/privacy-consent.php:249 ../includes/settings.php:954
 #: ../includes/settings.php:1017
 msgid "Log in & configure"
 msgstr ""
 
-#: ../includes/privacy-consent.php:254 ../includes/settings.php:955
+#: ../includes/privacy-consent.php:250 ../includes/settings.php:955
 #: ../includes/settings.php:1018
 msgid "Log in to the Cookie Compliance&trade; web application and complete the setup process."
 msgstr ""
 
-#: ../includes/privacy-consent.php:261 ../includes/privacy-consent.php:262
-#: ../includes/privacy-consent.php:263 ../includes/settings.php:968
+#: ../includes/privacy-consent.php:257 ../includes/privacy-consent.php:258
+#: ../includes/privacy-consent.php:259 ../includes/settings.php:968
 #: ../includes/settings.php:969 ../includes/settings.php:970
 #: ../includes/settings.php:1025 ../includes/settings.php:1026
 msgid "Inactive"
 msgstr ""
 
-#: ../includes/privacy-consent.php:267 ../includes/settings.php:1030
+#: ../includes/privacy-consent.php:263 ../includes/settings.php:1030
 #, php-format
 msgid "Sign up to %s and enable Privacy Consent support."
 msgstr ""
 
-#: ../includes/privacy-consent.php:290
+#: ../includes/privacy-consent.php:287
 #, php-format
 msgid "Enable to apply privacy consent support for %s forms."
 msgstr ""
 
-#: ../includes/privacy-consent.php:442
+#: ../includes/privacy-consent.php:291
+msgid "Apply to all forms"
+msgstr ""
+
+#: ../includes/privacy-consent.php:292
+msgid "Apply to selected forms"
+msgstr ""
+
+#: ../includes/privacy-consent.php:444
 msgid "Search"
 msgstr ""
 
-#: ../includes/privacy-consent.php:575 ../includes/settings.php:1992
+#: ../includes/privacy-consent.php:590 ../includes/settings.php:1992
 msgid "Settings saved."
 msgstr ""
 
-#: ../includes/privacy-consent.php:579 ../includes/settings.php:1996
+#: ../includes/privacy-consent.php:594 ../includes/settings.php:1996
 msgid "Settings restored to defaults."
 msgstr ""
 

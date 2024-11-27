@@ -283,10 +283,15 @@ class Cookie_Notice_Privacy_Consent {
 
 		echo '
 		<fieldset id="cn_privacy_consent_' . esc_attr( $source['id'] ) . '" class="cn-' . ( $source['availability'] ? '' : 'un' ) . 'available cn-' . ( $status === 'active' ? 'active' : 'inactive' ) . '">
-			<label><input class="cn-privacy-consent-status" type="checkbox" name="' . esc_attr( 'cookie_notice_privacy_consent[' . $source['id'] . '_active]' ) . '" value="1" data-source="' . esc_attr( $source['id'] ) . '" ' . checked( true, $source['status'] && $source['availability'], false ) . ' ' . disabled( $status === 'active' && $source['availability'], false, false ) . ' />' . sprintf( esc_html__( 'Enable to apply privacy consent support for %s forms.', 'cookie-notice' ), '<strong>' . $source['name'] . '</strong>' ) . '</label>';
-
-		echo '
-			<div class="cn-privacy-consent-list-table-container"' . ( $source['status'] ? '' : ' style="display: none"' ) . '>';
+			<div>
+				<label><input class="cn-privacy-consent-status" type="checkbox" name="' . esc_attr( 'cookie_notice_privacy_consent[' . $source['id'] . '_active]' ) . '" value="1" data-source="' . esc_attr( $source['id'] ) . '" ' . checked( true, $source['status'] && $source['availability'], false ) . ' ' . disabled( $status === 'active' && $source['availability'], false, false ) . ' />' . sprintf( esc_html__( 'Enable to apply privacy consent support for %s forms.', 'cookie-notice' ), '<strong>' . $source['name'] . '</strong>' ) . '</label>
+			</div>
+			<div class="cn-privacy-consent-options-container"' . ( $source['status'] && $source['availability'] ? '' : ' style="display: none"' ) . '>
+				<div>
+					<label><input class="cn-privacy-consent-active-type" type="radio" name="' . esc_attr( 'cookie_notice_privacy_consent[' . $source['id'] . '_active_type]' ) . '" value="all" ' . checked( 'all', $source['status_type'], false ) . ' />' . esc_html__( 'Apply to all forms', 'cookie-notice' ) . '</label>
+					<label><input class="cn-privacy-consent-active-type" type="radio" name="' . esc_attr( 'cookie_notice_privacy_consent[' . $source['id'] . '_active_type]' ) . '" value="selected" ' . checked( 'selected', $source['status_type'], false ) . ' />' . esc_html__( 'Apply to selected forms', 'cookie-notice' ) . '</label>
+				</div>
+				<div class="cn-privacy-consent-list-table-container apply-' . esc_attr( $source['status_type'] ) . '">';
 
 		if ( $source['availability'] ) {
 			// initialize list table
@@ -314,6 +319,7 @@ class Cookie_Notice_Privacy_Consent {
 		}
 
 		echo '
+				</div>
 			</div>
 		</fieldset>';
 	}
@@ -462,13 +468,8 @@ class Cookie_Notice_Privacy_Consent {
 			elseif ( $this->sources[$source]['id_type'] === 'string' )
 				$form_id = (string) sanitize_key( $_POST['form_id'] );
 
-			// get form data
-			$form_data = $this->instances[$source]->get_form( [
-				'form_id' => $form_id
-			] );
-
 			// valid form?
-			if ( ! empty( $form_data ) ) {
+			if ( $this->instances[$source]->form_exists( $form_id ) ) {
 				// inactive source?
 				if ( ! $this->sources[$source]['status'] ) {
 					// get privacy consent data
@@ -500,7 +501,7 @@ class Cookie_Notice_Privacy_Consent {
 	/**
 	 * Check whether form is active.
 	 *
-	 * @param int $form_id
+	 * @param int|string $form_id
 	 * @param string $source
 	 *
 	 * @return bool
@@ -509,8 +510,21 @@ class Cookie_Notice_Privacy_Consent {
 		// sanitize source
 		$source = sanitize_key( $source );
 
+		// unavailable source?
 		if ( ! array_key_exists( $source, $this->sources ) )
 			return false;
+
+		// inactive source?
+		if ( ! $this->sources[$source]['availability'] )
+			return false;
+
+		// disabled source?
+		if ( ! $this->sources[$source]['status'] )
+			return false;
+
+		// allow all forms?
+		if ( $this->sources[$source]['status_type'] === 'all' )
+			return true;
 
 		// sanitize form id
 		if ( $this->sources[$source]['id_type'] === 'integer' )
@@ -521,8 +535,8 @@ class Cookie_Notice_Privacy_Consent {
 		// get source data
 		$data = get_option( 'cookie_notice_privacy_consent_' . $source, [] );
 
-		// active source?
-		if ( $this->sources[$source]['availability'] && array_key_exists( $form_id, $data ) && array_key_exists( 'status', $data[$form_id] ) )
+		// valid form?
+		if ( array_key_exists( $form_id, $data ) && array_key_exists( 'status', $data[$form_id] ) )
 			return $data[$form_id]['status'];
 		else
 			return false;

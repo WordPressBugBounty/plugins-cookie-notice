@@ -31,6 +31,7 @@ class Cookie_Notice_Modules_Mailchimp_Privacy_Consent {
 			'type'			=> 'dynamic',
 			'availability'	=> cn_is_plugin_active( 'mailchimp', 'privacy-consent' ),
 			'status'		=> $cn->options['privacy_consent']['mailchimp_active'],
+			'status_type'	=> $cn->options['privacy_consent']['mailchimp_active_type'],
 			'forms'			=> []
 		];
 
@@ -73,8 +74,28 @@ class Cookie_Notice_Modules_Mailchimp_Privacy_Consent {
 	 */
 	public function validate( $input ) {
 		$input['mailchimp_active'] = isset( $input['mailchimp_active'] );
+		$input['mailchimp_active_type'] = isset( $input['mailchimp_active_type'] ) && in_array( $input['mailchimp_active_type'], [ 'all', 'selected'], true ) ? $input['mailchimp_active_type'] : 'all';
 
 		return $input;
+	}
+
+	/**
+	 * Check whether form exists.
+	 *
+	 * @param int $form_id
+	 *
+	 * @return bool
+	 */
+	public function form_exists( $form_id ) {
+		$query = new WP_Query( [
+			'p'				=> $form_id,
+			'post_status'	=> 'publish',
+			'post_type'		=> 'mc4wp-form',
+			'fields'		=> 'ids',
+			'no_found_rows'	=> true
+		] );
+
+		return $query->have_posts();
 	}
 
 	/**
@@ -92,7 +113,6 @@ class Cookie_Notice_Modules_Mailchimp_Privacy_Consent {
 			'order'				=> $args['order'],
 			'orderby'			=> $args['orderby'],
 			'fields'			=> 'all',
-			'numberposts'		=> -1,
 			'posts_per_page'	=> 10,
 			'no_found_rows'		=> false,
 			'paged'				=> $args['page'],
@@ -130,12 +150,11 @@ class Cookie_Notice_Modules_Mailchimp_Privacy_Consent {
 	public function get_form( $args ) {
 		// get only published forms
 		$query = new WP_Query( [
-			'p'					=> (int) $args['form_id'],
-			'post_status'		=> 'publish',
-			'post_type'			=> 'mc4wp-form',
-			'fields'			=> 'all',
-			'numberposts'		=> 1,
-			'no_found_rows'		=> true
+			'p'				=> (int) $args['form_id'],
+			'post_status'	=> 'publish',
+			'post_type'		=> 'mc4wp-form',
+			'fields'		=> 'all',
+			'no_found_rows'	=> true
 		] );
 
 		// any forms?

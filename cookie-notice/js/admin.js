@@ -260,13 +260,30 @@
 					if ( checkbox.is( ':checked' ) ) {
 						let source = checkbox.data( 'source' );
 
-						checkbox.closest( 'fieldset' ).find( '.cn-privacy-consent-list-table-container' ).slideDown( 'fast' );
+						checkbox.closest( 'fieldset' ).find( '.cn-privacy-consent-options-container' ).slideDown( 'fast' );
 
 						// dynamic source?
 						if ( cnArgs.privacyConsentSources[source].type === 'dynamic' )
 							cnListTable.display( source );
 					} else
-						checkbox.closest( 'fieldset' ).find( '.cn-privacy-consent-list-table-container' ).slideUp( 'fast' );
+						checkbox.closest( 'fieldset' ).find( '.cn-privacy-consent-options-container' ).slideUp( 'fast' );
+				} );
+				
+				// privacy consent active type
+				$( 'input.cn-privacy-consent-active-type' ).on( 'change', function( e ) {
+					let radio = $( e.target );
+					let target = radio.closest( 'fieldset' ).find( '.cn-privacy-consent-list-table-container' );
+					let value = $( '[name="' + $( radio ).attr('name') + '"]:checked' ).val();
+					
+					if ( target.length > 0 ) {
+						if ( value === 'all' ) {
+							target.addClass( 'apply-all' );
+							target.removeClass( 'apply-selected' );
+						} else {
+							target.addClass( 'apply-selected' );
+							target.removeClass( 'apply-all' );
+						}
+					}
 				} );
 			}
 

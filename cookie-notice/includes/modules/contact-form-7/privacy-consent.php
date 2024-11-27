@@ -31,6 +31,7 @@ class Cookie_Notice_Modules_ContactForm7_Privacy_Consent {
 			'type'			=> 'dynamic',
 			'availability'	=> cn_is_plugin_active( 'contactform7', 'privacy-consent' ),
 			'status'		=> $cn->options['privacy_consent']['contactform7_active'],
+			'status_type'	=> $cn->options['privacy_consent']['contactform7_active_type'],
 			'forms'			=> []
 		];
 
@@ -72,8 +73,28 @@ class Cookie_Notice_Modules_ContactForm7_Privacy_Consent {
 	 */
 	public function validate( $input ) {
 		$input['contactform7_active'] = isset( $input['contactform7_active'] );
+		$input['contactform7_active_type'] = isset( $input['contactform7_active_type'] ) && in_array( $input['contactform7_active_type'], [ 'all', 'selected'], true ) ? $input['contactform7_active_type'] : 'all';
 
 		return $input;
+	}
+
+	/**
+	 * Check whether form exists.
+	 *
+	 * @param int $form_id
+	 *
+	 * @return bool
+	 */
+	public function form_exists( $form_id ) {
+		$query = new WP_Query( [
+			'p'				=> $form_id,
+			'post_status'	=> 'publish',
+			'post_type'		=> 'wpcf7_contact_form',
+			'fields'		=> 'ids',
+			'no_found_rows'	=> true
+		] );
+
+		return $query->have_posts();
 	}
 
 	/**
@@ -91,7 +112,6 @@ class Cookie_Notice_Modules_ContactForm7_Privacy_Consent {
 			'order'				=> $args['order'],
 			'orderby'			=> $args['orderby'],
 			'fields'			=> 'all',
-			'numberposts'		=> -1,
 			'posts_per_page'	=> 10,
 			'no_found_rows'		=> false,
 			'paged'				=> $args['page'],
@@ -133,7 +153,6 @@ class Cookie_Notice_Modules_ContactForm7_Privacy_Consent {
 			'post_status'		=> 'publish',
 			'post_type'			=> 'wpcf7_contact_form',
 			'fields'			=> 'all',
-			'numberposts'		=> 1,
 			'no_found_rows'		=> true
 		] );
 
