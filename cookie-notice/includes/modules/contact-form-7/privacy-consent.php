@@ -72,8 +72,11 @@ class Cookie_Notice_Modules_ContactForm7_Privacy_Consent {
 	 * @return array
 	 */
 	public function validate( $input ) {
+		// get main instance
+		$cn = Cookie_Notice();
+
 		$input['contactform7_active'] = isset( $input['contactform7_active'] );
-		$input['contactform7_active_type'] = isset( $input['contactform7_active_type'] ) && in_array( $input['contactform7_active_type'], [ 'all', 'selected'], true ) ? $input['contactform7_active_type'] : 'all';
+		$input['contactform7_active_type'] = isset( $input['contactform7_active_type'] ) && in_array( $input['contactform7_active_type'], $cn->privacy_consent->form_active_types, true ) ? $input['contactform7_active_type'] : $cn->defaults['privacy_consent']['contactform7_active_type'];
 
 		return $input;
 	}

@@ -135,8 +135,11 @@ class Cookie_Notice_Modules_WooCommerce_Privacy_Consent {
 	 * @return array
 	 */
 	public function validate( $input ) {
+		// get main instance
+		$cn = Cookie_Notice();
+
 		$input['woocommerce_active'] = isset( $input['woocommerce_active'] );
-		$input['woocommerce_active_type'] = isset( $input['woocommerce_active_type'] ) && in_array( $input['woocommerce_active_type'], [ 'all', 'selected'], true ) ? $input['woocommerce_active_type'] : 'all';
+		$input['woocommerce_active_type'] = isset( $input['woocommerce_active_type'] ) && in_array( $input['woocommerce_active_type'], $cn->privacy_consent->form_active_types, true ) ? $input['woocommerce_active_type'] : $cn->defaults['privacy_consent']['woocommerce_active_type'];
 
 
 		return $input;

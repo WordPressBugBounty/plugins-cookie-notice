@@ -130,8 +130,11 @@ class Cookie_Notice_Modules_WordPress_Privacy_Consent {
 	 * @return array
 	 */
 	public function validate( $input ) {
+		// get main instance
+		$cn = Cookie_Notice();
+
 		$input['wordpress_active'] = isset( $input['wordpress_active'] );
-		$input['wordpress_active_type'] = isset( $input['wordpress_active_type'] ) && in_array( $input['wordpress_active_type'], [ 'all', 'selected'], true ) ? $input['wordpress_active_type'] : 'all';
+		$input['wordpress_active_type'] = isset( $input['wordpress_active_type'] ) && in_array( $input['wordpress_active_type'], $cn->privacy_consent->form_active_types, true ) ? $input['wordpress_active_type'] : $cn->defaults['privacy_consent']['wordpress_active_type'];
 
 		return $input;
 	}

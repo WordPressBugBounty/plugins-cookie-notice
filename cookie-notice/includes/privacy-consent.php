@@ -12,6 +12,7 @@ class Cookie_Notice_Privacy_Consent {
 
 	private $sources = [];
 	private $instances = [];
+	public $form_active_types = [];
 
 	/**
 	 * Class constructor.
@@ -22,6 +23,7 @@ class Cookie_Notice_Privacy_Consent {
 		// actions
 		add_action( 'plugins_loaded', [ $this, 'add_settings' ] );
 		add_action( 'init', [ $this, 'init_privacy_consent' ], 5 );
+		add_action( 'init', [ $this, 'load_defaults' ] );
 		add_action( 'admin_init', [ $this, 'register_settings' ] );
 	}
 
@@ -149,6 +151,18 @@ class Cookie_Notice_Privacy_Consent {
 	}
 
 	/**
+	 * Load default data.
+	 *
+	 * @return void
+	 */
+	public function load_defaults() {
+		$this->form_active_types = [
+			'all'		=> __( 'Apply to all forms', 'cookie-notice' ),
+			'selected'	=> __( 'Apply to selected forms', 'cookie-notice' )
+		];
+	}
+
+	/**
 	 * Add settings.
 	 *
 	 * @return void
@@ -176,15 +190,7 @@ class Cookie_Notice_Privacy_Consent {
 	 */
 	public function register_settings() {
 		// register privacy consent settings
-		register_setting(
-			'cookie_notice_privacy_consent',
-			'cookie_notice_privacy_consent',
-			[
-				'type'				=> 'array',
-				'sanitize_callback'	=> [ $this, 'validate_options' ],
-				'default'			=> Cookie_Notice()->defaults['privacy_consent']
-			]
-		);
+		register_setting( 'cookie_notice_privacy_consent', 'cookie_notice_privacy_consent', [ $this, 'validate_options' ] );
 
 		add_settings_section( 'cookie_notice_privacy_consent_status', esc_html__( 'Compliance Integration', 'cookie-notice' ), '', 'cookie_notice_privacy_consent', [ 'before_section' => '<div class="%s">', 'after_section' => '</div>', 'section_class' => 'cn-section-container compliance-section' ] );
 
@@ -287,9 +293,14 @@ class Cookie_Notice_Privacy_Consent {
 				<label><input class="cn-privacy-consent-status" type="checkbox" name="' . esc_attr( 'cookie_notice_privacy_consent[' . $source['id'] . '_active]' ) . '" value="1" data-source="' . esc_attr( $source['id'] ) . '" ' . checked( true, $source['status'] && $source['availability'], false ) . ' ' . disabled( $status === 'active' && $source['availability'], false, false ) . ' />' . sprintf( esc_html__( 'Enable to apply privacy consent support for %s forms.', 'cookie-notice' ), '<strong>' . $source['name'] . '</strong>' ) . '</label>
 			</div>
 			<div class="cn-privacy-consent-options-container"' . ( $source['status'] && $source['availability'] ? '' : ' style="display: none"' ) . '>
-				<div>
-					<label><input class="cn-privacy-consent-active-type" type="radio" name="' . esc_attr( 'cookie_notice_privacy_consent[' . $source['id'] . '_active_type]' ) . '" value="all" ' . checked( 'all', $source['status_type'], false ) . ' />' . esc_html__( 'Apply to all forms', 'cookie-notice' ) . '</label>
-					<label><input class="cn-privacy-consent-active-type" type="radio" name="' . esc_attr( 'cookie_notice_privacy_consent[' . $source['id'] . '_active_type]' ) . '" value="selected" ' . checked( 'selected', $source['status_type'], false ) . ' />' . esc_html__( 'Apply to selected forms', 'cookie-notice' ) . '</label>
+				<div>';
+
+		foreach ( $this->form_active_types as $active_type => $label ) {
+			echo '
+					<label><input class="cn-privacy-consent-active-type" type="radio" name="' . esc_attr( 'cookie_notice_privacy_consent[' . $source['id'] . '_active_type]' ) . '" value="' . esc_attr( $active_type ) . '" ' . checked( $active_type, $source['status_type'], false ) . ' />' . esc_html( $label ) . '</label>';
+		}
+
+		echo '
 				</div>
 				<div class="cn-privacy-consent-list-table-container apply-' . esc_attr( $source['status_type'] ) . '">';
 

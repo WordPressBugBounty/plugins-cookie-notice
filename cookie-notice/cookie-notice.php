@@ -2,7 +2,7 @@
 /*
 Plugin Name: Cookie Notice & Compliance for GDPR / CCPA
 Description: Cookie Notice allows you to you elegantly inform users that your site uses cookies and helps you comply with GDPR, CCPA and other data privacy laws.
-Version: 2.5.4
+Version: 2.5.5
 Author: Hu-manity.co
 Author URI: https://hu-manity.co/
 Plugin URI: https://cookie-compliance.co/
@@ -12,7 +12,7 @@ Text Domain: cookie-notice
 Domain Path: /languages
 
 Cookie Notice
-Copyright (C) 2024, Hu-manity.co - info@hu-manity.co
+Copyright (C) 2025, Hu-manity.co - info@hu-manity.co
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -29,7 +29,7 @@ if ( ! defined( 'ABSPATH' ) )
  * Cookie Notice class.
  *
  * @class Cookie_Notice
- * @version	2.5.3
+ * @version	2.5.5
  */
 class Cookie_Notice {
 
@@ -147,7 +147,7 @@ class Cookie_Notice {
 			'threshold_exceeded'	=> false,
 			'activation_datetime'	=> 0
 		],
-		'version'	=> '2.5.4'
+		'version'	=> '2.5.5'
 	];
 
 	/**

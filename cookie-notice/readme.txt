@@ -4,7 +4,7 @@ Tags: gdpr, ccpa, cookies, consent, privacy
 Requires at least: 4.9.6
 Requires PHP: 7.4
 Tested up to: 6.7.1
-Stable tag: 2.5.4
+Stable tag: 2.5.5
 License: MIT License
 License URI: http://opensource.org/licenses/MIT
 
@@ -122,6 +122,10 @@ Yes! The plugin + web appliaction version includes technical compliance features
 4. Cookie Compliance settings
 
 == Changelog ==
+
+= 2.5.5 =
+* New: Added Privacy Consent activity chart
+* Fix: Hummingbird caching plugin compatibility
 
 = 2.5.4 =
 * New: Option to handle all or selected forms in Privacy Consent
@@ -542,5 +546,5 @@ Initial release
 
 == Upgrade Notice ==
 
-= 2.5.0 =
-* New: Introducing Privacy Consent
+= 2.5.5 =
+New: Added Privacy Consent activity chart, Fix: Hummingbird caching plugin compatibility

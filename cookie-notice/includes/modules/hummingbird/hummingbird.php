@@ -20,7 +20,7 @@ class Cookie_Notice_Modules_Hummingbird {
 	 * @return void
 	 */
 	public function __construct() {
-		add_action( 'plugins_loaded', [ $this, 'load_module' ], 11 );
+		add_action( 'init', [ $this, 'load_module' ] );
 	}
 
 	/**
@@ -36,10 +36,13 @@ class Cookie_Notice_Modules_Hummingbird {
 		// get caching module
 		$mod = Utils::get_module( 'page_cache' );
 
-		// is caching enabled?
-		if ( $mod->is_active() ) {
-			// delete cache files after updating settings or status
-			add_action( 'cn_configuration_updated', [ $this, 'delete_cache' ] );
+		// valid object?
+		if ( is_a( $mod, 'Hummingbird\Core\Modules\Page_Cache' ) && method_exists( $mod, 'is_active' ) ) {
+			// is caching enabled?
+			if ( $mod->is_active() ) {
+				// delete cache files after updating settings or status
+				add_action( 'cn_configuration_updated', [ $this, 'delete_cache' ] );
+			}
 		}
 	}
 

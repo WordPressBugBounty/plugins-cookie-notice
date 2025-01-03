@@ -74,8 +74,8 @@ class Cookie_Notice_Consent_Logs {
 
 		// initialize list table
 		$list_table = new Cookie_Notice_Consent_Logs_List_Table( [
-			'plural'	=> 'cn-cookie-consent-logs',
-			'singular'	=> 'cn-cookie-consent-log',
+			'plural'	=> 'cn-cookie-consent-day-logs',
+			'singular'	=> 'cn-cookie-consent-day-log',
 			'ajax'		=> false
 		] );
 

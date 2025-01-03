@@ -73,8 +73,11 @@ class Cookie_Notice_Modules_Mailchimp_Privacy_Consent {
 	 * @return array
 	 */
 	public function validate( $input ) {
+		// get main instance
+		$cn = Cookie_Notice();
+
 		$input['mailchimp_active'] = isset( $input['mailchimp_active'] );
-		$input['mailchimp_active_type'] = isset( $input['mailchimp_active_type'] ) && in_array( $input['mailchimp_active_type'], [ 'all', 'selected'], true ) ? $input['mailchimp_active_type'] : 'all';
+		$input['mailchimp_active_type'] = isset( $input['mailchimp_active_type'] ) && in_array( $input['mailchimp_active_type'], $cn->privacy_consent->form_active_types, true ) ? $input['mailchimp_active_type'] : $cn->defaults['privacy_consent']['mailchimp_active_type'];
 
 		return $input;
 	}

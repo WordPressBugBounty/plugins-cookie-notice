@@ -148,8 +148,22 @@ class Cookie_Notice_Dashboard {
 
 		$chartdata = [
 			'usage' => [
-				'type'	=> 'doughnut',
-				'data'	=> [
+				'type'		=> 'doughnut',
+				'options'	=> [
+					'responsive'	=> true,
+					'plugins'		=> [
+						'legend' => [
+							'position' => 'top'
+						]
+					],
+					'hover'			=> [
+						'mode' => 'label'
+					],
+					'layout'		=> [
+						'padding' => 0
+					]
+				],
+				'data'		=> [
 					'labels'	=> [
 						_x( 'Used', 'threshold limit', 'cookie-notice' ),
 						_x( 'Free', 'threshold limit', 'cookie-notice' )
@@ -166,7 +180,63 @@ class Cookie_Notice_Dashboard {
 				]
 			],
 			'consent-activity' => [
-				'type'	=> 'line'
+				'type'		=> 'line',
+				'options'	=> [
+					'maintainAspectRatio'	=> false,
+					'responsive'			=> true,
+					'scales'				=> [
+						'x'	=> [
+							'display'	=> true,
+							'title'		=> [
+								'display' => false
+							]
+						],
+						'y'	=> [
+							'display'		=> true,
+							'grace'			=> 0,
+							'beginAtZero'	=> true,
+							'title'			=> [
+								'display' => false
+							],
+							'ticks'			=> [
+								'precision'		=> 0,
+								'maxTicksLimit'	=> 12
+							]
+						]
+					]
+				]
+			],
+			'privacy-consent-logs-activity' => [
+				'type'		=> 'line',
+				'options'	=> [
+					'maintainAspectRatio'	=> false,
+					'responsive'			=> true,
+					'scales'				=> [
+						'x'	=> [
+							'display'	=> true,
+							'title'		=> [
+								'display' => false
+							]
+						],
+						'y'	=> [
+							'display'		=> true,
+							'grace'			=> 0,
+							'beginAtZero'	=> true,
+							'title'			=> [
+								'display' => false
+							],
+							'ticks'			=> [
+								'precision'		=> 0,
+								'maxTicksLimit'	=> 12
+							]
+						]
+					],
+					'plugins' =>  [
+						'legend' => [
+							'display' => false
+						]
+					]
+				]
 			]
 		];
 
@@ -177,7 +247,7 @@ class Cookie_Notice_Dashboard {
 		elseif ( $threshold_used == 100 )
 			$chartdata['usage']['data']['datasets'][0]['backgroundColor'][0] = 'rgb(220, 53, 69)';
 
-		$data = [
+		$consent_activity_data = [
 			'labels' => [],
 			'datasets' => [
 				0 => [
@@ -222,28 +292,67 @@ class Cookie_Notice_Dashboard {
 		// generate chart days
 		$chart_date_format = 'j/m';
 
-		for ( $i = 30; $i >= 0; $i-- ) {
+		for ( $i = 29; $i >= 0; $i-- ) {
 			// set label
-			$data['labels'][] = date( $chart_date_format, strtotime( '-'. $i .' days' ) );
+			$consent_activity_data['labels'][] = date( $chart_date_format, strtotime( '-'. ( $i + 1 ) .' days' ) );
 
 			// reset datasets
-			$data['datasets'][0]['data'][] = 0;
-			$data['datasets'][1]['data'][] = 0;
-			$data['datasets'][2]['data'][] = 0;
+			$consent_activity_data['datasets'][0]['data'][] = 0;
+			$consent_activity_data['datasets'][1]['data'][] = 0;
+			$consent_activity_data['datasets'][2]['data'][] = 0;
 		}
 
 		if ( ! empty( $analytics['consentActivities'] ) && is_array( $analytics['consentActivities'] ) ) {
 			// set consent records in charts days
 			foreach ( $analytics['consentActivities'] as $index => $entry ) {
 				$time = date_i18n( $chart_date_format, strtotime( $entry->eventdt ) );
-				$i = array_search( $time, $data['labels'] );
+				$i = array_search( $time, $consent_activity_data['labels'] );
 
-				if ( $i )
-					$data['datasets'][(int) $entry->consentlevel - 1]['data'][$i] = (int) $entry->totalrecd;
+				if ( $i !== false )
+					$consent_activity_data['datasets'][(int) $entry->consentlevel - 1]['data'][$i] = (int) $entry->totalrecd;
 			}
 		}
 
-		$chartdata['consent-activity']['data'] = $data;
+		$chartdata['consent-activity']['data'] = $consent_activity_data;
+
+		$privacy_consent_logs_activity_data = [
+			'labels' => [],
+			'datasets' => [
+				0 => [
+					'label'					=> __( 'Privacy Content Logs', 'cookie-notice' ),
+					'data'					=> [],
+					'fill'					=> true,
+					'backgroundColor'		=> 'rgba(32, 193, 158, 0.3)',
+					'borderColor'			=> 'rgba(32, 193, 158, 1)',
+					'borderWidth'			=> 1.2,
+					'borderDash'			=> [],
+					'pointBorderColor'		=> 'rgba(32, 193, 158, 1)',
+					'pointBackgroundColor'	=> 'rgba(255, 255, 255, 1)',
+					'pointBorderWidth'		=> 1.2
+				]
+			]
+		];
+
+		for ( $i = 29; $i >= 0; $i-- ) {
+			// set label
+			$privacy_consent_logs_activity_data['labels'][] = date( $chart_date_format, strtotime( '-'. ( $i + 1 ) .' days' ) );
+
+			// reset dataset
+			$privacy_consent_logs_activity_data['datasets'][0]['data'][] = 0;
+		}
+
+		if ( ! empty( $analytics['privacyActivities'] ) && is_array( $analytics['privacyActivities'] ) ) {
+			// set consent records in charts days
+			foreach ( $analytics['privacyActivities'] as $index => $entry ) {
+				$time = date_i18n( $chart_date_format, strtotime( $entry->date ) );
+				$i = array_search( $time, $privacy_consent_logs_activity_data['labels'] );
+
+				if ( $i !== false )
+					$privacy_consent_logs_activity_data['datasets'][0]['data'][$i] = (int) $entry->count;
+			}
+		}
+
+		$chartdata['privacy-consent-logs-activity']['data'] = $privacy_consent_logs_activity_data;
 
 		// prepare script data
 		$script_data = [
@@ -295,8 +404,13 @@ class Cookie_Notice_Dashboard {
 				],
 				[
 					'id'			=> 'consent-activity',
-					'title'			=> esc_html__( 'Consent Activity', 'cookie-notice' ),
-					'description'	=> esc_html__( 'Displays the chart of the domain consent activity in the last 30 days.', 'cookie-notice' )
+					'title'			=> esc_html__( 'Cookie Consent Activity', 'cookie-notice' ),
+					'description'	=> esc_html__( 'Displays the chart of the domain cookie consent activity in the last 30 days.', 'cookie-notice' )
+				],
+				[
+					'id'			=> 'privacy-consent-logs-activity',
+					'title'			=> esc_html__( 'Privacy Consent Activity', 'cookie-notice' ),
+					'description'	=> esc_html__( 'Displays the chart of the domain privacy consent activity in the last 30 days.', 'cookie-notice' )
 				]
 			];
 
@@ -474,6 +588,15 @@ class Cookie_Notice_Dashboard {
 				break;
 
 			case 'consent-activity':
+				$html .= '
+					<div id="cn-dashboard-' . esc_attr( $item ) . '">
+						<div id="cn-' . esc_attr( $item ) . '-chart-container cn-chart-container">
+							<canvas id="cn-' . esc_attr( $item ) . '-chart" style="height: 300px"></canvas>
+						</div>
+					</div>';
+				break;
+
+			case 'privacy-consent-logs-activity':
 				$html .= '
 					<div id="cn-dashboard-' . esc_attr( $item ) . '">
 						<div id="cn-' . esc_attr( $item ) . '-chart-container cn-chart-container">
