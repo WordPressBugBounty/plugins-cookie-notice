@@ -109,7 +109,7 @@ class Cookie_Notice_Modules_WooCommerce_Privacy_Consent {
 		// checkout
 		add_action( 'woocommerce_new_order', [ $this, 'checkout_new_order' ], 10, 2 );
 		add_action( 'woocommerce_checkout_after_order_review', [ $this, 'checkout_form_classic' ] );
-		add_filter( 'render_block', [ $this, 'checkout_form_blocks' ], 10, 3 );
+		add_filter( 'render_block', [ $this, 'checkout_form_blocks' ], 10, 2 );
 	}
 
 	/**
@@ -172,6 +172,7 @@ class Cookie_Notice_Modules_WooCommerce_Privacy_Consent {
 		$form = [
 			'source'	=> $this->source['id'],
 			'id'		=> $form_data['id'],
+			'title'		=> $form_data['name'],
 			'fields'	=> [
 				'subject'		=> $form_data['subject'],
 				'preferences'	=> $form_data['preferences']
@@ -315,11 +316,10 @@ class Cookie_Notice_Modules_WooCommerce_Privacy_Consent {
 	 *
 	 * @param string|mixed $block_content
 	 * @param array $block
-	 * @param object $instance
 	 *
 	 * @return string
 	 */
-	public function checkout_form_blocks( $block_content, $block, $instance ) {
+	public function checkout_form_blocks( $block_content, $block ) {
 		$block_content = (string) $block_content;
 
 		if ( $block['blockName'] !== 'woocommerce/checkout' )
@@ -335,24 +335,18 @@ class Cookie_Notice_Modules_WooCommerce_Privacy_Consent {
 				'form_type'	=> 'blocks'
 			] );
 
-			// is it checkout classic?
-			// $classic_checkout = defined( 'WOOCOMMERCE_VERSION' ) && version_compare( WOOCOMMERCE_VERSION, '8.0.0', '<' );
-
 			$block_content = '
 			<div class="wp-block" data-blockType="' . esc_attr( $block['blockName'] ) . '">
 				' . $block_content . '
 				<script>
 				if ( typeof huOptions !== \'undefined\' ) {
-					document.addEventListener( \'DOMContentLoaded\', function() {
-						var huFormData = ' . wp_json_encode( $form_data ) . ';
-						var huFormNode = null;
+					var huFormData = ' . wp_json_encode( $form_data ) . ';
+					var huFormNode = null;
 
-						setTimeout( function() {
-							huFormNode = document.querySelector( \'.wc-block-checkout__form\' );
-							huFormData[\'node\'] = huFormNode;
-							huOptions[\'forms\'].push( huFormData );
-						}, 0 );
-					} );
+					// set empty node
+					huFormData[\'node\'] = huFormNode;
+
+					huOptions[\'forms\'].push( huFormData );
 				}
 				</script>
 			</div>';

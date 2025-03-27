@@ -1310,7 +1310,7 @@ class Cookie_Notice_Welcome_API {
 			'get_privacy_consent_logs',
 			[
 				'AppID'			=> $cn->options['general']['app_id'],
-				// 'AppSecretKey'	=> $cn->options['general']['app_key'],
+				'AppSecretKey'	=> $cn->options['general']['app_key'],
 				'Latest'		=> 100
 			]
 		);

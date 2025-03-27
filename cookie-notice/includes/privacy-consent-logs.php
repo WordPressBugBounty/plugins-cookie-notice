@@ -27,7 +27,7 @@ class Cookie_Notice_Privacy_Consent_logs {
 	 */
 	public function get_privacy_consent_logs() {
 		// check data
-		if ( ! isset( $_REQUEST['action'], $_REQUEST['nonce'] ) )
+		if ( ! isset( $_POST['action'], $_POST['nonce'] ) )
 			wp_send_json_error();
 
 		// valid nonce?

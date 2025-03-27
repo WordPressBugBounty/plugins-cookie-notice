@@ -287,12 +287,17 @@ class Cookie_Notice_Frontend {
 		if ( is_array( $locale_code ) && in_array( $locale_code[0], [ 'nb', 'nn' ] ) )
 			$locale_code[0] = 'no';
 
+		// get active sources
+		$sources = $cn->privacy_consent->get_active_sources();
+
+		// prepare huOptions
 		$options = [
 			'appID'				=> $cn->options['general']['app_id'],
 			'currentLanguage'	=> $locale_code[0],
 			'blocking'			=> ! is_user_logged_in() ? $cn->options['general']['app_blocking'] : false,
 			'globalCookie'		=> is_multisite() && $cn->options['general']['global_cookie'] && is_subdomain_install(),
-			'privacyConsent'	=> true
+			'isAdmin'			=> current_user_can( apply_filters( 'cn_manage_cookie_notice_cap', 'manage_options' ) ),
+			'privacyConsent'	=> ! empty( $sources )
 		];
 
 		// get active sources

@@ -167,6 +167,7 @@ class Cookie_Notice_Modules_WordPress_Privacy_Consent {
 		return [
 			'source'	=> $this->source['id'],
 			'id'		=> $form_data['id'],
+			'title'		=> $form_data['name'],
 			'fields'	=> [
 				'subject'		=> $form_data['subject'],
 				'preferences'	=> $form_data['preferences']

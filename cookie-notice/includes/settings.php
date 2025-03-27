@@ -45,6 +45,7 @@ class Cookie_Notice_Settings {
 		add_action( 'plugins_loaded', [ $this, 'load_modules' ], 0 );
 		add_action( 'admin_init', [ $this, 'validate_network_options' ], 9 );
 		add_action( 'admin_init', [ $this, 'register_settings' ] );
+		add_action( 'admin_init', [ $this, 'check_notices' ] );
 		add_action( 'admin_enqueue_scripts', [ $this, 'admin_enqueue_scripts' ] );
 		add_action( 'admin_print_styles', [ $this, 'admin_print_styles' ] );
 		add_action( 'wp_ajax_cn_purge_cache', [ $this, 'ajax_purge_cache' ] );
@@ -258,8 +259,7 @@ class Cookie_Notice_Settings {
 			'dontSellBtnText'	=> __( 'Do Not Sell', 'cookie-notice' ),
 			'customizeBtnText'	=> __( 'Preferences', 'cookie-notice' ),
 			'headingText'		=> __( "Your data is your property and we support your right to privacy and transparency.", 'cookie-notice' ),
-			'bodyText'			=> __( "
-To provide you the best experience on our website, we use cookies or similar technologies. Select a data access level to decide for which purposes we may use and share your data.", 'cookie-notice' ),
+			'bodyText'			=> __( "To provide you the best experience on our website, we use cookies or similar technologies. Select a data access level to decide for which purposes we may use and share your data.", 'cookie-notice' ),
 			'levelBodyText_1'	=> __( 'Highest level of privacy. Data accessed for necessary site operations only. Data shared with 3rd parties to ensure the site is secure and works on your device.', 'cookie-notice' ),
 			'levelBodyText_2'	=> __( 'Balanced experience. Data accessed for content personalisation and site optimisation. Data shared with 3rd parties may be used to track and store your preferences for this site.', 'cookie-notice' ),
 			'levelBodyText_3'	=> __( 'Highest level of personalisation. Data accessed to make ads and media more relevant. Data shared with 3rd parties may be use to track you on this site and other sites you visit.', 'cookie-notice' ),
@@ -937,7 +937,7 @@ To provide you the best experience on our website, we use cookies or similar tec
 					<div class="cn_compliance_status"><span class="cn-status-label">' . esc_html__( 'Cookie Consent Storage', 'cookie-notice' ) . '</span>: <span class="cn-status cn-active"><span class="cn-icon"></span> ' . esc_html__( 'Active', 'cookie-notice' ) . '</span></div>
 				</div>
 				<div id="cn_app_actions">
-					<a href="' . esc_url( $cn->get_url( 'host', '?utm_campaign=configure&utm_source=wordpress&utm_medium=button#/login' ) ) . '" class="button button-primary button-hero cn-button" target="_blank">' . esc_html__( 'Log in & Configure', 'cookie-notice' ) . '</a>
+					<a href="' . esc_url( $cn->get_url( 'host', '?utm_campaign=configure&utm_source=wordpress&utm_medium=button#/dashboard' ) ) . '" class="button button-primary button-hero cn-button" target="_blank">' . esc_html__( 'Log in & Configure', 'cookie-notice' ) . '</a>
 					<p class="description">' . esc_html__( 'Log in to the Cookie Compliance&trade; dashboard to explore, configure and manage its functionalities.', 'cookie-notice' ) . '</p>
 				</div>';
 				break;
@@ -951,7 +951,7 @@ To provide you the best experience on our website, we use cookies or similar tec
 					<div class="cn_compliance_status"><span class="cn-status-label">' . esc_html__( 'Cookie Consent Storage', 'cookie-notice' ) . '</span>: <span class="cn-status cn-pending"><span class="cn-icon"></span> ' . esc_html__( 'Pending', 'cookie-notice' ) . '</span></div>
 				</div>
 				<div id="cn_app_actions">
-					<a href="' . esc_url( $cn->get_url( 'host', '?utm_campaign=configure&utm_source=wordpress&utm_medium=button#/login' ) ) . '" class="button button-primary button-hero cn-button" target="_blank">' . esc_html__( 'Log in & configure', 'cookie-notice' ) . '</a>
+					<a href="' . esc_url( $cn->get_url( 'host', '?utm_campaign=configure&utm_source=wordpress&utm_medium=button#/dashboard' ) ) . '" class="button button-primary button-hero cn-button" target="_blank">' . esc_html__( 'Log in & Configure', 'cookie-notice' ) . '</a>
 					<p class="description">' . esc_html__( 'Log in to the Cookie Compliance&trade; web application and complete the setup process.', 'cookie-notice' ) . '</p>
 				</div>';
 				break;
@@ -1002,7 +1002,7 @@ To provide you the best experience on our website, we use cookies or similar tec
 					<div class="cn_compliance_status"><span class="cn-status-label">' . esc_html__( 'Privacy Consent Logs', 'cookie-notice' ) . '</span>: <span class="cn-status cn-active"><span class="cn-icon"></span> ' . esc_html__( 'Active', 'cookie-notice' ) . '</span></div>
 				</div>
 				<div id="cn_app_actions">
-					<a href="' . esc_url( $cn->get_url( 'host', '?utm_campaign=configure&utm_source=wordpress&utm_medium=button#/login' ) ) . '" class="button button-primary button-hero cn-button" target="_blank">' . esc_html__( 'Log in & Configure', 'cookie-notice' ) . '</a>
+					<a href="' . esc_url( $cn->get_url( 'host', '?utm_campaign=configure&utm_source=wordpress&utm_medium=button#/dashboard' ) ) . '" class="button button-primary button-hero cn-button" target="_blank">' . esc_html__( 'Log in & Configure', 'cookie-notice' ) . '</a>
 					<p class="description">' . esc_html__( 'Log in to the Cookie Compliance&trade; dashboard to explore, configure and manage its functionalities.', 'cookie-notice' ) . '</p>
 				</div>';
 				break;
@@ -1014,7 +1014,7 @@ To provide you the best experience on our website, we use cookies or similar tec
 					<div class="cn_compliance_status"><span class="cn-status-label">' . esc_html__( 'Privacy Consent Logs', 'cookie-notice' ) . '</span>: <span class="cn-status cn-pending"><span class="cn-icon"></span> ' . esc_html__( 'Pending', 'cookie-notice' ) . '</span></div>
 				</div>
 				<div id="cn_app_actions">
-					<a href="' . esc_url( $cn->get_url( 'host', '?utm_campaign=configure&utm_source=wordpress&utm_medium=button#/login' ) ) . '" class="button button-primary button-hero cn-button" target="_blank">' . esc_html__( 'Log in & configure', 'cookie-notice' ) . '</a>
+					<a href="' . esc_url( $cn->get_url( 'host', '?utm_campaign=configure&utm_source=wordpress&utm_medium=button#/dashboard' ) ) . '" class="button button-primary button-hero cn-button" target="_blank">' . esc_html__( 'Log in & Configure', 'cookie-notice' ) . '</a>
 					<p class="description">' . esc_html__( 'Log in to the Cookie Compliance&trade; web application and complete the setup process.', 'cookie-notice' ) . '</p>
 				</div>';
 				break;
@@ -1611,10 +1611,181 @@ To provide you the best experience on our website, we use cookies or similar tec
 		</fieldset>';
 	}
 
+	/** Check whether htaccess file has Content Security Policy directives with hu-manity.co domain.
+	 *
+	 * @return bool
+	 */
+	private function check_htaccess() {
+		if ( ! function_exists( 'get_home_path' ) )
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+
+		$htaccess_file = get_home_path() . '.htaccess';
+
+		// whether htaccess file is readable
+		$file_readable = false;
+
+		// whether csp fetch directives are valid
+		$valid_directives = true;
+
+		// empty string = not found, false = invalid, true = valid
+		$fetch_directives = [
+			'img'		=> '',
+			'connect'	=> '',
+			'script'	=> '',
+			'style'		=> '',
+			'default'	=> ''
+		];
+
+		// htaccess exists and its readable?
+		if ( is_readable( $htaccess_file ) ) {
+			// read file
+			$file_data = file( $htaccess_file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES );
+
+			// operable file?
+			if ( $file_data !== false ) {
+				$file_readable = true;
+				$default_directive = '';
+
+				// check every line
+				foreach ( $file_data as $file_line ) {
+					$trimmed_line = trim( $file_line );
+
+					// skip comment lines
+					if ( substr( $trimmed_line, 0, 1 ) !== "#" ) {
+						$csp_position = strpos( $trimmed_line, 'Content-Security-Policy' );
+
+						// found csp?
+						if ( $csp_position !== false ) {
+							$after_csp_line = substr( $trimmed_line, $csp_position + 23 );
+
+							// get directives
+							$directives = explode( ';', trim( $after_csp_line ) );
+
+							foreach ( $directives as $directive ) {
+								// get source expression list values
+								$values = explode( ' ', trim( $directive ), 2 );
+
+								// img-src directive
+								if ( strpos( $values[0], 'img-src' ) !== false ) {
+									// expression list exists and its valid?
+									if ( isset( $values[1] ) && strpos( $values[1], 'data:' ) !== false )
+										$fetch_directives['img'] = true;
+									else
+										$fetch_directives['img'] = false;
+								}
+
+								// style-src directive
+								if ( strpos( $values[0], 'style-src' ) !== false ) {
+									// expression list exists and its valid?
+									if ( isset( $values[1] ) && strpos( $values[1], '\'unsafe-inline\'' ) !== false )
+										$fetch_directives['style'] = true;
+									else
+										$fetch_directives['style'] = false;
+								}
+
+								// connect-src directive
+								if ( strpos( $values[0], 'connect-src' ) !== false ) {
+									// expression list exists and its valid?
+									if ( isset( $values[1] ) && strpos( $values[1], '*.hu-manity.co' ) !== false )
+										$fetch_directives['connect'] = true;
+									else
+										$fetch_directives['connect'] = false;
+								}
+
+								// script-src directive
+								if ( strpos( $values[0], 'script-src' ) !== false ) {
+									// expression list exists and its valid?
+									if ( isset( $values[1] ) && strpos( $values[1], '\'unsafe-inline\'' ) !== false && strpos( $values[1], '*.hu-manity.co' ) !== false )
+										$fetch_directives['script'] = true;
+									else
+										$fetch_directives['script'] = false;
+								}
+
+								// default-src directive
+								if ( strpos( $values[0], 'default-src' ) !== false ) {
+									if ( isset( $values[1] ) )
+										$default_directive = $values[1];
+								}
+							}
+						}
+					}
+				}
+
+				// check default-src directive as last
+				if ( $default_directive ) {
+					if ( ! $fetch_directives['img'] )
+						$condition1 = strpos( $default_directive, 'data:' ) !== false;
+					else
+						$condition1 = true;
+
+					if ( ! $fetch_directives['style'] )
+						$condition2 = strpos( $default_directive, '\'unsafe-inline\'' ) !== false;
+					else
+						$condition2 = true;
+
+					if ( ! $fetch_directives['connect'] )
+						$condition3 = strpos( $default_directive, '*.hu-manity.co' ) !== false;
+					else
+						$condition3 = true;
+
+					if ( ! $fetch_directives['script'] )
+						$condition4 = $condition2 && $condition3;
+					else
+						$condition4 = true;
+
+					if ( $condition1 && $condition2 && $condition3 && $condition4 )
+						$fetch_directives['default'] = true;
+					else
+						$fetch_directives['default'] = false;
+				}
+			}
+		}
+
+		foreach ( $fetch_directives as $directive ) {
+			// check whether directive is valid
+			if ( is_bool( $directive ) && ! $directive ) {
+				$valid_directives = false;
+
+				break;
+			}
+		}
+
+		return $file_readable && ! $valid_directives;
+	}
+
+	/**
+	 * Check whether to display admin notices.
+	 *
+	 * @return void
+	 */
+	public function check_notices() {
+		global $pagenow;
+
+		// get main instance
+		$cn = Cookie_Notice();
+
+		$allow_notice = false;
+
+		if ( is_multisite() && $cn->is_plugin_network_active() ) {
+			if ( $cn->is_network_admin() ) {
+				if ( $cn->network_options['general']['global_override'] )
+					$allow_notice = true;
+			} elseif ( ! $cn->network_options['general']['global_override'] )
+				$allow_notice = true;
+		} else
+			$allow_notice = true;
+
+		// display notice?
+		if ( $allow_notice && $pagenow === 'admin.php' && isset( $_GET['page'] ) && $_GET['page'] === 'cookie-notice' && $cn->get_status() === 'active' && $cn->options['general']['csp_notice'] ) {
+			add_settings_error( 'cn_cookie_notice_options', 'cookie_notice_csp_warning', esc_html__( "It looks like some of the Consent Security Policy (CSP) records in your website's .htaccess file may be causing Cookie Compliance loading problems. Make sure you allow loading of Cookie Compliance resources by adding the following record:", 'cookie-notice') . '<br><code>' .  esc_html__( "img-src data:; style-src 'unsafe-inline'; connect-src *.hu-manity.co; script-src 'unsafe-inline' *.hu-manity.co" ) . '</code>', 'error' );
+		}
+	}
+
 	/**
 	 * Validate options.
 	 *
 	 * @param array $input
+	 *
 	 * @return array
 	 */
 	public function validate_options( $input ) {
@@ -1717,6 +1888,12 @@ To provide you the best experience on our website, we use cookies or similar tec
 
 			// caching compatibility
 			$input['caching_compatibility'] = isset( $input['caching_compatibility'] ) && ! empty( $active_plugins );
+
+			// display csp notice?
+			if ( $cn->get_status() === 'active' )
+				$input['csp_notice'] = $this->check_htaccess();
+			else
+				$input['csp_notice'] = false;
 
 			// position
 			if ( isset( $input['position'] ) ) {

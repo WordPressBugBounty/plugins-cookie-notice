@@ -71,6 +71,8 @@ class Cookie_Notice_Privacy_Consent_Logs_List_Table extends WP_List_Table {
 					'subject'		=> $consent->subject_id,
 					'preferences'	=> $consent->preferences,
 					'form_id'		=> $consent->form_id,
+					'form_title'	=> ! empty( $consent->form_title ) ? $consent->form_title : __( '—', 'cookie-notice' ),
+					'source'		=> ! empty( $consent->source ) ? $consent->source : 'unknown',
 					'date'			=> $consent->created_at,
 					'ip_address'	=> $consent->ip_address
 				];
@@ -275,7 +277,8 @@ class Cookie_Notice_Privacy_Consent_Logs_List_Table extends WP_List_Table {
 		$columns = [
 			'subject'		=> __( 'Subject', 'cookie-notice' ),
 			'preferences'	=> __( 'Preferences', 'cookie-notice' ),
-			'form_id'		=> __( 'Form ID', 'cookie-notice' ),
+			'source'		=> __( 'Source', 'cookie-notice' ),
+			'form_title'	=> __( 'Form', 'cookie-notice' ),
 			'date'			=> __( 'Date', 'cookie-notice' ),
 			'ip_address'	=> __( 'IP address', 'cookie-notice' )
 		];
@@ -302,6 +305,28 @@ class Cookie_Notice_Privacy_Consent_Logs_List_Table extends WP_List_Table {
 	 */
 	public function column_default( $item, $column_name ) {
 		return esc_html( $item[$column_name] );
+	}
+
+	/**
+	 * Display source.
+	 *
+	 * @param array $item
+	 *
+	 * @return string
+	 */
+	public function column_source( $item ) {
+		if ( $item['source'] === 'unknown' )
+			$label = __( '—', 'cookie-notice' );
+		else {
+			$source = Cookie_Notice()->privacy_consent->get_source( $item['source'] );
+
+			if ( ! empty( $source ) )
+				$label = $source['name'];
+			else
+				$label = __( '—', 'cookie-notice' );
+		}
+
+		return esc_html( $label );
 	}
 
 	/**

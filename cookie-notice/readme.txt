@@ -3,8 +3,8 @@ Contributors: humanityco
 Tags: gdpr, ccpa, cookies, consent, privacy
 Requires at least: 4.9.6
 Requires PHP: 7.4
-Tested up to: 6.7.1
-Stable tag: 2.5.5
+Tested up to: 6.7.2
+Stable tag: 2.5.6
 License: MIT License
 License URI: http://opensource.org/licenses/MIT
 
@@ -122,6 +122,13 @@ Yes! The plugin + web appliaction version includes technical compliance features
 4. Cookie Compliance settings
 
 == Changelog ==
+
+= 2.5.6 =
+* New: Added Form and Source columns to Privacy Consents table
+* Fix: WooCommerce render block issue
+* Tweak: Updated WooCommerce Blocks Checkout handling
+* Tweak: Disable Privacy Consent cupport when there are no forms available
+* Tweak: Updated Chart.js to 4.4.8
 
 = 2.5.5 =
 * New: Added Privacy Consent activity chart
@@ -546,5 +553,5 @@ Initial release
 
 == Upgrade Notice ==
 
-= 2.5.5 =
-New: Added Privacy Consent activity chart, Fix: Hummingbird caching plugin compatibility
+= 2.5.6 =
+Added Form and Source columns to Privacy Consents table, WooCommere forms issue fixed

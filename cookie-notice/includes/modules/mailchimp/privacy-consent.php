@@ -165,6 +165,7 @@ class Cookie_Notice_Modules_Mailchimp_Privacy_Consent {
 			$form = [
 				'source'	=> $this->source['id'],
 				'id'		=> $query->posts[0]->ID,
+				'title'		=> Cookie_Notice()->privacy_consent->strcut( sanitize_text_field( $query->posts[0]->post_title ), 0, 100 ),
 				'fields'	=> [
 					'subject'	=> [
 						'first_name'	=> 'FNAME',
