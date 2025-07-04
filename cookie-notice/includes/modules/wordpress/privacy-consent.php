@@ -134,7 +134,7 @@ class Cookie_Notice_Modules_WordPress_Privacy_Consent {
 		$cn = Cookie_Notice();
 
 		$input['wordpress_active'] = isset( $input['wordpress_active'] );
-		$input['wordpress_active_type'] = isset( $input['wordpress_active_type'] ) && in_array( $input['wordpress_active_type'], $cn->privacy_consent->form_active_types, true ) ? $input['wordpress_active_type'] : $cn->defaults['privacy_consent']['wordpress_active_type'];
+		$input['wordpress_active_type'] = isset( $input['wordpress_active_type'] ) && array_key_exists( $input['wordpress_active_type'], $cn->privacy_consent->form_active_types ) ? $input['wordpress_active_type'] : $cn->defaults['privacy_consent']['wordpress_active_type'];
 
 		return $input;
 	}

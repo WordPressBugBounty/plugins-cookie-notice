@@ -105,14 +105,13 @@ class Cookie_Notice_Privacy_Consent {
 	 * Strip string to specified length removing multibyte character from the end if needed.
 	 *
 	 * @param string $str
-	 * @param int $start
 	 * @param int $length
 	 *
 	 * @return string
 	 */
-	public function strcut( $str = '', $start = 0, $length = 100 ) {
+	public function strcut( $str = '', $length = 100 ) {
 		if ( function_exists( 'mb_strcut' ) )
-			return mb_strcut( $str, $start, $length );
+			return mb_strcut( $str, 0, $length );
 
 		// get length
 		$str_length = strlen( $str );
@@ -142,7 +141,7 @@ class Cookie_Notice_Privacy_Consent {
 				// longer then expected? cut just before new character
 				if ( $new_str_length > $length )
 					return substr( $str, 0, $mb_str_length );
-				// perfect length? cut without striping
+				// perfect length? cut without stripping
 				elseif ( $new_str_length === $length )
 					return substr( $str, 0, $new_str_length );
 
@@ -193,6 +192,7 @@ class Cookie_Notice_Privacy_Consent {
 		include_once( COOKIE_NOTICE_PATH . '/includes/modules/mailchimp/privacy-consent.php' );
 		include_once( COOKIE_NOTICE_PATH . '/includes/modules/woocommerce/privacy-consent.php' );
 		include_once( COOKIE_NOTICE_PATH . '/includes/modules/wpforms/privacy-consent.php' );
+		include_once( COOKIE_NOTICE_PATH . '/includes/modules/formidable-forms/privacy-consent.php' );
 
 		// update 2.5.0
 		if ( version_compare( $cn->db_version, '2.4.18', '<=' ) ) {
@@ -514,7 +514,7 @@ class Cookie_Notice_Privacy_Consent {
 		$list_table->prepare_items();
 
 		ob_start();
-		$list_table->search_box( __( 'Search', 'cookie-notice' ), $source );
+		// $list_table->search_box( __( 'Search', 'cookie-notice' ), $source );
 		$list_table->display();
 		$display = ob_get_clean();
 

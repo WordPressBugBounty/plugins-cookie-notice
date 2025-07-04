@@ -20,6 +20,7 @@ class Cookie_Notice_Modules_Hummingbird {
 	 * @return void
 	 */
 	public function __construct() {
+		// actions
 		add_action( 'init', [ $this, 'load_module' ] );
 	}
 

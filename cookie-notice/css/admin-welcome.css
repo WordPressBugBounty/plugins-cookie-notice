@@ -2055,3 +2055,36 @@
 .cn-excluded .cn-icon::after {
     transform: rotate(-45deg);
 }
+
+.cn-tooltip {
+    position: relative;
+}
+
+.cn-tooltip-icon {
+    position: relative;
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    cursor: help;
+    margin-left: 5px;
+}
+
+.cn-tooltip-icon::before {
+    color: #fff;
+    content: "\f14c";
+    display: inline-block;
+    font-family: 'dashicons';
+    line-height: 1;
+    font-weight: 400;
+    font-style: normal;
+    text-transform: none;
+    text-rendering: auto;
+    font-size: 16px;
+    position: absolute;
+    text-decoration: none !important;
+    speak: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    left: 0;
+    top: 2px;
+}

@@ -77,7 +77,7 @@ class Cookie_Notice_Modules_Mailchimp_Privacy_Consent {
 		$cn = Cookie_Notice();
 
 		$input['mailchimp_active'] = isset( $input['mailchimp_active'] );
-		$input['mailchimp_active_type'] = isset( $input['mailchimp_active_type'] ) && in_array( $input['mailchimp_active_type'], $cn->privacy_consent->form_active_types, true ) ? $input['mailchimp_active_type'] : $cn->defaults['privacy_consent']['mailchimp_active_type'];
+		$input['mailchimp_active_type'] = isset( $input['mailchimp_active_type'] ) && array_key_exists( $input['mailchimp_active_type'], $cn->privacy_consent->form_active_types ) ? $input['mailchimp_active_type'] : $cn->defaults['privacy_consent']['mailchimp_active_type'];
 
 		return $input;
 	}
@@ -151,7 +151,7 @@ class Cookie_Notice_Modules_Mailchimp_Privacy_Consent {
 	 * @return array
 	 */
 	public function get_form( $args ) {
-		// get only published forms
+		// get only one form
 		$query = new WP_Query( [
 			'p'				=> (int) $args['form_id'],
 			'post_status'	=> 'publish',
@@ -165,7 +165,7 @@ class Cookie_Notice_Modules_Mailchimp_Privacy_Consent {
 			$form = [
 				'source'	=> $this->source['id'],
 				'id'		=> $query->posts[0]->ID,
-				'title'		=> Cookie_Notice()->privacy_consent->strcut( sanitize_text_field( $query->posts[0]->post_title ), 0, 100 ),
+				'title'		=> Cookie_Notice()->privacy_consent->strcut( sanitize_text_field( $query->posts[0]->post_title ), 100 ),
 				'fields'	=> [
 					'subject'	=> [
 						'first_name'	=> 'FNAME',

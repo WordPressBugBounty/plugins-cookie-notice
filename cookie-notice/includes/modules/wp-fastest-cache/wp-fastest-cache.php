@@ -18,6 +18,7 @@ class Cookie_Notice_Modules_WPFastestCache {
 	 * @return void
 	 */
 	public function __construct() {
+		// actions
 		add_action( 'plugins_loaded', [ $this, 'load_module' ], 11 );
 	}
 

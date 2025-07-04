@@ -2,7 +2,7 @@
 /*
 Plugin Name: Cookie Notice & Compliance for GDPR / CCPA
 Description: Cookie Notice allows you to you elegantly inform users that your site uses cookies and helps you comply with GDPR, CCPA and other data privacy laws.
-Version: 2.5.6
+Version: 2.5.7
 Author: Hu-manity.co
 Author URI: https://hu-manity.co/
 Plugin URI: https://cookie-compliance.co/
@@ -29,7 +29,7 @@ if ( ! defined( 'ABSPATH' ) )
  * Cookie Notice class.
  *
  * @class Cookie_Notice
- * @version	2.5.6
+ * @version	2.5.7
  */
 class Cookie_Notice {
 
@@ -131,16 +131,18 @@ class Cookie_Notice {
 			'csp_notice'			=> false
 		],
 		'privacy_consent' => [
-			'wordpress_active'			=> true,
-			'wordpress_active_type'		=> 'all',
-			'contactform7_active'		=> false,
-			'contactform7_active_type'	=> 'all',
-			'mailchimp_active'			=> false,
-			'mailchimp_active_type'		=> 'all',
-			'wpforms_active'			=> false,
-			'wpforms_active_type'		=> 'all',
-			'woocommerce_active'		=> false,
-			'woocommerce_active_type'	=> 'all'
+			'wordpress_active'				=> true,
+			'wordpress_active_type'			=> 'all',
+			'contactform7_active'			=> false,
+			'contactform7_active_type'		=> 'all',
+			'mailchimp_active'				=> false,
+			'mailchimp_active_type'			=> 'all',
+			'wpforms_active'				=> false,
+			'wpforms_active_type'			=> 'all',
+			'woocommerce_active'			=> false,
+			'woocommerce_active_type'		=> 'all',
+			'formidableforms_active'		=> false,
+			'formidableforms_active_type'	=> 'all'
 		],
 		'data'	=> [
 			'status'				=> '',
@@ -148,7 +150,7 @@ class Cookie_Notice {
 			'threshold_exceeded'	=> false,
 			'activation_datetime'	=> 0
 		],
-		'version'	=> '2.5.6'
+		'version'	=> '2.5.7'
 	];
 
 	/**
@@ -434,6 +436,15 @@ class Cookie_Notice {
 			'threshold_exceeded'	=> (bool) $status_data['threshold_exceeded'],
 			'activation_datetime'	=> $activation
 		];
+	}
+
+	/**
+	 * Get cookie compliance status data.
+	 *
+	 * @return string
+	 */
+	public function get_status_data() {
+		return $this->status_data;
 	}
 
 	/**
@@ -734,7 +745,7 @@ class Cookie_Notice {
 		$subscription = $this->get_subscription();
 
 		// update number
-		$current_update = 12;
+		$current_update = 13;
 
 		// new version?
 		if ( version_compare( $this->db_version, $this->defaults['version'], '<' ) ) {
@@ -806,9 +817,9 @@ class Cookie_Notice {
 		// show notice, if no compliance only
 		if ( $this->options['general']['update_notice'] === true ) {
 			if ( empty( $status ) ) {
-				$this->add_notice( '<div class="cn-notice-text cn-no-compliance"><h2>' . esc_html__( 'New! Cookie Compliance introduces Privacy Consent.', 'cookie-notice' ) . '</h2><p>' . __( 'Privacy Consent is a key component of data protection regulations and policies that refers to the explicit and informed agreement given by an individual (data subject) for the collection, use, processing, and storage of their personal data. Whenever a user of your website submits personal information, for example an email, you should record and store their consent, specify what purposes or preferences it relates to, and keep a proof of their consent. With Cookie Compliance, you can easily implement Privacy Consent to your website through built-in support for WordPress or WooCommerce forms and popular form or newsletter plugins.', 'cookie-notice' ) . '<br>' . esc_html__( 'Click "Add Compliance features" to run compliance check and sign up to Cookie Compliance.', 'cookie-notice' ) . '</p><p class="cn-notice-actions"><a href="' . esc_url( $network ? network_admin_url( 'admin.php?page=cookie-notice&welcome=1' ) : admin_url( 'admin.php?page=cookie-notice&welcome=1' ) ) . '" class="button button-primary cn-button">' . esc_html__( 'Add Compliance features', 'cookie-notice' ) . '</a> <a href="#" class="button-link cn-notice-dismiss">' . esc_html__( 'Dismiss Notice', 'cookie-notice' ) . '</a></p></div>', 'error', 'div' );
+				$this->add_notice( '<div class="cn-notice-text cn-no-compliance"><h2>' . esc_html__( 'Now Supporting Microsoft Consent Mode', 'cookie-notice' ) . '</h2><p>' . __( 'Cookie Compliance now integrates with Microsoft Consent Mode, allowing you to sync user consent with Microsoft Ads and UET tracking. Combined with full support for GDPR, CCPA, and other major privacy laws, it’s the easiest way to stay compliant across regions — all without writing a single line of code.', 'cookie-notice' ) . ' ' . __( "Sign up to add compliance features now, and upgrade when you're ready to unlock advanced features.", 'cookie-notice' ) . '</p><p class="cn-notice-actions"><a href="' . esc_url( $network ? network_admin_url( 'admin.php?page=cookie-notice&welcome=1' ) : admin_url( 'admin.php?page=cookie-notice&welcome=1' ) ) . '" class="button button-primary cn-button">' . esc_html__( 'Add Compliance features', 'cookie-notice' ) . '</a> <a href="#" class="button-link cn-notice-dismiss">' . esc_html__( 'Dismiss Notice', 'cookie-notice' ) . '</a></p></div>', 'error', 'div' );
 			} else if ( $subscription !== 'pro' ) {
-				$this->add_notice( '<div class="cn-notice-text cn-no-compliance"><h2>' . esc_html__( 'New! Cookie Compliance introduces Privacy Consent.', 'cookie-notice' ) . '</h2><p>' . __( 'Privacy Consent is a key component of data protection regulations and policies that refers to the explicit and informed agreement given by an individual (data subject) for the collection, use, processing, and storage of their personal data. Whenever a user of your website submits personal information, for example an email, you should record and store their consent, specify what purposes or preferences it relates to, and keep a proof of their consent. With Cookie Compliance, you can easily implement Privacy Consent to your website through built-in support for WordPress or WooCommerce forms and popular form or newsletter plugins.', 'cookie-notice' ) . '<br>' . esc_html__( 'Click "Upgrade to Pro" and make sure you record and store all cookie and privacy consent logs.', 'cookie-notice' ) . '</p><p class="cn-notice-actions"><a href="' . esc_url( $this->get_url( 'host', '?utm_campaign=upgrade+to+pro&utm_source=wordpress&utm_medium=link#/dashboard?app-id=' . $this->options['general']['app_id'] . '&open-modal=payment' ) ) . '" class="button button-secondary cn-button" target="_blank">' . esc_html__( 'Upgrade to Pro', 'cookie-notice' ) . '</a> <a href="#" class="button-link cn-notice-dismiss">' . esc_html__( 'Dismiss Notice', 'cookie-notice' ) . '</a></p></div>', 'error', 'div' );
+				$this->add_notice( '<div class="cn-notice-text cn-no-compliance"><h2>' . esc_html__( 'Unlock Microsoft Consent Mode Support', 'cookie-notice' ) . '</h2><p>' . __( 'Cookie Compliance now integrates with Microsoft Consent Mode, allowing you to sync user consent with Microsoft Ads and UET tracking. Combined with full support for GDPR, CCPA, and other major privacy laws, it’s the easiest way to stay compliant across regions — all without writing a single line of code.', 'cookie-notice' ) . ' ' . __( "Microsoft Consent Mode is available exclusively on the Pro plan — upgrade now to activate it in your dashboard.", 'cookie-notice' ) . '</p><p class="cn-notice-actions"><a href="' . esc_url( $this->get_url( 'host', '?utm_campaign=upgrade+to+pro&utm_source=wordpress&utm_medium=link#/dashboard?app-id=' . $this->options['general']['app_id'] . '&open-modal=payment' ) ) . '" class="button button-secondary cn-button" target="_blank">' . esc_html__( 'Upgrade to Pro', 'cookie-notice' ) . '</a> <a href="#" class="button-link cn-notice-dismiss">' . esc_html__( 'Dismiss Notice', 'cookie-notice' ) . '</a></p></div>', 'error', 'div' );
 			}
 		}
 
@@ -1203,9 +1214,7 @@ class Cookie_Notice {
 	 * @return void
 	 */
 	public function wpsc_add_cookie() {
-		if ( Cookie_Notice()->get_status() === 'active' )
-			do_action( 'wpsc_add_cookie', 'hu-consent' );
-		else
+		if ( $this->get_status() !== 'active' )
 			do_action( 'wpsc_add_cookie', 'cookie_notice_accepted' );
 	}
 
@@ -1215,9 +1224,7 @@ class Cookie_Notice {
 	 * @return void
 	 */
 	public function wpsc_delete_cookie() {
-		if ( Cookie_Notice()->get_status() === 'active' )
-			do_action( 'wpsc_delete_cookie', 'hu-consent' );
-		else
+		if ( $this->get_status() !== 'active' )
 			do_action( 'wpsc_delete_cookie', 'cookie_notice_accepted' );
 	}
 
@@ -1246,7 +1253,7 @@ class Cookie_Notice {
 		}
 
 		// notice js and css
-		wp_enqueue_script( 'cookie-notice-admin-notice', COOKIE_NOTICE_URL . '/js/admin-notice.js', [ 'jquery' ], Cookie_Notice()->defaults['version'] );
+		wp_enqueue_script( 'cookie-notice-admin-notice', COOKIE_NOTICE_URL . '/js/admin-notice.js', [ 'jquery' ], $this->defaults['version'] );
 
 		// prepare script data
 		$script_data = [
@@ -1258,7 +1265,7 @@ class Cookie_Notice {
 
 		wp_add_inline_script( 'cookie-notice-admin-notice', 'var cnArgsNotice = ' . wp_json_encode( $script_data ) . ";\n", 'before' );
 
-		wp_enqueue_style( 'cookie-notice-admin-notice', COOKIE_NOTICE_URL . '/css/admin-notice.css', [], Cookie_Notice()->defaults['version'] );
+		wp_enqueue_style( 'cookie-notice-admin-notice', COOKIE_NOTICE_URL . '/css/admin-notice.css', [], $this->defaults['version'] );
 	}
 
 	/**

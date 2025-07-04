@@ -18,6 +18,16 @@ class Cookie_Notice_Modules_Autoptimize {
 	 * @return void
 	 */
 	public function __construct() {
+		// actions
+		add_action( 'plugins_loaded', [ $this, 'load_module' ], 11 );
+	}
+
+	/**
+	 * Add compatibility to Autoptimize plugin.
+	 *
+	 * @return void
+	 */
+	public function load_module() {
 		add_filter( 'autoptimize_filter_js_exclude', [ $this, 'exclude' ] );
 	}
 

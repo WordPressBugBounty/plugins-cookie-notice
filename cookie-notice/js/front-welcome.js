@@ -87,7 +87,7 @@
 				val.push( $( this ).val() );
 			} );
 
-			if ( $.inArray( 'ccpa', val ) !== - 1 ) {
+			if ( $.inArray( 'ccpa', val ) !== - 1 || $.inArray( 'otherus', val ) !== - 1 ) {
 				var htmlElement = $( $( container ).find( '#hu-cookies-notice-dontsell-btn' ).parent() );
 
 				if ( htmlElement.length === 0 ) {
@@ -109,30 +109,6 @@
 				}
 
 				$.extend( customOptions.config, {dontSellLink: false} );
-			}
-
-			if ( $.inArray( 'gdpr', val ) !== - 1 ) {
-				var htmlElement = $( $( container ).find( '#hu-cookies-notice-privacy-btn' ).parent() );
-
-				if ( htmlElement.length === 0 ) {
-					$( '#hu-policy-links' ).prepend( cnHiddenElements.gdpr );
-
-					delete cnHiddenElements.gdpr;
-				}
-
-				$.extend( customOptions.config, {privacyPolicyLink: true} );
-			} else {
-				var htmlElement = $( $( container ).find( '#hu-cookies-notice-privacy-btn' ).parent() );
-
-				// add to hidden elements
-				if ( htmlElement ) {
-					cnHiddenElements['gdpr'] = htmlElement;
-
-					// remove el
-					$( htmlElement ).remove();
-				}
-
-				$.extend( customOptions.config, {privacyPolicyLink: false} );
 			}
 
 			// loop through checkbox options
@@ -209,7 +185,7 @@
 						case 'laws':
 							customOptions.config = {}
 
-							if ( $.inArray( 'ccpa', event.data.value ) !== - 1 ) {
+							if ( $.inArray( 'ccpa', event.data.value ) !== - 1 || $.inArray( 'otherus', event.data.value ) !== - 1 ) {
 								var htmlElement = $( container ).find( '#hu-cookies-notice-dontsell-btn' ).parent();
 
 								if ( htmlElement.length === 0 ) {
@@ -231,30 +207,6 @@
 								}
 
 								$.extend( customOptions.config, {dontSellLink: false} );
-							}
-
-							if ( $.inArray( 'gdpr', event.data.value ) !== - 1 ) {
-								var htmlElement = $( container ).find( '#hu-cookies-notice-privacy-btn' ).parent();
-
-								if ( htmlElement.length === 0 ) {
-									$( '#hu-policy-links' ).prepend( cnHiddenElements.gdpr );
-
-									delete cnHiddenElements.gdpr;
-								}
-
-								$.extend( customOptions.config, {privacyPolicyLink: true} );
-							} else {
-								var htmlElement = $( container ).find( '#hu-cookies-notice-privacy-btn' ).parent();
-
-								// add to hidden elements
-								if ( htmlElement && ! cnHiddenElements.hasOwnProperty( 'gdpr' ) ) {
-									cnHiddenElements['gdpr'] = htmlElement;
-
-									// remove el
-									$( htmlElement ).remove();
-								}
-
-								$.extend( customOptions.config, {privacyPolicyLink: false} );
 							}
 
 							break;

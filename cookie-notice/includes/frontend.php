@@ -56,17 +56,6 @@ class Cookie_Notice_Frontend {
 			// amp compatibility
 			if ( $cn->options['general']['amp_support'] && cn_is_plugin_active( 'amp' ) )
 				include_once( COOKIE_NOTICE_PATH . 'includes/modules/amp/amp.php' );
-
-			// is caching compatibility active?
-			if ( $cn->options['general']['caching_compatibility'] ) {
-				// litespeed cache compatibility
-				if ( cn_is_plugin_active( 'litespeed' ) )
-					include_once( COOKIE_NOTICE_PATH . 'includes/modules/litespeed-cache/litespeed-cache.php' );
-
-				// wp rocket compatibility
-				if ( cn_is_plugin_active( 'wprocket' ) )
-					include_once( COOKIE_NOTICE_PATH . 'includes/modules/wp-rocket/wp-rocket.php' );
-			}
 		}
 	}
 
@@ -88,13 +77,6 @@ class Cookie_Notice_Frontend {
 
 		// compatibility fixes
 		if ( $this->compliance ) {
-			// is caching compatibility active?
-			if ( $cn->options['general']['caching_compatibility'] ) {
-				// autoptimize compatibility
-				if ( cn_is_plugin_active( 'autoptimize' ) )
-					include_once( COOKIE_NOTICE_PATH . 'includes/modules/autoptimize/autoptimize.php' );
-			}
-
 			// is blocking active?
 			if ( $cn->options['general']['app_blocking'] ) {
 				// contact form 7 compatibility
@@ -300,9 +282,6 @@ class Cookie_Notice_Frontend {
 			'privacyConsent'	=> ! empty( $sources )
 		];
 
-		// get active sources
-		$sources = $cn->privacy_consent->get_active_sources();
-
 		// any active source?
 		if ( ! empty( $sources ) )
 			$options['forms'] = [];
@@ -333,24 +312,47 @@ class Cookie_Notice_Frontend {
 			else
 				$blocking = get_option( 'cookie_notice_app_blocking' );
 
-			$providers = ! empty( $blocking['providers'] ) && is_array( $blocking['providers'] ) ? $this->get_custom_items( $blocking['providers'] ) : [];
-			$patterns = ! empty( $blocking['patterns'] ) && is_array( $blocking['patterns'] ) ? $this->get_custom_items( $blocking['patterns'] ) : [];
-
-			$options['customProviders'] = ! empty( $providers ) ? $providers : [];
-			$options['customPatterns'] = ! empty( $patterns ) ? $patterns : [];
+			$options['customProviders'] = ! empty( $blocking['providers'] ) && is_array( $blocking['providers'] ) ? $blocking['providers'] : [];
+			$options['customPatterns'] = ! empty( $blocking['patterns'] ) && is_array( $blocking['patterns'] ) ? $blocking['patterns'] : [];
 
 			// google consent mode default categories
-			$gcd = [];
-
 			if ( ! empty( $blocking['google_consent_default'] ) && is_array( $blocking['google_consent_default'] ) ) {
+				$gcd = [];
+
 				foreach ( $blocking['google_consent_default'] as $storage => $category ) {
-					if ( (int) $category === 1 )
-						$gcd[$storage] = 'granted';
+					if ( in_array( $storage, ['ad_storage', 'analytics_storage', 'functionality_storage', 'personalization_storage', 'security_storage', 'ad_personalization', 'ad_user_data'], true ) )
+						$gcd[$storage] = (int) $category;
 				}
+
+				if ( ! empty( $gcd ) )
+					$options['googleConsentDefault'] = $gcd;
 			}
 
-			if ( ! empty( $gcd ) )
-				$options['googleConsentDefault'] = $gcd;
+			// facebook consent mode default categories
+			if ( ! empty( $blocking['facebook_consent_default'] ) && is_array( $blocking['facebook_consent_default'] ) ) {
+				$fcd = [];
+
+				foreach ( $blocking['facebook_consent_default'] as $storage => $category ) {
+					if ( in_array( $storage, ['consent'], true ) )
+						$fcd[$storage] = (int) $category;
+				}
+
+				if ( ! empty( $fcd ) )
+					$options['facebookConsentDefault'] = $fcd;
+			}
+
+			// microsoft consent mode default categories
+			if ( ! empty( $blocking['microsoft_consent_default'] ) && is_array( $blocking['microsoft_consent_default'] ) ) {
+				$mcd = [];
+
+				foreach ( $blocking['microsoft_consent_default'] as $storage => $category ) {
+					if ( in_array( $storage, ['ad_storage'], true ) )
+						$mcd[$storage] = (int) $category;
+				}
+
+				if ( ! empty( $mcd ) )
+					$options['microsoftConsentDefault'] = $mcd;
+			}
 		}
 
 		return $options;
@@ -419,7 +421,7 @@ class Cookie_Notice_Frontend {
 	 */
 	public function add_cookie_notice() {
 		// skip modal login iframe
-		if ( current_filter() === 'login_head' && ! empty( $_REQUEST['interim-login'] ) )
+		if ( current_filter() === 'login_footer' && ! empty( $_REQUEST['interim-login'] ) )
 			return;
 
 		if ( $this->compliance )
@@ -506,15 +508,15 @@ class Cookie_Notice_Frontend {
 		<div id="cookie-notice" role="dialog" class="cookie-notice-hidden cookie-revoke-hidden cn-position-' . esc_attr( $options['position'] ) . '" aria-label="' . esc_attr( $options['aria_label'] ) . '" style="background-color: __CN_BG_COLOR__">'
 			. '<div class="cookie-notice-container" style="color: ' . esc_attr( $options['colors']['text'] ) . '">'
 			. '<span id="cn-notice-text" class="cn-text-container">'. ( $options['see_more'] ? do_shortcode( $options['message_text'] ) : $options['message_text'] ) . '</span>'
-			. '<span id="cn-notice-buttons" class="cn-buttons-container"><a href="#" id="cn-accept-cookie" data-cookie-set="accept" class="cn-set-cookie ' . esc_attr( $options['button_class'] ) . ( $options['css_class'] !== '' ? ' cn-button-custom ' . esc_attr( $options['css_class'] ) : '' ) . '" aria-label="' . esc_attr( $options['accept_text'] ) . '"' . ( $options['css_class'] == '' ? ' style="background-color: ' . esc_attr( $options['colors']['button'] ) . '"' : '' ) . '>' . esc_html( $options['accept_text'] ) . '</a>'
-			. ( $options['refuse_opt'] ? '<a href="#" id="cn-refuse-cookie" data-cookie-set="refuse" class="cn-set-cookie ' . esc_attr( $options['button_class'] ) . ( $options['css_class'] !== '' ? ' cn-button-custom ' . esc_attr( $options['css_class'] ) : '' ) . '" aria-label="' . esc_attr( $options['refuse_text'] ) . '"' . ( $options['css_class'] == '' ? ' style="background-color: ' . esc_attr( $options['colors']['button'] ) . '"' : '' ) . '>' . esc_html( $options['refuse_text'] ) . '</a>' : '' )
-			. ( $options['see_more'] && $options['link_position'] === 'banner' ? '<a href="' . esc_url( $options['see_more_opt']['link_type'] === 'custom' ? $options['see_more_opt']['link'] : $permalink ) . '" target="' . esc_attr( $options['link_target'] ) . '" id="cn-more-info" class="cn-more-info ' . esc_attr( $options['button_class'] ) . ( $options['css_class'] !== '' ? ' cn-button-custom ' . esc_attr( $options['css_class'] ) : '' ) . '" aria-label="' . esc_attr( $options['see_more_opt']['text'] ) . '"' . ( $options['css_class'] == '' ? ' style="background-color: ' . esc_attr( $options['colors']['button'] ) . '"' : '' ) . '>' . esc_html( $options['see_more_opt']['text'] ) . '</a>' : '' )
+			. '<span id="cn-notice-buttons" class="cn-buttons-container"><button id="cn-accept-cookie" data-cookie-set="accept" class="cn-set-cookie ' . esc_attr( $options['button_class'] ) . ( $options['css_class'] !== '' ? ' cn-button-custom ' . esc_attr( $options['css_class'] ) : '' ) . '" aria-label="' . esc_attr( $options['accept_text'] ) . '"' . ( $options['css_class'] == '' ? ' style="background-color: ' . esc_attr( $options['colors']['button'] ) . '"' : '' ) . '>' . esc_html( $options['accept_text'] ) . '</button>'
+			. ( $options['refuse_opt'] ? '<button id="cn-refuse-cookie" data-cookie-set="refuse" class="cn-set-cookie ' . esc_attr( $options['button_class'] ) . ( $options['css_class'] !== '' ? ' cn-button-custom ' . esc_attr( $options['css_class'] ) : '' ) . '" aria-label="' . esc_attr( $options['refuse_text'] ) . '"' . ( $options['css_class'] == '' ? ' style="background-color: ' . esc_attr( $options['colors']['button'] ) . '"' : '' ) . '>' . esc_html( $options['refuse_text'] ) . '</button>' : '' )
+			. ( $options['see_more'] && $options['link_position'] === 'banner' ? '<button data-link-url="' . esc_url( $options['see_more_opt']['link_type'] === 'custom' ? $options['see_more_opt']['link'] : $permalink ) . '" data-link-target="' . esc_attr( $options['link_target'] ) . '" id="cn-more-info" class="cn-more-info ' . esc_attr( $options['button_class'] ) . ( $options['css_class'] !== '' ? ' cn-button-custom ' . esc_attr( $options['css_class'] ) : '' ) . '" aria-label="' . esc_attr( $options['see_more_opt']['text'] ) . '"' . ( $options['css_class'] == '' ? ' style="background-color: ' . esc_attr( $options['colors']['button'] ) . '"' : '' ) . '>' . esc_html( $options['see_more_opt']['text'] ) . '</button>' : '' )
 			. '</span><span id="cn-close-notice" data-cookie-set="accept" class="cn-close-icon" title="' . esc_attr( $options['refuse_text'] ) . '"></span>'
 			. '</div>
 			' . ( $options['refuse_opt'] && $options['revoke_cookies'] ?
 			'<div class="cookie-revoke-container" style="color: ' . esc_attr( $options['colors']['text'] ) . '">'
 			. ( ! empty( $options['revoke_message_text'] ) ? '<span id="cn-revoke-text" class="cn-text-container">' . $options['revoke_message_text'] . '</span>' : '' )
-			. '<span id="cn-revoke-buttons" class="cn-buttons-container"><a href="#" class="cn-revoke-cookie ' . esc_attr( $options['button_class'] ) . ( $options['css_class'] !== '' ? ' cn-button-custom ' . esc_attr( $options['css_class'] ) : '' ) . '" aria-label="' . esc_attr( $options['revoke_text'] ) . '"' . ( $options['css_class'] == '' ? ' style="background-color: ' . esc_attr( $options['colors']['button'] ) . '"' : '' ) . '>' . esc_html( $options['revoke_text'] ) . '</a></span>
+			. '<span id="cn-revoke-buttons" class="cn-buttons-container"><button id="cn-revoke-cookie" class="cn-revoke-cookie ' . esc_attr( $options['button_class'] ) . ( $options['css_class'] !== '' ? ' cn-button-custom ' . esc_attr( $options['css_class'] ) : '' ) . '" aria-label="' . esc_attr( $options['revoke_text'] ) . '"' . ( $options['css_class'] == '' ? ' style="background-color: ' . esc_attr( $options['colors']['button'] ) . '"' : '' ) . '>' . esc_html( $options['revoke_text'] ) . '</button></span>
 			</div>' : '' ) . '
 		</div>
 		<!-- / Cookie Notice plugin -->';
@@ -736,55 +738,6 @@ class Cookie_Notice_Frontend {
 			if ( ! empty( $scripts ) )
 				echo html_entity_decode( wp_kses( $scripts, $cn->get_allowed_html( 'head' ) ) );
 		}
-	}
-
-	/**
-	 * Get custom providers or patterns.
-	 *
-	 * @param array $items
-	 * @return array
-	 */
-	public function get_custom_items( $items ) {
-		$result = [];
-
-		if ( ! empty( $items ) && is_array( $items ) ) {
-			foreach ( $items as $index => $item ) {
-				if ( isset( $item->IsCustom ) && $item->IsCustom == true ) {
-					$sanitized_item = [];
-
-					foreach ( $item as $key => $value ) {
-						$sanitized_item[$key] = $this->sanitize_field( $value, $key );
-					}
-
-					$result[] = (object) $sanitized_item;
-				}
-			}
-		}
-
-		return $result;
-	}
-
-	/**
-	 * Sanitize field.
-	 *
-	 * @param mixed $value
-	 * @param string $key
-	 * @return mixed
-	 */
-	private function sanitize_field( $value, $key ) {
-		$sanitized_value = $value;
-
-		switch ( $key ) {
-			case 'CategoryID':
-				$sanitized_value = (int) $value;
-				break;
-
-			case 'IsCustom':
-				$sanitized_value = (bool) $value;
-				break;
-		}
-
-		return $sanitized_value;
 	}
 
 	/**

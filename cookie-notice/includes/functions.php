@@ -134,7 +134,7 @@ function cn_get_active_caching_plugins( $args = [] ) {
  */
 function cn_is_plugin_active( $plugin = '', $module = 'caching' ) {
 	// no valid plugin?
-	if ( ! in_array( $plugin, [ 'autoptimize', 'wpoptimize', 'litespeed', 'speedoptimizer', 'wpfastestcache', 'wprocket', 'wpsupercache', 'contactform7', 'elementor', 'amp', 'hummingbird', 'breeze', 'speedycache', 'wpforms', 'woocommerce', 'mailchimp' ], true ) )
+	if ( ! in_array( $plugin, [ 'autoptimize', 'wpoptimize', 'litespeed', 'speedoptimizer', 'wpfastestcache', 'wprocket', 'wpsupercache', 'contactform7', 'elementor', 'amp', 'hummingbird', 'breeze', 'speedycache', 'wpforms', 'woocommerce', 'mailchimp', 'formidableforms' ], true ) )
 		return false;
 
 	// set default flag
@@ -237,9 +237,15 @@ function cn_is_plugin_active( $plugin = '', $module = 'caching' ) {
 				$is_plugin_active = true;
 			break;
 
-		// woocommerce
+		// mailchimp
 		case 'mailchimp':
 			if ( $module === 'privacy-consent' && class_exists( 'MC4WP_Form_Manager' ) && defined( 'MC4WP_VERSION' ) && version_compare( MC4WP_VERSION, '4.0', '>=' ) )
+				$is_plugin_active = true;
+			break;
+
+		// formidable forms
+		case 'formidableforms':
+			if ( $module === 'privacy-consent' && class_exists( 'FrmAppHelper' ) && method_exists( 'FrmAppHelper', 'plugin_version' ) && version_compare( FrmAppHelper::plugin_version(), '2.0', '>=' ) )
 				$is_plugin_active = true;
 			break;
 	}

@@ -408,7 +408,8 @@
 
 			var cookieButtons = document.getElementsByClassName( 'cn-set-cookie' ),
 				revokeButtons = document.getElementsByClassName( 'cn-revoke-cookie' ),
-				closeIcon = document.getElementById( 'cn-close-notice' );
+				linkButton = document.getElementById( 'cn-more-info' ),
+				closeButton = document.getElementById( 'cn-close-notice' );
 
 			// add effect class
 			this.noticeContainer.classList.add( 'cn-effect-' + cnArgs.hideEffect );
@@ -453,10 +454,26 @@
 					_this.setStatus( this.dataset.cookieSet );
 				} );
 			}
+			
+			// handle link button
+			if ( linkButton !== null ) {
+				linkButton.addEventListener( 'click', function ( e ) {
+					e.preventDefault();
+					// Chrome double click event fix
+					e.stopPropagation();
+					
+					console.log( this );
+					
+					var linkUrl = this.dataset.linkUrl;
+					var linkTarget = this.dataset.linkTarget;
 
-			// handle close icon
-			if ( closeIcon !== null ) {
-				closeIcon.addEventListener( 'click', function ( e ) {
+					window.open( linkUrl, linkTarget );
+				} );
+			}
+
+			// handle close button
+			if ( closeButton !== null ) {
+				closeButton.addEventListener( 'click', function ( e ) {
 					e.preventDefault();
 					// Chrome double click event fix
 					e.stopPropagation();

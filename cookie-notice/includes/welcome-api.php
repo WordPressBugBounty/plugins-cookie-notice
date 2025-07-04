@@ -861,24 +861,21 @@ class Cookie_Notice_Welcome_API {
 
 							// any data?
 							if ( ! empty( $_POST[$field] ) && is_array( $_POST[$field] ) ) {
-								$options['laws'] = array_map( 'sanitize_text_field', $_POST[$field] );
+								$options['regulations'] = array_map( 'sanitize_text_field', $_POST[$field] );
 
-								foreach ( $options['laws'] as $law ) {
-									if ( in_array( $law, [ 'gdpr', 'ccpa' ], true ) )
+								foreach ( $options['regulations'] as $law ) {
+									if ( in_array( $law, [ 'gdpr', 'ccpa', 'otherus', 'ukpecr', 'lgpd', 'pipeda', 'popia' ], true ) )
 										$new_options[$law] = true;
 								}
 							}
 
-							$options['laws'] = $new_options;
+							$options['regulations'] = $new_options;
 
-							// GDPR
-							if ( array_key_exists( 'gdpr', $options['laws'] ) )
-								$options['config']['privacyPolicyLink'] = true;
-							else
-								$options['config']['privacyPolicyLink'] = false;
+							// GDPR & others
+							$options['config']['privacyPolicyLink'] = true;
 
-							// CCPA
-							if ( array_key_exists( 'ccpa', $options['laws'] ) )
+							// CCPA & Other US
+							if ( array_key_exists( 'ccpa', $options['regulations'] ) || array_key_exists( 'otherus', $options['regulations'] ) )
 								$options['config']['dontSellLink'] = true;
 							else
 								$options['config']['dontSellLink'] = false;
@@ -1371,6 +1368,7 @@ class Cookie_Notice_Welcome_API {
 	 * @param string $app_id
 	 * @param bool $force_update
 	 * @param bool $force_action
+	 *
 	 * @return void
 	 */
 	public function get_app_analytics( $app_id = '', $force_update = false, $force_action = true ) {
@@ -1448,11 +1446,18 @@ class Cookie_Notice_Welcome_API {
 				update_option( 'cookie_notice_status', $status_data, false );
 			}
 
+			// get current status data
+			$status_data_old = $cn->get_status_data();
+
 			// update status data
 			$cn->set_status_data();
 
-			if ( $force_action )
-				do_action( 'cn_configuration_updated', 'analytics' );
+			// only when status data changed
+			if ( $force_action && $status_data_old !== $status_data ) {
+				do_action( 'cn_configuration_updated', 'analytics', [
+					'status' => $status_data
+				] );
+			}
 		}
 	}
 
@@ -1462,6 +1467,7 @@ class Cookie_Notice_Welcome_API {
 	 * @param string $app_id
 	 * @param bool $force_update
 	 * @param bool $force_action
+	 *
 	 * @return void|array
 	 */
 	public function get_app_config( $app_id = '', $force_update = false, $force_action = true ) {
@@ -1511,7 +1517,36 @@ class Cookie_Notice_Welcome_API {
 		// get config
 		if ( ! empty( $response->data ) ) {
 			// sanitize data
-			$result_raw = map_deep( (array) $response->data, 'sanitize_text_field' );
+			foreach ( (array) $response->data as $index => $value ) {
+				// custom patterns
+				if ( $index === 'DefaultCookieJSON' ) {
+					foreach ( $value as $p_index => $pattern ) {
+						$pattern->IsCustom = (bool) $pattern->IsCustom;
+						$pattern->CookieID = is_int( $pattern->CookieID ) ? $pattern->CookieID : sanitize_text_field( $pattern->CookieID );
+						$pattern->CategoryID = (int) $pattern->CategoryID;
+						$pattern->ProviderID = is_int( $pattern->ProviderID ) ? $pattern->ProviderID : sanitize_text_field( $pattern->ProviderID );
+						$pattern->PatternType = sanitize_text_field( $pattern->PatternType );
+						$pattern->PatternFormat = sanitize_text_field( $pattern->PatternFormat );
+						$pattern->Pattern = sanitize_text_field( $pattern->Pattern );
+
+						// add pattern
+						$result_raw[$index][$p_index] = $pattern;
+					}
+				// custom providers
+				} elseif ( $index === 'DefaultProviderJSON' ) {
+					foreach ( $value as $p_index => $provider ) {
+						$provider->IsCustom = (bool) $provider->IsCustom;
+						$provider->CategoryID = (int) $provider->CategoryID;
+						$provider->ProviderID = is_int( $provider->ProviderID ) ? $provider->ProviderID : sanitize_text_field( $provider->ProviderID );
+						$provider->ProviderURL = sanitize_text_field( $provider->ProviderURL );
+						$provider->ProviderName = sanitize_text_field( $provider->ProviderName );
+
+						// add provider
+						$result_raw[$index][$p_index] = $provider;
+					}
+				} else
+					$result_raw[$index] = map_deep( $value, 'sanitize_text_field' );
+			}
 
 			// set status
 			$status_data['status'] = 'active';
@@ -1564,12 +1599,31 @@ class Cookie_Notice_Welcome_API {
 					$result['google_consent_default']['ad_personalization'] = isset( $result_raw['BannerConfigJSON']->googleConsentMapAdPersonalization ) ? (int) $result_raw['BannerConfigJSON']->googleConsentMapAdPersonalization : 4;
 					$result['google_consent_default']['ad_user_data'] = isset( $result_raw['BannerConfigJSON']->googleConsentMapAdUserData ) ? (int) $result_raw['BannerConfigJSON']->googleConsentMapAdUserData : 4;
 				}
+
+				$fcm = isset( $result_raw['BannerConfigJSON']->facebookConsentMode ) ? (int) $result_raw['BannerConfigJSON']->facebookConsentMode : 0;
+
+				// is facebook consent mode enabled?
+				if ( $fcm === 1 ) {
+					$result['facebook_consent_default']['consent'] = isset( $result_raw['BannerConfigJSON']->facebookConsentMapConsent ) ? (int) $result_raw['BannerConfigJSON']->facebookConsentMapConsent : 4;
+				}
+
+				$mcm = isset( $result_raw['BannerConfigJSON']->microsoftConsentMode ) ? (int) $result_raw['BannerConfigJSON']->microsoftConsentMode : 0;
+
+				// is microsoft consent mode enabled?
+				if ( $mcm === 1 ) {
+					$result['microsoft_consent_default']['ad_storage'] = isset( $result_raw['BannerConfigJSON']->microsoftConsentMapAdStorage ) ? (int) $result_raw['BannerConfigJSON']->microsoftConsentMapAdStorage : 4;
+				}
 			}
 
-			if ( $network )
+			if ( $network ) {
+				$blocking_data = get_site_option( 'cookie_notice_app_blocking', [] );
+
 				update_site_option( 'cookie_notice_app_blocking', $result );
-			else
+			} else {
+				$blocking_data = get_option( 'cookie_notice_app_blocking', [] );
+
 				update_option( 'cookie_notice_app_blocking', $result, false );
+			}
 		} else {
 			if ( ! empty( $response->error ) ) {
 				if ( $response->error == 'App is not puplised yet' )
@@ -1584,11 +1638,30 @@ class Cookie_Notice_Welcome_API {
 		else
 			update_option( 'cookie_notice_status', $status_data, false );
 
+		// get current status data
+		$status_data_old = $cn->get_status_data();
+
 		// update status data
 		$cn->set_status_data();
 
-		if ( $force_action )
-			do_action( 'cn_configuration_updated', 'config' );
+		// check blocking data
+		if ( isset( $blocking_data, $result ) ) {
+			// do not compare dates
+			unset( $blocking_data['lastUpdated'] );
+			unset( $result['lastUpdated'] );
+
+			// simple comparing, objects inside
+			$blocking_data_updated = $blocking_data != $result;
+		} else
+			$blocking_data_updated = false;
+
+		// only when status data or blocking data changed
+		if ( $force_action && ( $status_data_old !== $status_data || $blocking_data_updated ) ) {
+			do_action( 'cn_configuration_updated', 'config', [
+				'status'	=> $status_data,
+				'blocking'	=> empty( $result ) ? [] : $result
+			] );
+		}
 
 		return $status_data;
 	}

@@ -46,7 +46,7 @@ class Cookie_Notice_Modules_ContactForm7_Privacy_Consent {
 			return;
 
 		// forms
-		add_filter( 'do_shortcode_tag', [ $this, 'shortcode' ], 10, 4 );
+		add_filter( 'do_shortcode_tag', [ $this, 'shortcode' ], 10, 3 );
 	}
 
 	/**
@@ -76,7 +76,7 @@ class Cookie_Notice_Modules_ContactForm7_Privacy_Consent {
 		$cn = Cookie_Notice();
 
 		$input['contactform7_active'] = isset( $input['contactform7_active'] );
-		$input['contactform7_active_type'] = isset( $input['contactform7_active_type'] ) && in_array( $input['contactform7_active_type'], $cn->privacy_consent->form_active_types, true ) ? $input['contactform7_active_type'] : $cn->defaults['privacy_consent']['contactform7_active_type'];
+		$input['contactform7_active_type'] = isset( $input['contactform7_active_type'] ) && array_key_exists( $input['contactform7_active_type'], $cn->privacy_consent->form_active_types ) ? $input['contactform7_active_type'] : $cn->defaults['privacy_consent']['contactform7_active_type'];
 
 		return $input;
 	}
@@ -150,7 +150,7 @@ class Cookie_Notice_Modules_ContactForm7_Privacy_Consent {
 	 * @return array
 	 */
 	public function get_form( $args ) {
-		// get only published forms
+		// get only one form
 		$query = new WP_Query( [
 			'p'					=> (int) $args['form_id'],
 			'post_status'		=> 'publish',
@@ -164,7 +164,7 @@ class Cookie_Notice_Modules_ContactForm7_Privacy_Consent {
 			$form = [
 				'source'	=> $this->source['id'],
 				'id'		=> $query->posts[0]->ID,
-				'title'		=> Cookie_Notice()->privacy_consent->strcut( sanitize_text_field( $query->posts[0]->post_title ), 0, 100 ),
+				'title'		=> Cookie_Notice()->privacy_consent->strcut( sanitize_text_field( $query->posts[0]->post_title ), 100 ),
 				'fields'	=> [
 					'subject'	=> [
 						'first_name'	=> 'your-name',
@@ -187,11 +187,10 @@ class Cookie_Notice_Modules_ContactForm7_Privacy_Consent {
 	 * @param string $output
 	 * @param string $tag
 	 * @param array $attr
-	 * @param array $match
 	 *
 	 * @return string
 	 */
-	public function shortcode( $output, $tag, $attr, $match ) {
+	public function shortcode( $output, $tag, $attr ) {
 		if ( $tag !== 'contact-form-7' )
 			return $output;
 

@@ -3,8 +3,8 @@ Contributors: humanityco
 Tags: gdpr, ccpa, cookies, consent, privacy
 Requires at least: 4.9.6
 Requires PHP: 7.4
-Tested up to: 6.7.2
-Stable tag: 2.5.6
+Tested up to: 6.8.1
+Stable tag: 2.5.7
 License: MIT License
 License URI: http://opensource.org/licenses/MIT
 
@@ -122,6 +122,12 @@ Yes! The plugin + web appliaction version includes technical compliance features
 4. Cookie Compliance settings
 
 == Changelog ==
+
+= 2.5.7 =
+* New: Microsoft Consent Mode support
+* Tweak: Convert banner links to buttons (for accessibility)
+* Tweak: Improved compatibility with caching plugins
+* Fix: Displaying cookie notice in admin
 
 = 2.5.6 =
 * New: Added Form and Source columns to Privacy Consents table
@@ -553,5 +559,5 @@ Initial release
 
 == Upgrade Notice ==
 
-= 2.5.6 =
-Added Form and Source columns to Privacy Consents table, WooCommere forms issue fixed
+= 2.5.7 =
+Microsoft Consent Mode support, Improved compatibility with caching plugins and banner accessibility

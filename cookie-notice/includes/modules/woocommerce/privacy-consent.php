@@ -139,7 +139,7 @@ class Cookie_Notice_Modules_WooCommerce_Privacy_Consent {
 		$cn = Cookie_Notice();
 
 		$input['woocommerce_active'] = isset( $input['woocommerce_active'] );
-		$input['woocommerce_active_type'] = isset( $input['woocommerce_active_type'] ) && in_array( $input['woocommerce_active_type'], $cn->privacy_consent->form_active_types, true ) ? $input['woocommerce_active_type'] : $cn->defaults['privacy_consent']['woocommerce_active_type'];
+		$input['woocommerce_active_type'] = isset( $input['woocommerce_active_type'] ) && array_key_exists( $input['woocommerce_active_type'], $cn->privacy_consent->form_active_types ) ? $input['woocommerce_active_type'] : $cn->defaults['privacy_consent']['woocommerce_active_type'];
 
 
 		return $input;
