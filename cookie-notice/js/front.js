@@ -455,28 +455,40 @@
 				} );
 			}
 			
-			// handle link button
-			if ( linkButton !== null ) {
-				linkButton.addEventListener( 'click', function ( e ) {
+		// handle link button
+		if ( linkButton !== null ) {
+			linkButton.addEventListener( 'click', function ( e ) {
+				var linkUrl = this.dataset.linkUrl || this.getAttribute( 'href' );
+				var linkTarget = this.dataset.linkTarget || this.getAttribute( 'target' ) || '_self';
+
+				// only intercept when we have a destination
+				if ( ! linkUrl )
+					return;
+
+				e.preventDefault();
+				// Chrome double click event fix
+				e.stopPropagation();
+
+				window.open( linkUrl, linkTarget );
+			} );
+		}
+
+		// handle close button
+		if ( closeButton !== null ) {
+			closeButton.addEventListener( 'keydown', function ( e ) {
+				if ( e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar' || e.keyCode === 13 || e.keyCode === 32 ) {
 					e.preventDefault();
 					// Chrome double click event fix
 					e.stopPropagation();
-					
-					console.log( this );
-					
-					var linkUrl = this.dataset.linkUrl;
-					var linkTarget = this.dataset.linkTarget;
 
-					window.open( linkUrl, linkTarget );
-				} );
-			}
+					_this.setStatus( 'reject' );
+				}
+			} );
 
-			// handle close button
-			if ( closeButton !== null ) {
-				closeButton.addEventListener( 'click', function ( e ) {
-					e.preventDefault();
-					// Chrome double click event fix
-					e.stopPropagation();
+			closeButton.addEventListener( 'click', function ( e ) {
+				e.preventDefault();
+				// Chrome double click event fix
+				e.stopPropagation();
 
 					_this.setStatus( 'reject' );
 				} );

@@ -2,7 +2,7 @@
 /*
 Plugin Name: Cookie Notice & Compliance for GDPR / CCPA
 Description: Cookie Notice allows you to you elegantly inform users that your site uses cookies and helps you comply with GDPR, CCPA and other data privacy laws.
-Version: 2.5.7
+Version: 2.5.11
 Author: Hu-manity.co
 Author URI: https://hu-manity.co/
 Plugin URI: https://cookie-compliance.co/
@@ -29,7 +29,7 @@ if ( ! defined( 'ABSPATH' ) )
  * Cookie Notice class.
  *
  * @class Cookie_Notice
- * @version	2.5.7
+ * @version	2.5.11
  */
 class Cookie_Notice {
 
@@ -131,18 +131,20 @@ class Cookie_Notice {
 			'csp_notice'			=> false
 		],
 		'privacy_consent' => [
-			'wordpress_active'				=> true,
-			'wordpress_active_type'			=> 'all',
-			'contactform7_active'			=> false,
-			'contactform7_active_type'		=> 'all',
-			'mailchimp_active'				=> false,
-			'mailchimp_active_type'			=> 'all',
-			'wpforms_active'				=> false,
-			'wpforms_active_type'			=> 'all',
-			'woocommerce_active'			=> false,
-			'woocommerce_active_type'		=> 'all',
-			'formidableforms_active'		=> false,
-			'formidableforms_active_type'	=> 'all'
+			'wordpress_active'					=> true,
+			'wordpress_active_type'				=> 'all',
+			'contactform7_active'				=> false,
+			'contactform7_active_type'			=> 'all',
+			'mailchimp_active'					=> false,
+			'mailchimp_active_type'				=> 'all',
+			'wpforms_active'					=> false,
+			'wpforms_active_type'				=> 'all',
+			'woocommerce_active'				=> false,
+			'woocommerce_active_type'			=> 'all',
+			'formidableforms_active'			=> false,
+			'formidableforms_active_type'		=> 'all',
+			'easydigitaldownloads_active'		=> false,
+			'easydigitaldownloads_active_type'	=> 'all'
 		],
 		'data'	=> [
 			'status'				=> '',
@@ -150,7 +152,7 @@ class Cookie_Notice {
 			'threshold_exceeded'	=> false,
 			'activation_datetime'	=> 0
 		],
-		'version'	=> '2.5.7'
+		'version'	=> '2.5.11'
 	];
 
 	/**
@@ -321,6 +323,10 @@ class Cookie_Notice {
 	 * @return false|array
 	 */
 	public function update_legacy_options( $options ) {
+		// bail out if options are missing or invalid to avoid PHP 8 fatal on non-array values
+		if ( ! is_array( $options ) )
+			return $this->defaults['general'];
+
 		$options_changed = false;
 
 		// check legacy parameters that were yes/no strings
@@ -745,7 +751,7 @@ class Cookie_Notice {
 		$subscription = $this->get_subscription();
 
 		// update number
-		$current_update = 13;
+		$current_update = 14;
 
 		// new version?
 		if ( version_compare( $this->db_version, $this->defaults['version'], '<' ) ) {
@@ -817,9 +823,9 @@ class Cookie_Notice {
 		// show notice, if no compliance only
 		if ( $this->options['general']['update_notice'] === true ) {
 			if ( empty( $status ) ) {
-				$this->add_notice( '<div class="cn-notice-text cn-no-compliance"><h2>' . esc_html__( 'Now Supporting Microsoft Consent Mode', 'cookie-notice' ) . '</h2><p>' . __( 'Cookie Compliance now integrates with Microsoft Consent Mode, allowing you to sync user consent with Microsoft Ads and UET tracking. Combined with full support for GDPR, CCPA, and other major privacy laws, it’s the easiest way to stay compliant across regions — all without writing a single line of code.', 'cookie-notice' ) . ' ' . __( "Sign up to add compliance features now, and upgrade when you're ready to unlock advanced features.", 'cookie-notice' ) . '</p><p class="cn-notice-actions"><a href="' . esc_url( $network ? network_admin_url( 'admin.php?page=cookie-notice&welcome=1' ) : admin_url( 'admin.php?page=cookie-notice&welcome=1' ) ) . '" class="button button-primary cn-button">' . esc_html__( 'Add Compliance features', 'cookie-notice' ) . '</a> <a href="#" class="button-link cn-notice-dismiss">' . esc_html__( 'Dismiss Notice', 'cookie-notice' ) . '</a></p></div>', 'error', 'div' );
+				$this->add_notice( '<div class="cn-notice-text cn-no-compliance"><h2>' . esc_html__( 'Microsoft Clarity Enforcement Begins October 31 — Add Consent Support Now', 'cookie-notice' ) . '</h2><p>' . __( 'Microsoft will start enforcing Clarity Consent API v2 on October 31, 2025, for visitors from the EEA, UK, and Switzerland. Sites without valid consent signals may lose access to key analytics and advertising data. Cookie Compliance makes it effortless — automatically syncing user consent with Clarity, Microsoft Ads, and more.', 'cookie-notice' ) . ' ' . __( "Add compliance features today and upgrade later to unlock advanced integrations.", 'cookie-notice' ) . '</p><p class="cn-notice-actions"><a href="' . esc_url( $network ? network_admin_url( 'admin.php?page=cookie-notice&welcome=1' ) : admin_url( 'admin.php?page=cookie-notice&welcome=1' ) ) . '" class="button button-primary cn-button">' . esc_html__( 'Add Compliance features', 'cookie-notice' ) . '</a> <a href="#" class="button-link cn-notice-dismiss">' . esc_html__( 'Dismiss Notice', 'cookie-notice' ) . '</a></p></div>', 'error', 'div' );
 			} else if ( $subscription !== 'pro' ) {
-				$this->add_notice( '<div class="cn-notice-text cn-no-compliance"><h2>' . esc_html__( 'Unlock Microsoft Consent Mode Support', 'cookie-notice' ) . '</h2><p>' . __( 'Cookie Compliance now integrates with Microsoft Consent Mode, allowing you to sync user consent with Microsoft Ads and UET tracking. Combined with full support for GDPR, CCPA, and other major privacy laws, it’s the easiest way to stay compliant across regions — all without writing a single line of code.', 'cookie-notice' ) . ' ' . __( "Microsoft Consent Mode is available exclusively on the Pro plan — upgrade now to activate it in your dashboard.", 'cookie-notice' ) . '</p><p class="cn-notice-actions"><a href="' . esc_url( $this->get_url( 'host', '?utm_campaign=upgrade+to+pro&utm_source=wordpress&utm_medium=link#/dashboard?app-id=' . $this->options['general']['app_id'] . '&open-modal=payment' ) ) . '" class="button button-secondary cn-button" target="_blank">' . esc_html__( 'Upgrade to Pro', 'cookie-notice' ) . '</a> <a href="#" class="button-link cn-notice-dismiss">' . esc_html__( 'Dismiss Notice', 'cookie-notice' ) . '</a></p></div>', 'error', 'div' );
+				$this->add_notice( '<div class="cn-notice-text cn-no-compliance"><h2>' . esc_html__( 'Microsoft Clarity Enforcement Begins October 31 — Unlock Consent API v2 Now', 'cookie-notice' ) . '</h2><p>' . __( 'Cookie Compliance now supports Microsoft Clarity Consent API v2, ensuring consent is automatically synchronized between your site, Clarity analytics, and Microsoft Ads. Starting October 31, 2025, Microsoft will require valid consent signals for all visitors from the EEA, UK, and Switzerland. Sites without valid it may lose access to key analytics and advertising data.', 'cookie-notice' ) . ' ' . __( "Upgrade to Pro today to stay compliant and keep your analytics running smoothly — no code required.", 'cookie-notice' ) . '</p><p class="cn-notice-actions"><a href="' . esc_url( $this->get_url( 'host', '?utm_campaign=upgrade+to+pro&utm_source=wordpress&utm_medium=link#/dashboard?app-id=' . $this->options['general']['app_id'] . '&open-modal=payment' ) ) . '" class="button button-secondary cn-button" target="_blank">' . esc_html__( 'Upgrade to Pro', 'cookie-notice' ) . '</a> <a href="#" class="button-link cn-notice-dismiss">' . esc_html__( 'Dismiss Notice', 'cookie-notice' ) . '</a></p></div>', 'error', 'div' );
 			}
 		}
 
@@ -1061,7 +1067,8 @@ class Cookie_Notice {
 	 */
 	public function cookies_accepted_shortcode( $args, $content ) {
 		if ( $this->cookies_accepted() ) {
-			$scripts = html_entity_decode( trim( wp_kses( $content, $this->get_allowed_html( 'body' ) ) ) );
+			// Only sanitize with wp_kses - do not decode entities from user-generated content
+			$scripts = trim( wp_kses( $content, $this->get_allowed_html( 'body' ) ) );
 
 			if ( ! empty( $scripts ) ) {
 				if ( preg_match_all( '/' . get_shortcode_regex() . '/', $content ) )
@@ -1168,7 +1175,7 @@ class Cookie_Notice {
 		// combine shortcode arguments
 		$args = shortcode_atts( $defaults, $args );
 
-		$shortcode = '<a href="' . esc_url( $args['link'] ) . '" target="' . esc_attr( $options['link_target'] ) . '" id="cn-more-info" class="cn-privacy-policy-link cn-link' . esc_attr( $args['class'] !== '' ? ' ' . $args['class'] : '' ) . '">' . esc_html( $args['title'] ) . '</a>';
+		$shortcode = '<a href="' . esc_url( $args['link'] ) . '" target="' . esc_attr( $options['link_target'] ) . '" id="cn-more-info" class="cn-privacy-policy-link cn-link' . esc_attr( $args['class'] !== '' ? ' ' . $args['class'] : '' ) . '" data-link-url="' . esc_url( $args['link'] ) . '" data-link-target="' . esc_attr( $options['link_target'] ) . '">' . esc_html( $args['title'] ) . '</a>';
 
 		return $shortcode;
 	}
@@ -1253,7 +1260,7 @@ class Cookie_Notice {
 		}
 
 		// notice js and css
-		wp_enqueue_script( 'cookie-notice-admin-notice', COOKIE_NOTICE_URL . '/js/admin-notice.js', [ 'jquery' ], $this->defaults['version'] );
+		wp_enqueue_script( 'cookie-notice-admin-notice', COOKIE_NOTICE_URL . '/js/admin-notice.js', [], $this->defaults['version'] );
 
 		// prepare script data
 		$script_data = [

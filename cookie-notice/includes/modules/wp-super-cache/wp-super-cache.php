@@ -6,7 +6,7 @@ if ( ! defined( 'ABSPATH' ) )
 /**
  * Cookie Notice Modules WP Super Cache class.
  *
- * Compatibility since: 1.6.9
+ * Compatibility since: 1.6.3
  *
  * @class Cookie_Notice_Modules_WPSuperCache
  */

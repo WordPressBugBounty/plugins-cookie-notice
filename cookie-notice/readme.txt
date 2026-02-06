@@ -3,8 +3,8 @@ Contributors: humanityco
 Tags: gdpr, ccpa, cookies, consent, privacy
 Requires at least: 4.9.6
 Requires PHP: 7.4
-Tested up to: 6.8.1
-Stable tag: 2.5.7
+Tested up to: 6.9
+Stable tag: 2.5.11
 License: MIT License
 License URI: http://opensource.org/licenses/MIT
 
@@ -122,6 +122,28 @@ Yes! The plugin + web appliaction version includes technical compliance features
 4. Cookie Compliance settings
 
 == Changelog ==
+
+= 2.5.11 =
+* Security: Enforce TLS verification for platform API requests.
+* Security: Require capability + nonce for cache purge and privacy consent/conditional rule AJAX handlers.
+* Tweak: Switch admin notice JS to vanilla to avoid jQuery conflicts and ensure notices can be closed.
+
+= 2.5.10 =
+* Fix: Make close icon keyboard-focusable (Enter/Space handler, tabindex, focus outline)
+* Fix: Ensure policy link uses href/target and data attrs so "Message" position opens correctly
+* Fix: Enqueue frontend JS when [cookies_revoke] shortcode is present to allow reopen links for logged-in sessions
+* Fix: Guard legacy options fallback to avoid PHP 8 fatal on non-array settings
+
+= 2.5.9 =
+* Security: Fixed Stored XSS vulnerability in [cookies_accepted] shortcode via HTML entity resurrection
+* New: Easy Digital Downloads privacy consent support
+* Fix: Improved bot detection and object cache compatibility
+
+= 2.5.8 =
+* New: Microsoft Clarity Consent API v2 support
+* Fix: Prevent loading banner in Beaver Builder
+* Fix: Improved bot detection and object cache compatibility
+* Fix: Close icon accessibility by switching to button
 
 = 2.5.7 =
 * New: Microsoft Consent Mode support
@@ -559,5 +581,5 @@ Initial release
 
 == Upgrade Notice ==
 
-= 2.5.7 =
-Microsoft Consent Mode support, Improved compatibility with caching plugins and banner accessibility
+= 2.5.11 =
+Security hardening (TLS verification, admin capability checks, nonce-protected cache purge) and improved admin notices closing without jQuery conflicts

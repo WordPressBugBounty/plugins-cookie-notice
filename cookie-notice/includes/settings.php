@@ -660,7 +660,7 @@ class Cookie_Notice_Settings {
 								<p class="' . ( $subscription === 'pro' ? 'cn-active' : 'cn-inactive' ) . '"><span class="cn-icon"></span>' . sprintf( esc_html__( '%sUnlimited%s visits', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
 								<p class="' . ( $subscription === 'pro' ? 'cn-active' : 'cn-inactive' ) . '"><span class="cn-icon"></span>' . sprintf( esc_html__( '%sUnlimited%s privacy consents', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
 								<p class="' . ( $subscription === 'pro' ? 'cn-active' : 'cn-inactive' ) . '"><span class="cn-icon"></span>' . sprintf( esc_html__( '%sLifetime%s consent storage', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
-								<p class="' . ( $subscription === 'pro' ? 'cn-active' : 'cn-inactive' ) . '"><span class="cn-icon"></span>' . sprintf( esc_html__( '%sGoogle & Facebook%s consent modes', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
+								<p class="' . ( $subscription === 'pro' ? 'cn-active' : 'cn-inactive' ) . '"><span class="cn-icon"></span>' . sprintf( esc_html__( '%sGoogle, Microsoft & Facebook%s consent modes', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
 								<p class="' . ( $subscription === 'pro' ? 'cn-active' : 'cn-inactive' ) . '"><span class="cn-icon"></span>' . sprintf( esc_html__( '%sGeolocation%s support', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
 								<p class="' . ( $subscription === 'pro' ? 'cn-active' : 'cn-inactive' ) . '"><span class="cn-icon"></span>' . sprintf( esc_html__( '%sUnlimited%s languages', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
 								<p class="' . ( $subscription === 'pro' ? 'cn-active' : 'cn-inactive' ) . '"><span class="cn-icon"></span>' . sprintf( esc_html__( '%sPriority%s Support', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
@@ -2863,7 +2863,11 @@ class Cookie_Notice_Settings {
 	 * @return void
 	 */
 	public function get_group_rule_values() {
-		if ( isset( $_POST['action'], $_POST['cn_param'], $_POST['cn_nonce'] ) && wp_verify_nonce( $_POST['cn_nonce'], 'cn-get-group-values' ) !== false ) {
+		if (
+			isset( $_POST['action'], $_POST['cn_param'], $_POST['cn_nonce'] )
+			&& wp_verify_nonce( $_POST['cn_nonce'], 'cn-get-group-values' ) !== false
+			&& current_user_can( apply_filters( 'cn_manage_cookie_notice_cap', 'manage_options' ) )
+		) {
 			echo wp_json_encode(
 				[
 					'select'	=> $this->prepare_values( sanitize_key( $_POST['cn_param'] ) )

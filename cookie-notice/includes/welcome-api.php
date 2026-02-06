@@ -958,7 +958,6 @@ class Cookie_Notice_Welcome_API {
 		// request arguments
 		$api_args = [
 			'timeout'	=> 60,
-			'sslverify'	=> false,
 			'headers'	=> [
 				'x-api-key'	=> $cn->get_api_key()
 			]

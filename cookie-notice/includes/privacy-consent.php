@@ -193,6 +193,7 @@ class Cookie_Notice_Privacy_Consent {
 		include_once( COOKIE_NOTICE_PATH . '/includes/modules/woocommerce/privacy-consent.php' );
 		include_once( COOKIE_NOTICE_PATH . '/includes/modules/wpforms/privacy-consent.php' );
 		include_once( COOKIE_NOTICE_PATH . '/includes/modules/formidable-forms/privacy-consent.php' );
+		include_once( COOKIE_NOTICE_PATH . '/includes/modules/easy-digital-downloads/privacy-consent.php' );
 
 		// update 2.5.0
 		if ( version_compare( $cn->db_version, '2.4.18', '<=' ) ) {
@@ -530,6 +531,9 @@ class Cookie_Notice_Privacy_Consent {
 		if ( ! isset( $_POST['source'], $_POST['form_id'], $_POST['status'] ) || wp_verify_nonce( $_POST['nonce'], 'cn-privacy-consent-set-form-status' ) === false )
 			wp_send_json_error();
 
+		if ( ! current_user_can( apply_filters( 'cn_manage_cookie_notice_cap', 'manage_options' ) ) )
+			wp_send_json_error();
+
 		// sanitize source
 		$source = sanitize_key( $_POST['source'] );
 
@@ -624,7 +628,7 @@ class Cookie_Notice_Privacy_Consent {
 	 */
 	public function set_cookie( $value ) {
 		// set cookie
-		$a = setcookie(
+		setcookie(
 			'hu-form',
 			$value,
 			[

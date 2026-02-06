@@ -61,13 +61,21 @@
 	position: absolute;
 	right: 15px;
 	top: 50%;
-	margin-top: -10px;
+	margin: -10px 0 0 0;
 	width: 15px;
 	height: 15px;
 	opacity: 0.5;
 	padding: 10px;
+    border: none;
 	outline: none;
-		cursor: pointer;
+    background: none;
+    box-shadow: none;
+	cursor: pointer;
+}
+.cn-close-icon:focus,
+.cn-close-icon:focus-visible {
+	outline: 2px solid currentColor;
+	outline-offset: 3px;
 }
 .cn-close-icon:hover {
 	opacity: 1;
