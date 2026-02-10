@@ -389,7 +389,7 @@ class Cookie_Notice_Frontend {
 	public function get_cc_output( $options ) {
 		$output = '
 		<!-- Cookie Compliance -->
-		<script type="text/javascript">var huOptions = ' . wp_json_encode( $options ) . ';</script>
+		<script type="text/javascript">var huOptions = ' . wp_json_encode( $options, JSON_UNESCAPED_SLASHES ) . ';</script>
 		<script type="text/javascript" src="' . esc_url( ( is_ssl() ? 'https:' : 'http:' ) . Cookie_Notice()->get_url( 'widget' ) ) . '"></script>';
 
 		return apply_filters( 'cn_cookie_compliance_output', $output, $options );

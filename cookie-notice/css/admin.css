@@ -623,6 +623,67 @@ form.cn-options-submit-disabled .submit {
     padding-bottom: 1em;
 }
 
+/* Sync Configuration Button */
+#cn_sync_config .cn-button-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+#cn_sync_config .cn-sync-config-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+#cn_sync_config .cn-sync-config-btn .dashicons {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    transition: transform 0.3s ease;
+}
+
+#cn_sync_config .cn-sync-config-btn:hover .dashicons {
+    transform: rotate(180deg);
+}
+
+#cn_sync_config .cn-sync-spinner {
+    float: none;
+    margin: 0;
+}
+
+#cn_sync_config .cn-sync-spinner.is-active {
+    visibility: visible;
+}
+
+#cn_sync_config .cn-sync-status {
+    font-weight: 500;
+    color: #646970;
+    margin: 0 0 8px 0;
+}
+
+#cn_sync_config .cn-sync-message {
+    margin-top: 10px;
+}
+
+#cn_sync_config .cn-sync-message p {
+    margin: 0.5em 0;
+}
+
+#cn_sync_config .notice {
+    padding: 8px 12px;
+    margin: 0;
+}
+
+#cn_sync_config .notice-success {
+    border-left-color: #00a32a;
+}
+
+#cn_sync_config .notice-error {
+    border-left-color: #d63638;
+}
+
 .cn-section-container.compliance-section .form-table {
     display: block;
     padding-left: 1em;

@@ -4,7 +4,7 @@ Tags: gdpr, ccpa, cookies, consent, privacy
 Requires at least: 4.9.6
 Requires PHP: 7.4
 Tested up to: 6.9
-Stable tag: 2.5.11
+Stable tag: 2.5.12
 License: MIT License
 License URI: http://opensource.org/licenses/MIT
 
@@ -122,6 +122,9 @@ Yes! The plugin + web appliaction version includes technical compliance features
 4. Cookie Compliance settings
 
 == Changelog ==
+
+= 2.5.12 =
+* New: Added pull configuration option to sync on demand instead of waiting for cron
 
 = 2.5.11 =
 * Security: Enforce TLS verification for platform API requests.
@@ -580,6 +583,9 @@ Yes! The plugin + web appliaction version includes technical compliance features
 Initial release
 
 == Upgrade Notice ==
+
+= 2.5.12 =
+Added pull configuration option to sync on demand instead of waiting for cron
 
 = 2.5.11 =
 Security hardening (TLS verification, admin capability checks, nonce-protected cache purge) and improved admin notices closing without jQuery conflicts

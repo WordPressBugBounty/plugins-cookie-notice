@@ -691,6 +691,70 @@
 				} );
 			} );
 		}
+
+		// sync configuration button
+		$( document ).on( 'click', '.cn-sync-config-btn', function( e ) {
+			e.preventDefault();
+
+			var button = $( this );
+			var container = $( '#cn_sync_config' );
+			var spinner = container.find( '.cn-sync-spinner' );
+			var statusEl = container.find( '.cn-sync-status' );
+			var messageEl = container.find( '.cn-sync-message' );
+
+			// disable button and show spinner
+			button.prop( 'disabled', true );
+			spinner.addClass( 'is-active' );
+			messageEl.hide().removeClass( 'notice notice-success notice-error' );
+
+			// make AJAX request
+			$.ajax( {
+				url: cnArgs.ajaxURL,
+				type: 'POST',
+				dataType: 'json',
+				data: {
+					action: 'cn_api_request',
+					request: 'sync_config',
+					nonce: cnArgs.nonceSyncConfig,
+					cn_network: cnArgs.network ? 1 : 0
+				}
+			} ).done( function( response ) {
+				if ( response && response.success ) {
+					// update last synced timestamp
+					if ( response.timestamp ) {
+						var date = new Date( response.timestamp.replace( /-/g, '/' ) );
+						var dateOptions = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+						var formattedDate = date.toLocaleString( undefined, dateOptions );
+						statusEl.text( 'Last synced: ' + formattedDate );
+					}
+
+					// show success message
+					messageEl.html( '<p>' + ( response.message || 'Configuration synced successfully.' ) + '</p>' )
+						.addClass( 'notice notice-success' )
+						.fadeIn( 'fast' );
+
+					// hide message after 5 seconds
+					setTimeout( function() {
+						messageEl.fadeOut( 'slow' );
+					}, 5000 );
+				} else {
+					// show error message
+					var errorMsg = response && response.error ? response.error : 'Failed to sync configuration. Please try again.';
+					messageEl.html( '<p>' + errorMsg + '</p>' )
+						.addClass( 'notice notice-error' )
+						.fadeIn( 'fast' );
+				}
+			} ).fail( function( jqXHR, textStatus, errorThrown ) {
+				// show error message
+				messageEl.html( '<p>An error occurred while syncing configuration. Please try again.</p>' )
+					.addClass( 'notice notice-error' )
+					.fadeIn( 'fast' );
+			} ).always( function() {
+				// re-enable button and hide spinner
+				button.prop( 'disabled', false );
+				spinner.removeClass( 'is-active' );
+			} );
+		} );
     } );
 
 } )( jQuery );

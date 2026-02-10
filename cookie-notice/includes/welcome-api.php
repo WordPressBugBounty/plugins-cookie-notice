@@ -42,7 +42,7 @@ class Cookie_Notice_Welcome_API {
 		$request = isset( $_POST['request'] ) ? sanitize_key( $_POST['request'] ) : '';
 
 		// no valid request?
-		if ( ! in_array( $request, [ 'register', 'login', 'configure', 'select_plan', 'payment', 'get_bt_init_token', 'use_license' ], true ) )
+		if ( ! in_array( $request, [ 'register', 'login', 'configure', 'select_plan', 'payment', 'get_bt_init_token', 'use_license', 'sync_config' ], true ) )
 			wp_die( __( 'You do not have permission to access this page.', 'cookie-notice' ) );
 
 		$special_actions = [ 'register', 'login', 'configure', 'payment' ];
@@ -938,6 +938,29 @@ class Cookie_Notice_Welcome_API {
 
 			case 'select_plan':
 				break;
+
+			case 'sync_config':
+				// force update configuration from Designer API
+				$status_data = $this->get_app_config( $app_id, true, true );
+
+				// get the blocking data with timestamp
+				if ( $network )
+					$blocking = get_site_option( 'cookie_notice_app_blocking', [] );
+				else
+					$blocking = get_option( 'cookie_notice_app_blocking', [] );
+
+				// set cache purge transient to force widget to refresh
+				if ( $network )
+					set_site_transient( 'cookie_notice_config_update', time(), DAY_IN_SECONDS );
+				else
+					set_transient( 'cookie_notice_config_update', time(), DAY_IN_SECONDS );
+
+				$response = [
+					'success' => true,
+					'message' => esc_html__( 'Configuration synced successfully.', 'cookie-notice' ),
+					'timestamp' => ! empty( $blocking['lastUpdated'] ) ? $blocking['lastUpdated'] : ''
+				];
+				break;
 		}
 
 		echo wp_json_encode( $response );
@@ -1526,7 +1549,7 @@ class Cookie_Notice_Welcome_API {
 						$pattern->ProviderID = is_int( $pattern->ProviderID ) ? $pattern->ProviderID : sanitize_text_field( $pattern->ProviderID );
 						$pattern->PatternType = sanitize_text_field( $pattern->PatternType );
 						$pattern->PatternFormat = sanitize_text_field( $pattern->PatternFormat );
-						$pattern->Pattern = sanitize_text_field( $pattern->Pattern );
+						$pattern->Pattern = stripslashes( sanitize_text_field( $pattern->Pattern ) );
 
 						// add pattern
 						$result_raw[$index][$p_index] = $pattern;
@@ -1537,7 +1560,7 @@ class Cookie_Notice_Welcome_API {
 						$provider->IsCustom = (bool) $provider->IsCustom;
 						$provider->CategoryID = (int) $provider->CategoryID;
 						$provider->ProviderID = is_int( $provider->ProviderID ) ? $provider->ProviderID : sanitize_text_field( $provider->ProviderID );
-						$provider->ProviderURL = sanitize_text_field( $provider->ProviderURL );
+						$provider->ProviderURL = stripslashes( sanitize_text_field( $provider->ProviderURL ) );
 						$provider->ProviderName = sanitize_text_field( $provider->ProviderName );
 
 						// add provider

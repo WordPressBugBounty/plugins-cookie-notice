@@ -806,6 +806,7 @@ class Cookie_Notice_Settings {
 			// configuration section
 			add_settings_section( 'cookie_notice_configuration', esc_html__( 'Cookie Consent Settings', 'cookie-notice' ), '', 'cookie_notice_options', [ 'before_section' => '<div class="%s">', 'after_section' => '</div>', 'section_class' => 'cn-section-container misc-section' ] );
 			add_settings_field( 'cn_app_blocking', esc_html__( 'Autoblocking', 'cookie-notice' ), [ $this, 'cn_app_blocking' ], 'cookie_notice_options', 'cookie_notice_configuration' );
+			add_settings_field( 'cn_sync_config', esc_html__( 'Pull Configuration', 'cookie-notice' ), [ $this, 'cn_sync_config' ], 'cookie_notice_options', 'cookie_notice_configuration' );
 			add_settings_field( 'cn_refuse_code', esc_html__( 'Scripts', 'cookie-notice' ), [ $this, 'cn_refuse_code' ], 'cookie_notice_options', 'cookie_notice_configuration' );
 			add_settings_field( 'cn_caching_compatibility', esc_html__( 'Caching Compatibility', 'cookie-notice' ), [ $this, 'cn_caching_compatibility' ], 'cookie_notice_options', 'cookie_notice_configuration' );
 			add_settings_field( 'cn_app_purge_cache', esc_html__( 'Purge Cache', 'cookie-notice' ), [ $this, 'cn_app_purge_cache' ], 'cookie_notice_options', 'cookie_notice_configuration' );
@@ -1086,6 +1087,42 @@ class Cookie_Notice_Settings {
 			<label><input type="checkbox" name="cookie_notice_options[app_blocking]" value="1" ' . checked( true, $cn->options['general']['app_blocking'], false ) . ' ' . disabled( $threshold_exceeded, true, false ) . ' />' . esc_html__( 'Enable to automatically block 3rd party scripts before user consent is set.', 'cookie-notice' ) . '</label>' .
 			( $threshold_exceeded ? '<p class="description"><span class="cn-warning">*</span> ' . esc_html__( 'This option has been temporarily disabled because your website has reached the usage limit for the Cookie Compliance Basic plan. It will become available again when the current visits cycle resets or you upgrade your website to a Professional plan.', 'cookie-notice' ) . '</p>' : '' ) .
 		'</div>';
+	}
+
+	/**
+	 * Sync configuration option.
+	 *
+	 * @return void
+	 */
+	public function cn_sync_config() {
+		// get main instance
+		$cn = Cookie_Notice();
+
+		$threshold_exceeded = $cn->threshold_exceeded();
+		$network = $cn->is_network_admin();
+
+		// get last sync timestamp
+		if ( $network )
+			$blocking = get_site_option( 'cookie_notice_app_blocking', [] );
+		else
+			$blocking = get_option( 'cookie_notice_app_blocking', [] );
+
+		$last_synced = ! empty( $blocking['lastUpdated'] ) ? $blocking['lastUpdated'] : '';
+		$last_synced_display = $last_synced ? sprintf( esc_html__( 'Last synced (UTC): %s', 'cookie-notice' ), date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), strtotime( $last_synced ) ) ) : esc_html__( 'Not synced yet', 'cookie-notice' );
+
+		echo '
+		<div id="cn_sync_config"' . ( $threshold_exceeded ? ' class="cn-option-disabled"' : '' ) . '>
+			<div class="cn-button-container">
+				<button type="button" class="button button-secondary cn-sync-config-btn" ' . disabled( $threshold_exceeded, true, false ) . '>
+					<span class="dashicons dashicons-update"></span>
+					' . esc_html__( 'Pull Configuration', 'cookie-notice' ) . '
+				</button>
+				<span class="cn-sync-spinner spinner"></span>
+				<span class="description cn-sync-status">' . $last_synced_display . '</span>
+			</div>
+			<p class="description">' . esc_html__( 'Manually pull the latest configuration including autoblocking. Configuration syncs automatically every 24 hours.', 'cookie-notice' ) . '</p>
+			<div class="cn-sync-message" style="display: none;"></div>
+		</div>';
 	}
 
 	/**
@@ -2276,6 +2313,7 @@ class Cookie_Notice_Settings {
 			$script_data = [
 				'ajaxURL'					=> admin_url( 'admin-ajax.php' ),
 				'nonce'						=> wp_create_nonce( 'cn-purge-cache' ),
+				'nonceSyncConfig'			=> wp_create_nonce( 'cookie-notice-welcome' ),
 				'nonceConditional'			=> wp_create_nonce( 'cn-get-group-values' ),
 				'nonceCookieConsentLogs'	=> wp_create_nonce( 'cn-get-cookie-consent-logs' ),
 				'noncePrivacyConsentLogs'	=> wp_create_nonce( 'cn-get-privacy-consent-logs' ),

@@ -119,9 +119,9 @@
 	box-shadow: none;
 	text-shadow: none;
 	border: none;
-	-webkit-border-radius: 3px;
-	-moz-border-radius: 3px;
-	border-radius: 3px;
+	-webkit-border-radius: 2rem;
+	-moz-border-radius: 2rem;
+	border-radius: 2rem;
 	text-decoration: none;
 	padding: 8.5px 10px;
 	line-height: 1;
@@ -133,6 +133,28 @@
 .cn-text-container,
 .cn-buttons-container {
 	display: inline-block;
+}
+/* Non-compliance warning styles */
+.cn-compliance-warning {
+	display: block;
+	color: #f5a623 !important;
+	font-size: 12px;
+	line-height: 18px;
+	margin: 4px 0 8px 0;
+}
+.cn-compliance-warning .cn-warning-icon {
+	color: #f5a623 !important;
+	margin-right: 4px;
+}
+.cn-compliance-warning strong {
+	color: #f5a623 !important;
+}
+.cn-compliance-warning a {
+	color: #f5a623 !important;
+	text-decoration: underline;
+}
+.cn-compliance-warning a:hover {
+	color: #ffb84d !important;
 }
 #cookie-notice.cookie-notice-visible.cn-effect-none,
 #cookie-notice.cookie-revoke-visible.cn-effect-none {
