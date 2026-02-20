@@ -719,6 +719,14 @@
 					cn_network: cnArgs.network ? 1 : 0
 				}
 			} ).done( function( response ) {
+				if ( response && response.debug ) {
+					console.log( '[Cookie Notice] sync_config response:', response );
+					console.log( '[Cookie Notice] App ID:', response.debug.app_id );
+					console.log( '[Cookie Notice] Status data:', response.debug.status_data );
+					console.log( '[Cookie Notice] Blocking data:', response.debug.blocking );
+					console.log( '[Cookie Notice] Providers count:', response.debug.providers_count );
+					console.log( '[Cookie Notice] Patterns count:', response.debug.patterns_count );
+				}
 				if ( response && response.success ) {
 					// update last synced timestamp
 					if ( response.timestamp ) {
