@@ -4,7 +4,7 @@ Tags: gdpr, ccpa, cookies, consent, privacy
 Requires at least: 4.9.6
 Requires PHP: 7.4
 Tested up to: 6.9
-Stable tag: 2.5.13
+Stable tag: 2.5.14
 License: MIT License
 License URI: http://opensource.org/licenses/MIT
 

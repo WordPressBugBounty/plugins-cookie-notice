@@ -1687,7 +1687,7 @@ class Cookie_Notice_Welcome_API {
 			}
 
 			if ( ! empty( $response->error ) ) {
-				if ( $response->error == 'App is not puplised yet' )
+				if ( $response->error == 'App is not published yet' )
 					$status_data['status'] = 'pending';
 				else
 					$status_data['status'] = '';
