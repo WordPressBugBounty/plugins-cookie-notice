@@ -4,7 +4,7 @@ Tags: gdpr, ccpa, cookies, consent, privacy
 Requires at least: 4.9.6
 Requires PHP: 7.4
 Tested up to: 6.9
-Stable tag: 2.5.14
+Stable tag: 2.5.15
 License: MIT License
 License URI: http://opensource.org/licenses/MIT
 
@@ -122,6 +122,9 @@ Yes! The plugin + web appliaction version includes technical compliance features
 4. Cookie Compliance settings
 
 == Changelog ==
+
+= 2.5.15 =
+* Fix: Multisite with global override now correctly loads custom blocking patterns and providers on the frontend
 
 = 2.5.12 =
 * New: Added pull configuration option to sync on demand instead of waiting for cron

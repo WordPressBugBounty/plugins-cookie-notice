@@ -329,7 +329,7 @@ class Cookie_Notice_Frontend {
 
 		// custom scripts?
 		if ( $cn->options['general']['app_blocking'] ) {
-			if ( is_multisite() && $cn->is_network_admin() && $cn->is_plugin_network_active() && $cn->network_options['general']['global_override'] )
+			if ( is_multisite() && $cn->is_plugin_network_active() && $cn->network_options['general']['global_override'] )
 				$blocking = get_site_option( 'cookie_notice_app_blocking' );
 			else
 				$blocking = get_option( 'cookie_notice_app_blocking' );
