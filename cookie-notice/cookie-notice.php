@@ -2,7 +2,7 @@
 /*
 Plugin Name: Cookie Notice & Compliance for GDPR / CCPA
 Description: Cookie Notice allows you to you elegantly inform users that your site uses cookies and helps you comply with GDPR, CCPA and other data privacy laws.
-Version: 2.5.15
+Version: 2.5.16
 Author: Hu-manity.co
 Author URI: https://hu-manity.co/
 Plugin URI: https://cookie-compliance.co/
@@ -29,7 +29,7 @@ if ( ! defined( 'ABSPATH' ) )
  * Cookie Notice class.
  *
  * @class Cookie_Notice
- * @version	2.5.14
+ * @version	2.5.16
  */
 class Cookie_Notice {
 
@@ -152,7 +152,7 @@ class Cookie_Notice {
 			'threshold_exceeded'	=> false,
 			'activation_datetime'	=> 0
 		],
-		'version'	=> '2.5.14'
+		'version'	=> '2.5.16'
 	];
 
 	/**
@@ -564,6 +564,18 @@ class Cookie_Notice {
 	 */
 	public function is_plugin_network_active() {
 		return $this->plugin_network_active;
+	}
+
+	/**
+	 * Check whether network-wide options should be used.
+	 *
+	 * Returns true when the plugin is network-active with global_override enabled,
+	 * meaning all sites share the network-level configuration.
+	 *
+	 * @return bool
+	 */
+	public function is_network_options() {
+		return is_multisite() && $this->is_plugin_network_active() && $this->network_options['general']['global_override'];
 	}
 
 	/**

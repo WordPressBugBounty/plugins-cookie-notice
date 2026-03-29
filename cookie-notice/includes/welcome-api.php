@@ -943,8 +943,11 @@ class Cookie_Notice_Welcome_API {
 				// force update configuration from Designer API
 				$status_data = $this->get_app_config( $app_id, true, true );
 
+				// use global_override-aware check for data operations (not is_network_admin)
+				$network_options = $cn->is_network_options();
+
 				// get the blocking data with timestamp
-				if ( $network )
+				if ( $network_options )
 					$blocking = get_site_option( 'cookie_notice_app_blocking', [] );
 				else
 					$blocking = get_option( 'cookie_notice_app_blocking', [] );
@@ -961,7 +964,7 @@ class Cookie_Notice_Welcome_API {
 				// check if sync was successful
 				if ( ! empty( $status_data ) && is_array( $status_data ) && ! empty( $status_data['status'] ) && $status_data['status'] === 'active' ) {
 					// set cache purge transient to force widget to refresh
-					if ( $network )
+					if ( $network_options )
 						set_site_transient( 'cookie_notice_config_update', time(), DAY_IN_SECONDS );
 					else
 						set_transient( 'cookie_notice_config_update', time(), DAY_IN_SECONDS );

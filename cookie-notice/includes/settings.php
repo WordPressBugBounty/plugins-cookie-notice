@@ -1099,7 +1099,7 @@ class Cookie_Notice_Settings {
 		$cn = Cookie_Notice();
 
 		$threshold_exceeded = $cn->threshold_exceeded();
-		$network = $cn->is_network_admin();
+		$network = $cn->is_network_options();
 
 		// get last sync timestamp
 		if ( $network )
@@ -2436,7 +2436,7 @@ class Cookie_Notice_Settings {
 		Cookie_Notice()->welcome_api->get_app_config( '', true );
 
 		// force new config on frontend
-		if ( Cookie_Notice()->is_network_admin() )
+		if ( Cookie_Notice()->is_network_options() )
 			set_site_transient( 'cookie_notice_config_update', current_time( 'timestamp', true ), 600 );
 		else
 			set_transient( 'cookie_notice_config_update', current_time( 'timestamp', true ), 600 );

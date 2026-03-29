@@ -4,7 +4,7 @@ Tags: gdpr, ccpa, cookies, consent, privacy
 Requires at least: 4.9.6
 Requires PHP: 7.4
 Tested up to: 6.9
-Stable tag: 2.5.15
+Stable tag: 2.5.16
 License: MIT License
 License URI: http://opensource.org/licenses/MIT
 
@@ -122,6 +122,10 @@ Yes! The plugin + web appliaction version includes technical compliance features
 4. Cookie Compliance settings
 
 == Changelog ==
+
+= 2.5.16 =
+* Fix: Multisite with global override now correctly reads blocking data and cache-purge transients from network storage
+* Fix: Custom patterns and providers are now always included in huOptions regardless of autoblocking state
 
 = 2.5.15 =
 * Fix: Multisite with global override now correctly loads custom blocking patterns and providers on the frontend

@@ -327,13 +327,15 @@ class Cookie_Notice_Frontend {
 		if ( $cn->options['general']['debug_mode'] )
 			$options['debugMode'] = true;
 
-		// custom scripts?
-		if ( $cn->options['general']['app_blocking'] ) {
-			if ( is_multisite() && $cn->is_plugin_network_active() && $cn->network_options['general']['global_override'] )
-				$blocking = get_site_option( 'cookie_notice_app_blocking' );
-			else
-				$blocking = get_option( 'cookie_notice_app_blocking' );
+		// blocking data (custom patterns, providers, consent mode defaults)
+		// always include in huOptions so the widget has the full configuration;
+		// the huOptions.blocking flag controls whether scripts are actually blocked
+		if ( $cn->is_network_options() )
+			$blocking = get_site_option( 'cookie_notice_app_blocking' );
+		else
+			$blocking = get_option( 'cookie_notice_app_blocking' );
 
+		if ( ! empty( $blocking ) && is_array( $blocking ) ) {
 			$options['customProviders'] = ! empty( $blocking['providers'] ) && is_array( $blocking['providers'] ) ? $blocking['providers'] : [];
 			$options['customPatterns'] = ! empty( $blocking['patterns'] ) && is_array( $blocking['patterns'] ) ? $blocking['patterns'] : [];
 
