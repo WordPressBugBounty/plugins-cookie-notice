@@ -4,7 +4,7 @@ Tags: gdpr, ccpa, cookies, consent, privacy
 Requires at least: 4.9.6
 Requires PHP: 7.4
 Tested up to: 6.9
-Stable tag: 3.0.0
+Stable tag: 3.0.1
 License: MIT License
 License URI: http://opensource.org/licenses/MIT
 
@@ -122,6 +122,9 @@ Yes! The plugin + web appliaction version includes technical compliance features
 4. Cookie Compliance settings
 
 == Changelog ==
+
+= 3.0.1 =
+* Fix: Resolved missing file error preventing plugin activation for some users who updated during the initial 3.0.0 release
 
 = 3.0.0 =
 * Rebrand: Plugin renamed from "Cookie Notice & Compliance for GDPR / CCPA" to "Compliance by Hu-manity.co". WordPress admin sidebar now reads "Compliance" with Settings and Audit Trail submenus. All internal option keys and slugs remain unchanged — no action required for existing installs.
