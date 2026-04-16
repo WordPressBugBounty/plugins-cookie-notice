@@ -49,7 +49,7 @@
 
 				if ( modalBox.length > 0 ) {
 					$( modalBox ).addClass( 'cn-deactivation-modal' );
-					$( modalBox ).find( '#TB_closeWindowButton' ).on( 'blur' );
+	
 				}
 			}, 0 );
 

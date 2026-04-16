@@ -2088,3 +2088,11 @@
     left: 0;
     top: 2px;
 }
+/* Trust badge — Screen 3 Basic plan footer (R2 US-6) */
+.cn-trust-badge {
+	display: block;
+	margin-top: 8px;
+	font-size: 11px;
+	color: #6b7280;
+	text-align: center;
+}

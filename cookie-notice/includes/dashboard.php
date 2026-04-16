@@ -5,6 +5,55 @@ if ( ! defined( 'ABSPATH' ) )
 	exit;
 
 /**
+ * Evaluate notification rules from notifications.json for the wpDashboard slot.
+ *
+ * @param float  $threshold_used Usage percentage (0-100).
+ * @param string $tier           Current tier: 'basic', 'free', or 'pro'.
+ * @return array|null Highest-priority matching rule, or null.
+ */
+function cn_get_dashboard_notification( $threshold_used, $tier ) {
+	$rules_json = file_get_contents( COOKIE_NOTICE_PATH . 'includes/notifications.json' );
+	$rules_data = $rules_json !== false ? json_decode( $rules_json, true ) : null;
+
+	if ( ! is_array( $rules_data ) || empty( $rules_data['rules'] ) ) {
+		return null;
+	}
+
+	$best = null;
+
+	foreach ( $rules_data['rules'] as $rule ) {
+		if ( ( $rule['slot'] ?? '' ) !== 'wpDashboard' ) {
+			continue;
+		}
+
+		// Tier check.
+		if ( isset( $rule['condition']['tier'] ) && $rule['condition']['tier'] !== $tier ) {
+			continue;
+		}
+
+		// Usage range check: [inclusive, exclusive).
+		if ( isset( $rule['condition']['usagePercent'] ) ) {
+			$min = $rule['condition']['usagePercent'][0];
+			$max = $rule['condition']['usagePercent'][1];
+
+			if ( $min !== null && $threshold_used < $min ) {
+				continue;
+			}
+
+			if ( $max !== null && $threshold_used >= $max ) {
+				continue;
+			}
+		}
+
+		if ( ! $best || $rule['priority'] > $best['priority'] ) {
+			$best = $rule;
+		}
+	}
+
+	return $best;
+}
+
+/**
  * Cookie_Notice_Dashboard class.
  *
  * @class Cookie_Notice_Dashboard
@@ -69,7 +118,7 @@ class Cookie_Notice_Dashboard {
 		$widget_key = 'cn_dashboard_stats';
 
 		// add dashboard chart widget
-		wp_add_dashboard_widget( $widget_key, __( 'Cookie Compliance', 'cookie-notice' ), [ $this, 'dashboard_widget' ] );
+		wp_add_dashboard_widget( $widget_key, __( 'Compliance by Hu-manity.co', 'cookie-notice' ), [ $this, 'dashboard_widget' ] );
 
 		// get widgets
 		$normal_dashboard = $wp_meta_boxes[$dashboard_key]['normal']['core'];
@@ -145,6 +194,21 @@ class Cookie_Notice_Dashboard {
 				$threshold_used = 100;
 		} else
 			$threshold_used = 0;
+
+		// CN_DEV_MODE: override usage % for testing. Param: ?cn_usage=0-100
+		if ( defined( 'CN_DEV_MODE' ) && CN_DEV_MODE && current_user_can( 'manage_options' ) && isset( $_GET['cn_usage'] ) ) {
+			$cn_usage_override = (int) $_GET['cn_usage'];
+
+			if ( $cn_usage_override >= 0 && $cn_usage_override <= 100 ) {
+				$threshold_used = $cn_usage_override;
+
+				if ( $cycle_usage['threshold'] <= 0 )
+					$cycle_usage['threshold'] = 10000;
+
+				$cycle_usage['visits']           = (int) round( $cycle_usage['threshold'] * ( $threshold_used / 100 ) );
+				$cycle_usage['visits_available'] = $cycle_usage['threshold'] - $cycle_usage['visits'];
+			}
+		}
 
 		$chartdata = [
 			'usage' => [
@@ -427,14 +491,14 @@ class Cookie_Notice_Dashboard {
 		} else {
 			$html .= '
 			<div id="cn-dashboard-accordion" class="cn-accordion cn-widget-block">
-				<img src="' . esc_url( COOKIE_NOTICE_URL ) . '/img/cookie-compliance-widget.png" alt="Cookie Compliance widget" />
+				<img src="' . esc_url( COOKIE_NOTICE_URL ) . '/img/cookie-compliance-widget.png" alt="Compliance by Hu-manity.co widget" />
 				<div id="cn-dashboard-upgrade">
 					<div id="cn-dashboard-modal">
 						<h2>' . esc_html__( 'View consent activity inside WordPress Dashboard', 'cookie-notice' ) . '</h2>
 						<p>' . esc_html__( 'Display information about the visits.', 'cookie-notice' ) . '</p>
 						<p>' . esc_html__( 'Get Consent logs data for the last 30 days.', 'cookie-notice' ) . '</p>
 						<p>' . esc_html__( 'Enable consent purpose categories, automatic cookie blocking and more.', 'cookie-notice' ) . '</p>
-						<p><a href="' . esc_url( $upgrade_url ) . '" class="button button-primary button-hero cn-button">' . esc_html__( 'Upgrade to Cookie Compliance', 'cookie-notice' ) . '</a></p>
+						<p><a href="' . esc_url( $upgrade_url ) . '" class="button button-primary button-hero cn-button">' . esc_html__( 'Try Compliance by Hu-manity.co free', 'cookie-notice' ) . '</a></p>
 					</div>
 				</div>
 			</div>';
@@ -532,6 +596,21 @@ class Cookie_Notice_Dashboard {
 				} else
 					$threshold_used = 0;
 
+				// CN_DEV_MODE: override usage % for testing. Param: ?cn_usage=0-100
+				if ( defined( 'CN_DEV_MODE' ) && CN_DEV_MODE && current_user_can( 'manage_options' ) && isset( $_GET['cn_usage'] ) ) {
+					$cn_usage_override = (int) $_GET['cn_usage'];
+
+					if ( $cn_usage_override >= 0 && $cn_usage_override <= 100 ) {
+						$threshold_used = $cn_usage_override;
+
+						if ( $cycle_usage['threshold'] <= 0 )
+							$cycle_usage['threshold'] = 10000;
+
+						$cycle_usage['visits']           = (int) round( $cycle_usage['threshold'] * ( $threshold_used / 100 ) );
+						$cycle_usage['visits_available'] = $cycle_usage['threshold'] - $cycle_usage['visits'];
+					}
+				}
+
 				$html .= '
 					<div id="cn-dashboard-' . esc_attr( $item ) . '">
 						<div id="cn-' . esc_attr( $item ) . '-infobox-traffic-overview" class="cn-infobox-container">
@@ -572,12 +651,31 @@ class Cookie_Notice_Dashboard {
 								<canvas id="cn-usage-chart" style="height: 100px"></canvas>
 							</div>';
 
-					/*
-							<div id="cn-' . $item . '-traffic-notice" class="cn-infobox-notice cn-traffic-' . $usage_class . '">
-								<p><b>' . __( 'Your domain has exceeded 90% of the usage limit.', 'cookie-notice' ) . '</b></p>
-								<p>' . sprintf(__( 'The banner will still display properly and consent record will be set in the browser. However the Autoblocking will be disabled and Consent Records will not be stored in the application until the current visits cycle resets (in %s days).', 'cookie-notice' ), $cycle_usage['days_to_go'] ) . '</p>
-							</div>
-					 */
+					// Near-limit nudge — reads copy from shared notifications.json.
+					$cn_dash_tier = 'basic';
+					if ( ! empty( $cn->options['general']['app_id'] ) ) {
+						$cn_dash_tier = ( $cn->get_subscription() === 'pro' ) ? 'pro' : 'free';
+					}
+					$cn_dash_notification = cn_get_dashboard_notification( $threshold_used, $cn_dash_tier );
+
+					if ( $cn_dash_notification ) {
+						$react_welcome_url = $cn->is_network_admin()
+							? network_admin_url( 'admin.php?page=cookie-notice&cn_react_welcome=1' )
+							: admin_url( 'admin.php?page=cookie-notice&cn_react_welcome=1' );
+
+						$cn_dash_desc = str_replace(
+							[ '{usagePercent}', '{sessionTotal}', '{sessionUsed}' ],
+							[ number_format_i18n( $threshold_used, 0 ), number_format_i18n( $cycle_usage['threshold'] ), number_format_i18n( $cycle_usage['visits'] ) ],
+							$cn_dash_notification['description'] ?? ''
+						);
+						$cn_dash_cta_label = $cn_dash_notification['cta']['label'] ?? 'Upgrade &rarr;';
+
+						$html .= '
+							<div id="cn-' . esc_attr( $item ) . '-traffic-notice" class="cn-infobox-notice">
+								<p><b>' . esc_html( $cn_dash_desc ) . '</b></p>
+								<p><a href="' . esc_url( $react_welcome_url ) . '">' . esc_html( $cn_dash_cta_label ) . '</a></p>
+							</div>';
+					}
 
 					$html .= '
 						</div>';
@@ -617,7 +715,7 @@ class Cookie_Notice_Dashboard {
 	 */
 	public function add_tests( $tests ) {
 		$tests['direct']['cookie_compliance_status'] = [
-			'label'	=> esc_html__( 'Cookie Compliance Status', 'cookie-notice' ),
+			'label'	=> esc_html__( 'Compliance by Hu-manity.co Status', 'cookie-notice' ),
 			'test'	=> [ $this, 'test_cookie_compliance' ]
 		];
 
@@ -632,14 +730,26 @@ class Cookie_Notice_Dashboard {
 	public function test_cookie_compliance() {
 		if ( Cookie_Notice()->get_status() !== 'active' ) {
 			return [
-				'label'			=> esc_html__( 'Your site does not have Cookie Compliance', 'cookie-notice' ),
+				'label'			=> esc_html__( 'Your site does not have Compliance by Hu-manity.co', 'cookie-notice' ),
 				'status'		=> 'recommended',
 				'description'	=> esc_html__( "Run Compliance Check to determine your site's compliance with updated data processing and consent rules under GDPR, CCPA and other international data privacy laws.", 'cookie-notice' ),
 				'actions'		=> sprintf( '<p><a href="%s" target="_blank" rel="noopener noreferrer">%s</a></p>', admin_url( 'admin.php?page=cookie-notice&welcome=1' ), esc_html__( 'Run Compliance Check', 'cookie-notice' ) ),
 				'test'			=> 'cookie_compliance_status',
 				'badge'			=> [
-					'label'	=> esc_html__( 'Cookie Notice', 'cookie-notice' ),
+					'label'	=> esc_html__( 'Compliance', 'cookie-notice' ),
 					'color'	=> 'blue'
+				]
+			];
+		} else {
+			return [
+				'label'			=> esc_html__( 'Compliance by Hu-manity.co is active', 'cookie-notice' ),
+				'status'		=> 'good',
+				'description'	=> esc_html__( 'Compliance by Hu-manity.co is configured with active Compliance by Hu-manity.co protection. Your site is collecting consent in accordance with GDPR, CCPA, and other applicable privacy laws.', 'cookie-notice' ),
+				'actions'		=> sprintf( '<p><a href="%s">%s</a></p>', admin_url( 'admin.php?page=cookie-notice' ), esc_html__( 'View compliance dashboard', 'cookie-notice' ) ),
+				'test'			=> 'cookie_compliance_status',
+				'badge'			=> [
+					'label'	=> esc_html__( 'Compliance', 'cookie-notice' ),
+					'color'	=> 'green'
 				]
 			];
 		}

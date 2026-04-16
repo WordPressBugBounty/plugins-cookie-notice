@@ -11,6 +11,7 @@ if ( ! defined( 'ABSPATH' ) )
 class Cookie_Notice_Frontend {
 
 	private $compliance = false;
+	private $matched_handles = [];
 
 	/**
 	 * Class constructor.
@@ -57,7 +58,49 @@ class Cookie_Notice_Frontend {
 			// amp compatibility
 			if ( $cn->options['general']['amp_support'] && cn_is_plugin_active( 'amp' ) )
 				include_once( COOKIE_NOTICE_PATH . 'includes/modules/amp/amp.php' );
+
+			// excluded script handles — stamp data-hu-category="1" so the widget never blocks them
+			if ( $cn->options['general']['app_blocking'] && ! empty( $cn->options['general']['excluded_handles'] ) ) {
+				add_filter( 'script_loader_tag', [ $this, 'exclude_handles_from_blocking' ], 10, 2 );
+
+				if ( $cn->options['general']['debug_mode'] )
+					add_action( 'wp_footer', [ $this, 'debug_excluded_handles' ], 999 );
+			}
 		}
+	}
+
+	/**
+	 * Stamp excluded script handles with data-hu-category="1" (Essential).
+	 *
+	 * @param string $tag    Full <script> tag HTML.
+	 * @param string $handle WordPress script handle.
+	 * @return string
+	 */
+	public function exclude_handles_from_blocking( $tag, $handle ) {
+		$excluded = Cookie_Notice()->options['general']['excluded_handles'];
+
+		if ( in_array( $handle, $excluded, true ) && strpos( $tag, 'data-hu-category' ) === false ) {
+			$tag = str_replace( ' src=', ' data-hu-category="1" src=', $tag );
+			$this->matched_handles[] = $handle;
+		}
+
+		return $tag;
+	}
+
+	/**
+	 * Output debug console.warn lines listing matched / unmatched excluded handles.
+	 *
+	 * @return void
+	 */
+	public function debug_excluded_handles() {
+		$configured = Cookie_Notice()->options['general']['excluded_handles'];
+		$matched    = $this->matched_handles;
+		$unmatched  = array_values( array_diff( $configured, $matched ) );
+
+		echo '<script>' .
+			'console.warn("CC Banner: Excluded script handles — stamped (' . count( $matched ) . '): " + ' . wp_json_encode( $matched ) . ');' .
+			( ! empty( $unmatched ) ? 'console.warn("CC Banner: Excluded script handles — not found on this page (' . count( $unmatched ) . '): " + ' . wp_json_encode( $unmatched ) . ');' : '' ) .
+		'</script>' . "\n";
 	}
 
 	/**
@@ -370,13 +413,17 @@ class Cookie_Notice_Frontend {
 				$mcd = [];
 
 				foreach ( $blocking['microsoft_consent_default'] as $storage => $category ) {
-					if ( in_array( $storage, ['ad_storage'], true ) )
+					if ( in_array( $storage, ['ad_storage', 'analytics_storage'], true ) )
 						$mcd[$storage] = (int) $category;
 				}
 
 				if ( ! empty( $mcd ) )
 					$options['microsoftConsentDefault'] = $mcd;
 			}
+		}
+
+		if ( isset( $_GET['cn_preview'] ) && $_GET['cn_preview'] === '1' && current_user_can( 'manage_options' ) ) {
+			$options['forceShow'] = true;
 		}
 
 		return $options;
@@ -410,7 +457,10 @@ class Cookie_Notice_Frontend {
 		if ( ! $this->maybe_display_banner() )
 			return;
 
-		echo '<link rel="dns-prefetch" href="//cdn.hu-manity.co" />';
+		// Derive prefetch host from widget URL so CN_APP_WIDGET_URL overrides are honoured.
+		$widget_url = Cookie_Notice()->get_url( 'widget' );
+		$prefetch_host = '//' . wp_parse_url( 'https:' . $widget_url, PHP_URL_HOST );
+		echo '<link rel="dns-prefetch" href="' . esc_attr( $prefetch_host ) . '" />';
 	}
 
 	/**
@@ -506,9 +556,18 @@ class Cookie_Notice_Frontend {
 			}
 		}
 
+		// #2266: position is API-owned — read from cookie_notice_app_design for connected sites.
+		// Falls back to cookie_notice_options["general"]["position"] for disconnected/legacy-only installs.
+		$app_design      = $cn->is_network_options()
+			? get_site_option( 'cookie_notice_app_design', [] )
+			: get_option( 'cookie_notice_app_design', [] );
+		$banner_position = ! empty( $app_design['position'] )
+			? sanitize_key( $app_design['position'] )
+			: ( $cn->options['general']['position'] ?? 'bottom' );
+
 		// get cookie container args
 		$options = apply_filters( 'cn_cookie_notice_args', [
-			'position'				=> $cn->options['general']['position'],
+			'position'				=> $banner_position,
 			'css_class'				=> $cn->options['general']['css_class'],
 			'button_class'			=> 'cn-button',
 			'colors'				=> $cn->options['general']['colors'],
@@ -523,12 +582,12 @@ class Cookie_Notice_Frontend {
 			'see_more_opt'			=> $cn->options['general']['see_more_opt'],
 			'link_target'			=> $cn->options['general']['link_target'],
 			'link_position'			=> $cn->options['general']['link_position'],
-			'aria_label'			=> 'Cookie Notice'
+			'aria_label'			=> 'Compliance by Hu-manity.co'
 		] );
 
 		// message output
 		$output = '
-		<!-- Cookie Notice plugin v' . esc_attr( $cn->defaults['version'] ) . ' by Hu-manity.co https://hu-manity.co/ -->
+		<!-- Compliance by Hu-manity.co plugin v' . esc_attr( $cn->defaults['version'] ) . ' https://hu-manity.co/ -->
 		<div id="cookie-notice" role="dialog" class="cookie-notice-hidden cookie-revoke-hidden cn-position-' . esc_attr( $options['position'] ) . '" aria-label="' . esc_attr( $options['aria_label'] ) . '" style="background-color: __CN_BG_COLOR__">'
 			. '<div class="cookie-notice-container" style="color: ' . esc_attr( $options['colors']['text'] ) . '">'
 			. '<span id="cn-notice-text" class="cn-text-container">'. ( $options['see_more'] ? do_shortcode( $options['message_text'] ) : $options['message_text'] ) . '</span>'
@@ -543,7 +602,7 @@ class Cookie_Notice_Frontend {
 			. '<span id="cn-revoke-buttons" class="cn-buttons-container"><button id="cn-revoke-cookie" class="cn-revoke-cookie ' . esc_attr( $options['button_class'] ) . ( $options['css_class'] !== '' ? ' cn-button-custom ' . esc_attr( $options['css_class'] ) : '' ) . '" aria-label="' . esc_attr( $options['revoke_text'] ) . '"' . ( $options['css_class'] == '' ? ' style="background-color: ' . esc_attr( $options['colors']['button'] ) . '"' : '' ) . '>' . esc_html( $options['revoke_text'] ) . '</button></span>
 			</div>' : '' ) . '
 		</div>
-		<!-- / Cookie Notice plugin -->';
+		<!-- / Compliance by Hu-manity.co plugin -->';
 
 		add_filter( 'safe_style_css', [ $this, 'allow_style_attributes' ] );
 
@@ -709,12 +768,22 @@ class Cookie_Notice_Frontend {
 			$cookie_time = $cookie_time_rejected = MONTH_IN_SECONDS;
 		}
 
+		// #2266: position is API-owned — read from cookie_notice_app_design for connected sites.
+		// Falls back to cookie_notice_options["general"]["position"] for disconnected/legacy-only installs.
+		// (Same resolution as add_cookie_notice() — duplicated here because this is a separate WP hook.)
+		$app_design      = $cn->is_network_options()
+			? get_site_option( 'cookie_notice_app_design', [] )
+			: get_option( 'cookie_notice_app_design', [] );
+		$banner_position = ! empty( $app_design['position'] )
+			? sanitize_key( $app_design['position'] )
+			: ( $cn->options['general']['position'] ?? 'bottom' );
+
 		// prepare script data
 		$script_data = [
 			'ajaxUrl'				=> admin_url( 'admin-ajax.php' ),
 			'nonce'					=> wp_create_nonce( 'cn_save_cases' ),
 			'hideEffect'			=> $cn->options['general']['hide_effect'],
-			'position'				=> $cn->options['general']['position'],
+			'position'				=> $banner_position,
 			'onScroll'				=> $cn->options['general']['on_scroll'],
 			'onScrollOffset'		=> (int) $cn->options['general']['on_scroll_offset'],
 			'onClick'				=> $cn->options['general']['on_click'],

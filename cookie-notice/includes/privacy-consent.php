@@ -303,7 +303,7 @@ class Cookie_Notice_Privacy_Consent {
 				</div>
 				<div id="cn_app_actions">
 					<a href="' . esc_url( $cn->get_url( 'host', '?utm_campaign=configure&utm_source=wordpress&utm_medium=button#/dashboard' ) ) . '" class="button button-primary button-hero cn-button" target="_blank">' . esc_html__( 'Log in & Configure', 'cookie-notice' ) . '</a>
-					<p class="description">' . esc_html__( 'Log in to the Cookie Compliance&trade; dashboard to explore, configure and manage its functionalities.', 'cookie-notice' ) . '</p>
+					<p class="description">' . esc_html__( 'Log in to the Compliance by Hu-manity.co dashboard to explore, configure and manage its functionalities.', 'cookie-notice' ) . '</p>
 				</div>';
 				break;
 
@@ -316,7 +316,7 @@ class Cookie_Notice_Privacy_Consent {
 				</div>
 				<div id="cn_app_actions">
 					<a href="' . esc_url( $cn->get_url( 'host', '?utm_campaign=configure&utm_source=wordpress&utm_medium=button#/dashboard' ) ) . '" class="button button-primary button-hero cn-button" target="_blank">' . esc_html__( 'Log in & Configure', 'cookie-notice' ) . '</a>
-					<p class="description">' . esc_html__( 'Log in to the Cookie Compliance&trade; web application and complete the setup process.', 'cookie-notice' ) . '</p>
+					<p class="description">' . esc_html__( 'Log in to the Compliance by Hu-manity.co web application and complete the setup process.', 'cookie-notice' ) . '</p>
 				</div>';
 				break;
 
@@ -328,8 +328,8 @@ class Cookie_Notice_Privacy_Consent {
 					<div class="cn_compliance_status"><span class="cn-status-label">' . esc_html__( 'Proof-of-Consent', 'cookie-notice' ) . '</span>: <span class="cn-status cn-inactive"><span class="cn-icon"></span> ' . esc_html__( 'Inactive', 'cookie-notice' ) . '</span></div>
 				</div>
 				<div id="cn_app_actions">
-					<a href="' . esc_url( $url ) . '" class="button button-primary button-hero cn-button cn-run-welcome">' . esc_html__( 'Add Compliance features', 'cookie-notice' ) . '</a>
-					<p class="description">' . sprintf( esc_html__( 'Sign up to %s and enable Privacy Consent support.', 'cookie-notice' ), '<a href="https://cookie-compliance.co/?utm_campaign=sign-up&utm_source=wordpress&utm_medium=textlink" target="_blank">Cookie Compliance&trade;</a>' ) . '</p>
+					<a href="' . esc_url( $url ) . '" class="button button-primary button-hero cn-button cn-run-welcome">' . esc_html__( 'Try Compliance by Hu-manity.co free', 'cookie-notice' ) . '</a>
+					<p class="description">' . sprintf( esc_html__( 'Sign up to %s and enable Privacy Consent support.', 'cookie-notice' ), '<a href="https://cookie-compliance.co/?utm_campaign=sign-up&utm_source=wordpress&utm_medium=textlink" target="_blank">Compliance by Hu-manity.co</a>' ) . '</p>
 				</div>';
 		}
 	}

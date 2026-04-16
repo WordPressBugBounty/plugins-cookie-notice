@@ -50,6 +50,20 @@ class Cookie_Notice_Bot_Detect {
 	protected $exclusions = [];
 
 	/**
+	 * Compiled regex cache (built lazily on first access).
+	 *
+	 * @var string|null
+	 */
+	protected $compiled_regex = null;
+
+	/**
+	 * Compiled exclusions regex cache (built lazily on first access).
+	 *
+	 * @var string|null
+	 */
+	protected $compiled_exclusions = null;
+
+	/**
 	 * Headers object.
 	 *
 	 * @var object
@@ -149,16 +163,22 @@ class Cookie_Notice_Bot_Detect {
 	 * @return string
 	 */
 	public function get_regex() {
-		return '(' . implode( '|', $this->crawlers ) . ')';
+		if ( $this->compiled_regex === null ) {
+			$this->compiled_regex = '(' . implode( '|', $this->crawlers ) . ')';
+		}
+		return $this->compiled_regex;
 	}
 
 	/**
-	 * Build the replacement regex.
+	 * Build the replacement regex (cached after first call).
 	 *
 	 * @return string
 	 */
 	public function get_exclusions() {
-		return '(' . implode( '|', $this->exclusions ) . ')';
+		if ( $this->compiled_exclusions === null ) {
+			$this->compiled_exclusions = '(' . implode( '|', $this->exclusions ) . ')';
+		}
+		return $this->compiled_exclusions;
 	}
 
 	/**

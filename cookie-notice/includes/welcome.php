@@ -24,6 +24,7 @@ class Cookie_Notice_Welcome {
 		add_action( 'admin_init', [ $this, 'init' ] );
 		add_action( 'admin_init', [ $this, 'welcome' ] );
 		add_action( 'wp_ajax_cn_welcome_screen', [ $this, 'welcome_screen' ] );
+		add_action( 'wp_ajax_cn_dismiss_welcome', [ $this, 'dismiss_welcome' ] );
 	}
 
 	/**
@@ -101,6 +102,10 @@ class Cookie_Notice_Welcome {
 		if ( $cn->check_status( $cn->get_status() ) )
 			return;
 
+		// Legacy welcome scripts only load when ui_mode is explicitly set to legacy.
+		if ( $cn->options['general']['ui_mode'] !== 'legacy' )
+			return;
+
 		// styles
 		wp_enqueue_style( 'dashicons' );
 		wp_enqueue_style( 'cookie-notice-modaal', COOKIE_NOTICE_URL . '/assets/modaal/css/modaal.min.css', [], $cn->defaults['version'] );
@@ -133,10 +138,11 @@ class Cookie_Notice_Welcome {
 			'pricingMonthly'	=> $this->pricing_monthly,
 			'pricingYearly'		=> $this->pricing_yearly,
 			'complianceStatus'	=> $cn->get_status(),
-			'complianceFailed'	=> sprintf( esc_html__( '%sCompliance Failed!%sYour website does not achieve minimum viable compliance. %sSign up to Cookie Compliance%s to bring your site into compliance with the latest data privacy rules and regulations.', 'cookie-notice' ), '<em>', '</em>', '<b><a href="#" class="cn-sign-up">', '</a></b>' ),
+			'complianceFailed'	=> sprintf( esc_html__( '%sCompliance Failed!%sYour website does not achieve minimum viable compliance. %sSign up to Compliance by Hu-manity.co%s to bring your site into compliance with the latest data privacy rules and regulations.', 'cookie-notice' ), '<em>', '</em>', '<b><a href="#" class="cn-sign-up">', '</a></b>' ),
 			'compliancePassed'	=> sprintf( esc_html__( '%sCompliance Passed!%sCongratulations. Your website meets minimum viable compliance.', 'cookie-notice' ), '<em>', '</em>' ),
 			'licensesAvailable'	=> esc_html__( 'available', 'cookie-notice' ),
-			'invalidFields'		=> esc_html__( 'Please fill all the required fields.', 'cookie-notice' )
+			'invalidFields'		=> esc_html__( 'Please fill all the required fields.', 'cookie-notice' ),
+			'dismissed'			=> (bool) get_option( 'cookie_notice_welcome_dismissed', false )
 		];
 
 		// delete the show modal transient
@@ -196,6 +202,25 @@ class Cookie_Notice_Welcome {
 	}
 
 	/**
+	 * Dismiss the welcome modal — AJAX handler.
+	 * Sets cookie_notice_welcome_dismissed option so the modal won't auto-fire again
+	 * when user navigates to ?welcome=1 after closing without completing.
+	 *
+	 * @return void
+	 */
+	public function dismiss_welcome() {
+		if ( ! check_ajax_referer( 'cookie-notice-welcome', 'nonce', false ) )
+			wp_die( -1 );
+
+		if ( ! current_user_can( 'manage_options' ) )
+			wp_die( -1 );
+
+		update_option( 'cookie_notice_welcome_dismissed', true, false );
+
+		wp_die( 1 );
+	}
+
+	/**
 	 * Render welcome screen sidebar step.
 	 *
 	 * @param int|string $screen
@@ -249,19 +274,19 @@ class Cookie_Notice_Welcome {
 				<div class="cn-content cn-sidebar-visible">
 					<div class="cn-inner">
 						<div class="cn-content-full">
-							<h1><b>Cookie Compliance&trade;</b></h1>
+							<h1><b>Compliance by Hu-manity.co</b></h1>
 							<h2>' . esc_html__( 'Simple cookie & privacy compliance solution for your business.', 'cookie-notice' ) . '</h2>
 							<div class="cn-lead">
 								<div class="cn-hero-image">
 									<div class="cn-flex-item">
-										<img src="' . esc_url( COOKIE_NOTICE_URL ) . '/img/screen-compliance.png" alt="Cookie Notice dashboard" />
+										<img src="' . esc_url( COOKIE_NOTICE_URL ) . '/img/screen-compliance.png" alt="Compliance by Hu-manity.co dashboard" />
 									</div>
 								</div>
-								<p>' . sprintf( esc_html__( 'Protect your business and take a proactive approach to data privacy laws with Cookie Compliance™. Build trust by giving your website visitors a beautiful, multi-level consent experience that complies with the latest cookie regulations in 100+ countries.', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
+								<p>' . sprintf( esc_html__( 'Protect your business and take a proactive approach to data privacy laws with Compliance by Hu-manity.co. Build trust by giving your website visitors a beautiful, multi-level consent experience that complies with the latest cookie regulations in 100+ countries.', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
 							</div>';
 				$html .= '
 							<div class="cn-buttons">
-								<button type="button" class="cn-btn cn-btn-lg cn-screen-button" data-screen="2"><span class="cn-spinner"></span>' . esc_html__( 'Sign up to Cookie Compliance', 'cookie-notice' ) . '</button><br />
+								<button type="button" class="cn-btn cn-btn-lg cn-screen-button" data-screen="2"><span class="cn-spinner"></span>' . esc_html__( 'Sign up to Compliance by Hu-manity.co', 'cookie-notice' ) . '</button><br />
 								<button type="button" class="cn-btn cn-btn-lg cn-btn-transparent cn-skip-button">' . esc_html__( 'Skip for now', 'cookie-notice' ) . '</button>
 							</div>
 							';
@@ -284,7 +309,7 @@ class Cookie_Notice_Welcome {
 				<div class="cn-content cn-sidebar-visible">
 					<div class="cn-inner">
 						<div class="cn-content-full">
-							<h1><b>Cookie Compliance&trade;</b></h1>
+							<h1><b>Compliance by Hu-manity.co</b></h1>
 							<h2>' . esc_html__( 'Consent Management Platform with simple, transparent pricing.', 'cookie-notice' ) . '</h2>
 							<div class="cn-lead">
 								<p>' . esc_html__( 'Choose monthly or yearly payment and number of domains for the fully featured, Professional plan. Or start with limited, Basic plan for free.', 'cookie-notice' ) . '</p>
@@ -317,6 +342,7 @@ class Cookie_Notice_Welcome {
 										</div>
 										<div class="cn-pricing-footer">
 											<button type="button" class="cn-btn cn-btn-outline">' . esc_html__( 'Start Basic', 'cookie-notice' ) . '</button>
+											<span class="cn-trust-badge">' . esc_html__( 'No credit card · Free to start', 'cookie-notice' ) . '</span>
 										</div>
 									</div>
 								</label>
@@ -373,7 +399,7 @@ class Cookie_Notice_Welcome {
 					<div class="cn-inner">
 						<div class="cn-content-full">
 							<h1><b>' . esc_html__( 'Congratulations', 'cookie-notice' ) . '</b></h1>
-							<h2>' . esc_html__( 'You have successfully signed up to Cookie Compliance.', 'cookie-notice' ) . '</h2>
+							<h2>' . esc_html__( 'You have successfully signed up to Compliance by Hu-manity.co.', 'cookie-notice' ) . '</h2>
 							<div class="cn-lead">
 								<p>' . esc_html__( 'Log in to your account and continue configuring your website.', 'cookie-notice' ) . '</p>
 							</div>
@@ -399,7 +425,7 @@ class Cookie_Notice_Welcome {
 					<div class="cn-inner">
 						<div class="cn-header">
 							<div class="cn-top-bar">
-								<div class="cn-logo"><img src="' . esc_url( COOKIE_NOTICE_URL ) . '/img/cookie-compliance-logo.png" alt="Cookie Notice logo" /></div>
+								<div class="cn-logo"><img src="' . esc_url( COOKIE_NOTICE_URL ) . '/img/cookie-compliance-logo.png" alt="Compliance by Hu-manity.co" /></div>
 							</div>
 						</div>
 						<div class="cn-body">
@@ -413,7 +439,7 @@ class Cookie_Notice_Welcome {
 								<div class="cn-progressbar"><div class="cn-progress-label">' . esc_html__( 'Checking...', 'cookie-notice' ) . '</div></div>
 								<div class="cn-compliance-feedback cn-hidden"></div>
 								<div class="cn-compliance-results">
-									<div class="cn-compliance-item"><p><span class="cn-compliance-label">' . esc_html__( 'Cookie Notice', 'cookie-notice' ) . ' </span><span class="cn-compliance-status"></span></p><p><span class="cn-compliance-desc">' . esc_html__( 'Notify visitors to the site that it uses cookies or similar technologies.', 'cookie-notice' ) . '</span></p></div>
+									<div class="cn-compliance-item"><p><span class="cn-compliance-label">' . esc_html__( 'Consent Banner', 'cookie-notice' ) . ' </span><span class="cn-compliance-status"></span></p><p><span class="cn-compliance-desc">' . esc_html__( 'Notify visitors to the site that it uses cookies or similar technologies.', 'cookie-notice' ) . '</span></p></div>
 									<div class="cn-compliance-item" style="display: none"><p><span class="cn-compliance-label">' . esc_html__( 'Autoblocking', 'cookie-notice' ) . ' </span><span class="cn-compliance-status"></span></p><p><span class="cn-compliance-desc">' . esc_html__( 'Block non-essential 3rd party services until consent is registered.', 'cookie-notice' ) . '</span></p></div>
 									<div class="cn-compliance-item" style="display: none"><p><span class="cn-compliance-label">' . esc_html__( 'Cookie Categories', 'cookie-notice' ) . ' </span><span class="cn-compliance-status"></span></p><p><span class="cn-compliance-desc">' . esc_html__( 'Allow to customize the consent requested per purpose of use.', 'cookie-notice' ) . '</span></p></div>
 									<div class="cn-compliance-item" style="display: none"><p><span class="cn-compliance-label">' . esc_html__( 'Cookie Consent Logs', 'cookie-notice' ) . ' </span><span class="cn-compliance-status"></span></p><p><span class="cn-compliance-desc">' . esc_html__( "Save the website visitor's cookie consent preferences.", 'cookie-notice' ) . '</span></p></div>
@@ -430,12 +456,12 @@ class Cookie_Notice_Welcome {
 					<div class="cn-inner">
 						<div class="cn-header">
 							<div class="cn-top-bar">
-								<div class="cn-logo"><img src="' . esc_url( COOKIE_NOTICE_URL ) . '/img/cookie-compliance-logo.png" alt="Cookie Notice logo" /></div>
+								<div class="cn-logo"><img src="' . esc_url( COOKIE_NOTICE_URL ) . '/img/cookie-compliance-logo.png" alt="Compliance by Hu-manity.co" /></div>
 							</div>
 						</div>
 						<div class="cn-body">
 							<h2>' . esc_html__( 'Live Setup', 'cookie-notice' ) . '</h2>
-							<div class="cn-lead"><p>' . esc_html__( 'Configure your Cookie Notice & Compliance design and compliance features through the options below. Click Apply Setup to save the configuration and go to selecting your preferred cookie solution.', 'cookie-notice' ) . '</p></div>
+							<div class="cn-lead"><p>' . esc_html__( 'Configure your Compliance by Hu-manity.co design and compliance features through the options below. Click Apply Setup to save the configuration and go to selecting your preferred cookie solution.', 'cookie-notice' ) . '</p></div>
 							<form method="post" id="cn-form-configure" class="cn-form" action="" data-action="configure">
 								<div class="cn-accordion">
 									<div class="cn-accordion-item cn-form-container" tabindex="-1">
@@ -536,13 +562,13 @@ class Cookie_Notice_Welcome {
 					<div class="cn-inner">
 						<div class="cn-header">
 							<div class="cn-top-bar">
-								<div class="cn-logo"><img src="' . esc_url( COOKIE_NOTICE_URL ) . '/img/cookie-compliance-logo.png" alt="Cookie Notice logo" /></div>
+								<div class="cn-logo"><img src="' . esc_url( COOKIE_NOTICE_URL ) . '/img/cookie-compliance-logo.png" alt="Compliance by Hu-manity.co" /></div>
 							</div>
 						</div>
 						<div class="cn-body">
 							<h2>' . esc_html__( 'Compliance account', 'cookie-notice' ) . '</h2>
 							<div class="cn-lead">
-								<p>' . esc_html__( 'Create a Cookie Compliance&trade; account and select your preferred plan.', 'cookie-notice' ) . '</p>
+								<p>' . esc_html__( 'Create a Compliance by Hu-manity.co account and select your preferred plan.', 'cookie-notice' ) . '</p>
 							</div>
 							<div class="cn-accordion">
 								<div id="cn-accordion-account" class="cn-accordion-item cn-form-container" tabindex="-1">
@@ -645,13 +671,13 @@ class Cookie_Notice_Welcome {
 					<div class="cn-inner">
 						<div class="cn-header">
 							<div class="cn-top-bar">
-								<div class="cn-logo"><img src="' . esc_url( COOKIE_NOTICE_URL ) . '/img/cookie-compliance-logo.png" alt="Cookie Notice logo" /></div>
+								<div class="cn-logo"><img src="' . esc_url( COOKIE_NOTICE_URL ) . '/img/cookie-compliance-logo.png" alt="Compliance by Hu-manity.co" /></div>
 							</div>
 						</div>
 						<div class="cn-body">
 							<h2>' . esc_html__( 'Compliance Sign in', 'cookie-notice' ) . '</h2>
 							<div class="cn-lead">
-								<p>' . esc_html__( 'Sign in to your existing Cookie Compliance&trade; account and select your preferred plan.', 'cookie-notice' ) . '</p>
+								<p>' . esc_html__( 'Sign in to your existing Compliance by Hu-manity.co account and select your preferred plan.', 'cookie-notice' ) . '</p>
 							</div>
 							<div class="cn-accordion">
 								<div id="cn-accordion-account" class="cn-accordion-item cn-form-container" tabindex="-1">
@@ -754,12 +780,12 @@ class Cookie_Notice_Welcome {
 					<div class="cn-inner">
 						<div class="cn-header">
 							<div class="cn-top-bar">
-								<div class="cn-logo"><img src="' . esc_url( COOKIE_NOTICE_URL ) . '/img/cookie-compliance-logo.png" alt="Cookie Notice logo" /></div>
+								<div class="cn-logo"><img src="' . esc_url( COOKIE_NOTICE_URL ) . '/img/cookie-compliance-logo.png" alt="Compliance by Hu-manity.co" /></div>
 							</div>
 						</div>
 						<div class="cn-body">
 							<h2>' . esc_html__( 'Success!', 'cookie-notice' ) . '</h2>
-							<div class="cn-lead"><p><b>' . esc_html__( 'You have successfully integrated your website to Cookie Compliance&trade;', 'cookie-notice' ) . '</b></p><p>' . sprintf( esc_html__( 'Go to Cookie Compliance application now. Or access it anytime from your %sCookie Notice settings page%s.', 'cookie-notice' ), '<a href="' . esc_url( Cookie_Notice()->is_network_admin() ? network_admin_url( 'admin.php?page=cookie-notice' ) : admin_url( 'admin.php?page=cookie-notice' ) ) . '">', '</a>' ) . '</p></div>
+							<div class="cn-lead"><p><b>' . esc_html__( 'You have successfully integrated your website with Compliance by Hu-manity.co.', 'cookie-notice' ) . '</b></p><p>' . sprintf( esc_html__( 'Go to Compliance by Hu-manity.co now. Or access it anytime from your %sCompliance settings page%s.', 'cookie-notice' ), '<a href="' . esc_url( Cookie_Notice()->is_network_admin() ? network_admin_url( 'admin.php?page=cookie-notice' ) : admin_url( 'admin.php?page=cookie-notice' ) ) . '">', '</a>' ) . '</p></div>
 						</div>';
 			}
 

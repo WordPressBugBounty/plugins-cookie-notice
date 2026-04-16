@@ -291,3 +291,39 @@ function cn_is_plugin_active( $plugin = '', $module = 'caching' ) {
 
 	return $is_plugin_active;
 }
+
+/**
+ * Detect active analytics/tracking plugins for consent mode suggestions.
+ *
+ * @return array List of detected plugin categories: 'google', 'facebook', 'microsoft'.
+ */
+function cn_detect_active_plugins() {
+	$checks = [
+		'google'    => [
+			'google-analytics-for-wordpress/googleanalytics.php',
+			'google-site-kit/google-site-kit.php',
+			'wp-google-analytics/wp-google-analytics.php',
+			'gtm4wp/gtm4wp.php',
+		],
+		'facebook'  => [
+			'official-facebook-pixel/facebook-for-wordpress.php',
+			'pixel-caffeine/pixel-caffeine.php',
+		],
+		'microsoft' => [
+			'clarity-analytics/clarity-analytics.php',
+		],
+	];
+
+	$detected = [];
+
+	foreach ( $checks as $mode => $plugins ) {
+		foreach ( $plugins as $plugin ) {
+			if ( is_plugin_active( $plugin ) ) {
+				$detected[] = $mode;
+				break;
+			}
+		}
+	}
+
+	return array_values( array_unique( $detected ) );
+}

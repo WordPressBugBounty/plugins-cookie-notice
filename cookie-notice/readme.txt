@@ -1,27 +1,27 @@
-=== Cookie Notice & Compliance for GDPR / CCPA ===
+=== Compliance by Hu-manity.co ===
 Contributors: humanityco
 Tags: gdpr, ccpa, cookies, consent, privacy
 Requires at least: 4.9.6
 Requires PHP: 7.4
 Tested up to: 6.9
-Stable tag: 2.5.16
+Stable tag: 3.0.0
 License: MIT License
 License URI: http://opensource.org/licenses/MIT
 
-Cookie Notice allows you to you elegantly inform users that your site uses cookies and helps you comply with GDPR, CCPA and other data privacy laws.
+Intentional Consent for WordPress — GDPR, CCPA, CPRA & ePrivacy compliance with consent records, autoblocking & Google Consent Mode v2.
 
 == Description ==
 
-<strong>Cookie Notice</strong> provides a simple, customizable website banner that can be used to help your website comply with certain cookie consent requirements under the EU GDPR cookie law and CCPA regulations and includes <strong>seamless integration</strong> with Cookie Compliance to help your site comply with the latest updates to existing consent laws.
+<strong>Compliance by Hu-manity.co</strong> (formerly known as Cookie Notice) provides a simple, customizable website banner that can be used to help your website comply with cookie consent requirements under the EU GDPR, CCPA, and other data privacy laws — with <strong>seamless integration</strong> with Cookie Compliance to help your site comply with the latest updates to existing consent laws.
 
 <strong>Cookie Compliance</strong> is a fully featured Consent Management Platform (CMP) that provides automated compliance features and enhanced design controls in a state-of-the-art web application. Cookie Compliance enables websites to <strong>take a proactive approach to data protection and consent laws</strong>. It is the first solution to offer Intentional Consent, a new consent framework that incorporates the latest guidelines from over 100+ countries, and emerging standards from leading international organizations like the IEEE and European Center for Digital Rights (noyb.eu). Cookie Compliance provides a beautiful, multi-level experience and includes new choices and controls for site visitors to better understand and engage in data privacy decisions.
 
 > Our Cookie Compliance web application introduces a more ethical, proactive way to capture and manage consent.  This early version of the emerging Intentional Consent framework is a result of Hu-manity.co’s ongoing work with top Fortune 500 companies, governments, and standards organizations, who believe that the imbalanced relationship between consumers and corporations is unsustainable when it comes to data privacy and consent online. We are making it available for all website owners and operators who share this belief and support our mission to eliminate the dark patterns in online consent.<br>
 > Matt Sinderbrand - Chief Platform Officer, Hu-manity.co
 
-## Cookie Notice (plugin only)
+## Compliance (plugin only)
 
-Cookie Notice provides a simple, customizable website banner to help your website comply with certain cookie consent requirements.
+Compliance by Hu-manity.co provides a simple, customizable website banner to help your website comply with certain cookie consent requirements.
 
 = Banner features: =
 
@@ -93,22 +93,22 @@ As a part of our proactive approach, Cookie Compliance is configured by default 
 
 == Installation ==
 
-1. Install Cookie Notice either via the WordPress.org plugin directory, or by uploading the files to your server
+1. Install Compliance by Hu-manity.co either via the WordPress.org plugin directory, or by uploading the files to your server
 2. Activate the plugin through the 'Plugins' menu in WordPress
-3. Go to the Cookie Notice settings and set your options.
+3. Go to the Compliance settings and set your options.
 4. Click "Add Compliance features" button to start Cookie Compliance integration.
 5. Create Cookie Compliance account and select plan.
 6. Log in to Cookie Compliance web application anytime to customize the settings.
 
 == Frequently Asked Questions ==
 
-= Is Cookie Notice free? =
-Yes! Cookie Notice is a free software.
+= Is Compliance by Hu-manity.co free? =
+Yes! Compliance by Hu-manity.co is free software.
 
 = Is Cookie Compliance free? =
 Yes, but with limits. Cookie Compliance includes both free and paid plans to choose from depending on your needs and your website traffic.
 
-= Does the Cookie Notice make my site fully compliant with GDPR or US Privacy Laws? =
+= Does Compliance by Hu-manity.co make my site fully compliant with GDPR or US Privacy Laws? =
 No. The plugin-only version DOES NOT include technical compliance features such as automatic script blocking, consent purpose categories, or consent record storage. These features are only available through the Cookie Compliance integration.
 
 = Does the Cookie Compiance integration make my site fully compliant with GDPR and US Privacy Laws? =
@@ -116,12 +116,33 @@ Yes! The plugin + web appliaction version includes technical compliance features
 
 == Screenshots ==
 
-1. Cookie Notice settings, Compliance itegration inactive
-2. Cookie Notice settings, Compliance itegration active
+1. Compliance by Hu-manity.co — Notice settings, Compliance integration inactive
+2. Compliance by Hu-manity.co — Notice settings, Compliance integration active
 3. Cookie Compliance dashboard overview
 4. Cookie Compliance settings
 
 == Changelog ==
+
+= 3.0.0 =
+* Rebrand: Plugin renamed from "Cookie Notice & Compliance for GDPR / CCPA" to "Compliance by Hu-manity.co". WordPress admin sidebar now reads "Compliance" with Settings and Audit Trail submenus. All internal option keys and slugs remain unchanged — no action required for existing installs.
+* New: Modern React-based admin dashboard replaces the legacy PHP settings pages. Three main tabs — Protection, Settings, and Audit Trail — with a polished, card-based interface.
+* New: Guided setup wizard with banner template picker (6 presets), setup checklist, and quick-start configuration for new installs.
+* New: Welcome Modal with in-plugin account creation, plan selection, and Braintree payment — complete the signup flow without leaving WordPress.
+* New: Protection Chooser — redesigned tier selection (Basic, Professional, Business) with feature comparison cards.
+* New: 5-position banner placement selector (top, bottom, floating left, floating right, floating center) with fixed/floating toggle. Dismiss animation controls added to Banner Design settings.
+* New: Law Selector with geo-aware regulation display and compliance context for GDPR, CCPA, and 100+ jurisdictions.
+* New: Consent Modes panel — configure Google Consent Mode v2, Facebook, and Microsoft consent toggles directly from the plugin.
+* New: Audit Trail tab — view consent log records pulled live, with dynamic consent level labels.
+* New: Conditional Display rule builder — control when and where the consent banner appears.
+* New: Excluded Script Handles setting — exclude specific scripts from autoblocking by handle name.
+* New: Centralized notification system with contextual calls-to-action based on your setup status and subscription tier.
+* New: Portal deep links — jump directly from the plugin to the relevant page in the Cookie Compliance web application.
+* New: Live configuration sync — admin pages pull fresh banner configuration from the platform on load.
+* New: React ErrorBoundary prevents white-screen crashes — admin gracefully recovers from unexpected errors.
+* Improvement: Pro feature indicators show locked features with upgrade prompts for free-tier users.
+* Improvement: Usage dashboard shows near-limit nudge at 70%+ of cycle usage.
+* Improvement: Email-exists recovery flow guides users who try to register with an existing account.
+* Fix: Domain URL normalization on login prevents duplicate app registrations.
 
 = 2.5.16 =
 * Fix: Multisite with global override now correctly reads blocking data and cache-purge transients from network storage

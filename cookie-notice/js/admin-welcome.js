@@ -834,10 +834,17 @@
 
 					var currentStep = $( '.cn-welcome-wrap' );
 
-					// reload if on success screen
+					// reload on success screen; set dismissed flag on early close
 					if ( currentStep.length > 0 ) {
-						if ( $( currentStep[0] ).hasClass( 'cn-welcome-step-4' ) === true )
+						if ( $( currentStep[0] ).hasClass( 'cn-welcome-step-4' ) === true ) {
 							window.location.reload( true );
+						} else {
+							// user dismissed without completing — suppress future auto-open via ?welcome=1
+							$.post( cnWelcomeArgs.ajaxURL, {
+								action: 'cn_dismiss_welcome',
+								nonce:  cnWelcomeArgs.nonce
+							} );
+						}
 					}
 				},
 				after_close: function() {
@@ -948,8 +955,8 @@
 
 		welcome = cnGetUrlParam( 'welcome' );
 
-		if ( welcome ) {
-			// modal
+		if ( welcome && ! cnWelcomeArgs.dismissed ) {
+			// modal — suppressed if user previously dismissed without completing
 			initModal();
 		}
 	} );

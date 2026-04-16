@@ -808,3 +808,26 @@ input[type="checkbox"].cn-privacy-consent-form-status:checked:before {
     transform: translateX(100%);
     border-color: rgba(32, 193, 158, 1);
 }
+/* R1 US-3: Pro features locked callout */
+.cn-pro-feature-item {
+    margin-bottom: 12px;
+    opacity: 0.6;
+}
+
+.cn-pro-lock {
+    display: inline-block;
+    background: #3c434a;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 3px;
+    vertical-align: middle;
+    margin-left: 6px;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+}
+
+#cn_pro_features_locked .cn-pro-upgrade-btn {
+    margin-top: 4px;
+}
