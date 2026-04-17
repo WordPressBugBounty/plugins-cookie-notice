@@ -850,6 +850,7 @@ class Cookie_Notice_Settings {
 			add_settings_field( 'cn_see_more', esc_html__( 'Privacy policy', 'cookie-notice' ), [ $this, 'cn_see_more' ], 'cookie_notice_options', 'cookie_notice_configuration' );
 			add_settings_field( 'cn_refuse_opt', esc_html__( 'Refuse consent', 'cookie-notice' ), [ $this, 'cn_refuse_opt' ], 'cookie_notice_options', 'cookie_notice_configuration' );
 			add_settings_field( 'cn_revoke_opt', esc_html__( 'Revoke consent', 'cookie-notice' ), [ $this, 'cn_revoke_opt' ], 'cookie_notice_options', 'cookie_notice_configuration' );
+			add_settings_field( 'cn_app_blocking', esc_html__( 'Autoblocking', 'cookie-notice' ), [ $this, 'cn_app_blocking' ], 'cookie_notice_options', 'cookie_notice_configuration' );
 			add_settings_field( 'cn_refuse_code', esc_html__( 'Script blocking', 'cookie-notice' ), [ $this, 'cn_refuse_code' ], 'cookie_notice_options', 'cookie_notice_configuration' );
 			add_settings_field( 'cn_pro_features_locked', esc_html__( 'Pro Features', 'cookie-notice' ), [ $this, 'cn_pro_features_locked' ], 'cookie_notice_options', 'cookie_notice_configuration' );
 			add_settings_field( 'cn_redirection', esc_html__( 'Reloading', 'cookie-notice' ), [ $this, 'cn_redirection' ], 'cookie_notice_options', 'cookie_notice_configuration' );
@@ -1385,7 +1386,7 @@ class Cookie_Notice_Settings {
 
 	/**
 	 * Pro features locked callout (inactive/BASIC tier).
-	 * Shows Autoblocking, Cookie Categories, and Analytics as disabled with upgrade CTA.
+	 * Shows Cookie Categories and Analytics as disabled with upgrade CTA.
 	 *
 	 * @return void
 	 */
@@ -1403,10 +1404,6 @@ class Cookie_Notice_Settings {
 
 		echo '
 		<div id="cn_pro_features_locked">
-			<div class="cn-pro-feature-item">
-				<label>' . esc_html__( 'Autoblocking', 'cookie-notice' ) . ' <span class="cn-pro-lock">' . esc_html__( 'Pro', 'cookie-notice' ) . '</span></label>
-				<p class="description">' . esc_html__( 'Automatically block 3rd party scripts before user consent is given.', 'cookie-notice' ) . '</p>
-			</div>
 			<div class="cn-pro-feature-item">
 				<label>' . esc_html__( 'Cookie Categories', 'cookie-notice' ) . ' <span class="cn-pro-lock">' . esc_html__( 'Pro', 'cookie-notice' ) . '</span></label>
 				<p class="description">' . esc_html__( 'Group cookies by purpose and let users consent selectively.', 'cookie-notice' ) . '</p>

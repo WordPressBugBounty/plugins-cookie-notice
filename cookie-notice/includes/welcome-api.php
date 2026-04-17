@@ -763,7 +763,7 @@ class Cookie_Notice_Welcome_API {
 					$response->error = $response->error;
 					break;
 				} else
-					$subscriptions = map_deep( (array) $response->data, 'sanitize_text_field' );
+					$subscriptions = map_deep( (array) $response->data, [ $this, 'sanitize_preserve_bools' ] );
 
 				// set subscriptions data
 				if ( $network )
@@ -1336,6 +1336,23 @@ class Cookie_Notice_Welcome_API {
 	}
 
 	/**
+	 * Callback for map_deep that leaves booleans (and null) untouched.
+	 * sanitize_text_field casts non-strings to string first, which turns
+	 * true → "1" and false → "", corrupting BannerConfigJSON booleans like
+	 * gpcSupportMode on every get_app_config() round-trip. Use this callback
+	 * whenever the decoded payload contains real booleans we need to preserve.
+	 *
+	 * @param mixed $value
+	 * @return mixed
+	 */
+	public function sanitize_preserve_bools( $value ) {
+		if ( is_bool( $value ) || is_null( $value ) ) {
+			return $value;
+		}
+		return sanitize_text_field( $value );
+	}
+
+	/**
 	 * API request.
 	 *
 	 * @param string $request The requested action.
@@ -1861,7 +1878,7 @@ class Cookie_Notice_Welcome_API {
 
 		// get analytics
 		if ( ! empty( $response->data ) ) {
-			$result = map_deep( (array) $response->data, 'sanitize_text_field' );
+			$result = map_deep( (array) $response->data, [ $this, 'sanitize_preserve_bools' ] );
 
 			// add time updated
 			$result['lastUpdated'] = date( 'Y-m-d H:i:s', current_time( 'timestamp', true ) );
@@ -1999,7 +2016,7 @@ class Cookie_Notice_Welcome_API {
 						$result_raw[$index][$p_index] = $provider;
 					}
 				} else
-					$result_raw[$index] = map_deep( $value, 'sanitize_text_field' );
+					$result_raw[$index] = map_deep( $value, [ $this, 'sanitize_preserve_bools' ] );
 			}
 
 			// set status

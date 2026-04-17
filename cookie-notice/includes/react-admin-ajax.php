@@ -984,6 +984,12 @@ class Cookie_Notice_React_Admin_Ajax {
 			}
 		}
 
+		// Server-side threshold enforcement: cap app_blocking to false when
+		// the free-plan visit limit is exceeded, matching settings.php:1965.
+		if ( ! empty( $options['app_blocking'] ) && $cn->threshold_exceeded() ) {
+			$options['app_blocking'] = false;
+		}
+
 		// Text fields.
 		$text_fields = [
 			'message_text',
@@ -1322,6 +1328,7 @@ class Cookie_Notice_React_Admin_Ajax {
 				'microsoft_consent_default'  => isset( $blocking['microsoft_consent_default'] ) ? $blocking['microsoft_consent_default'] : null,
 				'gpc_support'                => ! empty( $blocking['gpc_support'] ),
 				'do_not_track'               => ! empty( $blocking['do_not_track'] ),
+				'lastUpdated'                => isset( $blocking['lastUpdated'] ) ? $blocking['lastUpdated'] : '',
 			],
 			'config' => $config,
 		];

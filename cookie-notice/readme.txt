@@ -4,7 +4,7 @@ Tags: gdpr, ccpa, cookies, consent, privacy
 Requires at least: 4.9.6
 Requires PHP: 7.4
 Tested up to: 6.9
-Stable tag: 3.0.1
+Stable tag: 3.0.2
 License: MIT License
 License URI: http://opensource.org/licenses/MIT
 
@@ -122,6 +122,10 @@ Yes! The plugin + web appliaction version includes technical compliance features
 4. Cookie Compliance settings
 
 == Changelog ==
+
+= 3.0.2 =
+* Fix: Decouple Autoblocking from privacy law selection in React and legacy settings — the toggle now appears for connected users regardless of whether laws are configured, and is no longer mislabeled as a Pro-only feature in the legacy UI.
+* Fix: Preserve boolean types when caching Designer, Account, and Analytics API responses — compliance flags such as gpcSupportMode, doNotTrackMode, onScroll, onClick, uiBlocking, revokeConsent and nested regulations were being silently coerced to strings, which risks breaking strict type checks downstream.
 
 = 3.0.1 =
 * Fix: Resolved missing file error preventing plugin activation for some users who updated during the initial 3.0.0 release
