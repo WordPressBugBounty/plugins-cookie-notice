@@ -1103,10 +1103,27 @@ class Cookie_Notice_Welcome_API {
 							}
 
 							// CCPA/OTHERUS: CPRA mandates honoring GPC browser signals.
-							// gpcSupportMode is normally set via the consent_raw handler; this sets it
-							// directly in the config object which patch_by_app sends as a top-level key.
+							// gpcSupportMode is Pro-gated with grandfather (see KnowledgeHub
+							// decisions.md gpc-pro-gating-with-grandfather). Auto-set fires
+							// only when the site can actually enable GPC — Pro tier OR an app
+							// that already has gpcSupportMode=true persisted (grandfathered).
+							// For Free non-grandfathered + CCPA, the existing 'crit' red state
+							// in ComplianceBehavior.jsx surfaces the compliance gap and the
+							// upgrade CTA points the customer to Pro.
 							if ( $has_ccpa_us ) {
-								$options['config']['gpcSupportMode'] = true;
+								$existing_blocking = $network
+									? get_site_option( 'cookie_notice_app_blocking', [] )
+									: get_option( 'cookie_notice_app_blocking', [] );
+								$existing_gpc = ! empty( $existing_blocking['banner_config']['gpcSupportMode'] );
+								$is_pro       = $cn->get_subscription() === 'pro';
+
+								if ( $is_pro || $existing_gpc ) {
+									$options['config']['gpcSupportMode'] = true;
+									// gpcBannerMode = 'passive' surfaces a brief, non-blocking notice
+									// when GPC is honored. Set explicitly so legacy apps whose
+									// persisted value is the old 'banner' default get reset.
+									$options['config']['gpcBannerMode'] = 'passive';
+								}
 							}
 
 							// PIPEDA: express consent requires ability to revoke — send revokeConsent to Designer API
@@ -1363,11 +1380,20 @@ class Cookie_Notice_Welcome_API {
 		// get main instance
 		$cn = Cookie_Notice();
 
+		// Self-reported client metadata — lets backend correlate cancellation
+		// with integration client (WordPress plugin, future Shopify app, etc.)
+		// and with the UI mode in use. Banner (JS widget) does NOT send these.
+		$cn_ui_mode = isset( $cn->options['general']['ui_mode'] ) ? $cn->options['general']['ui_mode'] : 'legacy';
+		$cn_plugin_version = ! empty( $cn->db_version ) ? $cn->db_version : '';
+
 		// request arguments
 		$api_args = [
 			'timeout'	=> 60,
 			'headers'	=> [
-				'x-api-key'	=> $cn->get_api_key()
+				'x-api-key'			=> $cn->get_api_key(),
+				'Cn-Client'			=> 'wordpress',
+				'Cn-Client-Version'	=> $cn_plugin_version,
+				'Cn-Client-Ui-Mode'	=> $cn_ui_mode,
 			]
 		];
 
@@ -2586,9 +2612,37 @@ class Cookie_Notice_Welcome_API {
 			if ( isset( $consent_raw[ $f ] ) )
 				$config->$f = (bool) (int) $consent_raw[ $f ];
 		}
-		// gpcSupport → gpcSupportMode (bool)
-		if ( isset( $consent_raw['gpcSupport'] ) )
-			$config->gpcSupportMode = (bool) (int) $consent_raw['gpcSupport'];
+		// gpcSupport → gpcSupportMode (bool). Pro-gated with grandfather:
+		// Free apps cannot set gpcSupportMode=true unless it's already true
+		// (grandfathered). Disabling is always allowed; once disabled on Free,
+		// the app loses its grandfather and cannot re-enable. See KnowledgeHub
+		// decisions.md (gpc-pro-gating-with-grandfather).
+		if ( isset( $consent_raw['gpcSupport'] ) ) {
+			$incoming_gpc = (bool) (int) $consent_raw['gpcSupport'];
+			$is_pro       = $cn->get_subscription() === 'pro';
+
+			if ( $is_pro || ! $incoming_gpc ) {
+				// Pro: anything goes. Free + setting to false: always allowed.
+				$config->gpcSupportMode = $incoming_gpc;
+			} else {
+				// Free + setting to true: only honor if already true (grandfather).
+				$existing_blocking = $cn->is_network_options()
+					? get_site_option( 'cookie_notice_app_blocking', [] )
+					: get_option( 'cookie_notice_app_blocking', [] );
+				if ( ! empty( $existing_blocking['banner_config']['gpcSupportMode'] ) )
+					$config->gpcSupportMode = true;
+				// else: silently strip — UI gate should have prevented this anyway.
+			}
+		}
+		// gpcBannerMode → gpcBannerMode (string enum). Not Pro-gated directly:
+		// it's only consulted when gpcSupportMode is true, so transitive gating
+		// via the parent toggle is sufficient. Validate the enum here and let
+		// stray values fall through to the persisted/default value.
+		if ( isset( $consent_raw['gpcBannerMode'] ) ) {
+			$mode = sanitize_key( $consent_raw['gpcBannerMode'] );
+			if ( in_array( $mode, [ 'banner', 'hidden', 'passive' ], true ) )
+				$config->gpcBannerMode = $mode;
+		}
 		// doNotTrack → doNotTrackMode (bool)
 		if ( isset( $consent_raw['doNotTrack'] ) )
 			$config->doNotTrackMode = (bool) (int) $consent_raw['doNotTrack'];
