@@ -69,6 +69,11 @@ class Cookie_Notice_Modules_WPRocket {
 		// add widget url
 		$excludes[] = basename( Cookie_Notice()->get_url( 'widget' ) );
 
+		// React admin asset exclusions — see Cookie_Notice::REACT_ADMIN_*.
+		// Defense-in-depth if Rocket's delay-JS / minify touches admin pages
+		// (e.g. via Cloudflare APO integrations).
+		$excludes[] = Cookie_Notice::REACT_ADMIN_BUNDLE_BASENAME;
+
 		return $excludes;
 	}
 
@@ -81,6 +86,9 @@ class Cookie_Notice_Modules_WPRocket {
 	function exclude_code( $excludes ) {
 		// add widget inline code
 		$excludes[] = 'huOptions';
+
+		// React admin asset exclusions — see Cookie_Notice::REACT_ADMIN_*.
+		$excludes[] = Cookie_Notice::REACT_ADMIN_INLINE_KEYWORD;
 
 		return $excludes;
 	}

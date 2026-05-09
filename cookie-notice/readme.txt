@@ -4,7 +4,7 @@ Tags: gdpr, ccpa, cookies, consent, privacy
 Requires at least: 4.9.6
 Requires PHP: 7.4
 Tested up to: 6.9
-Stable tag: 3.0.3
+Stable tag: 3.0.4
 License: MIT License
 License URI: http://opensource.org/licenses/MIT
 
@@ -202,6 +202,10 @@ Yes! The plugin + web appliaction version includes technical compliance features
 4. Cookie Compliance settings
 
 == Changelog ==
+
+= 3.0.4 =
+* Fix: The Compliance settings page no longer breaks on sites where Cloudflare Rocket Loader or a caching/optimizer plugin (WP Rocket, LiteSpeed Cache, Autoptimize, NitroPack, SG Speed Optimizer, or Jetpack Boost) is configured to process WP admin scripts. The plugin's admin bundle now signals these tools to skip it, extending the same banner-script protection added in 3.0.3.
+* Fix: If the Compliance settings page fails to load, you now see a "Loading Compliance dashboard…" message that reveals troubleshooting steps (caching plugin, browser extension, incognito mode) and a link to support — replacing the silent white screen some users hit when a CDN, optimizer, or browser extension blocked the admin bundle.
 
 = 3.0.3 =
 * Tweak: Send client type, plugin version, and admin UI mode (React or Legacy) as HTTP headers on platform API requests to support integration adoption analytics. No effect on banner behavior, site visitors, or consent data.

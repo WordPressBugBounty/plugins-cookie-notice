@@ -45,6 +45,11 @@ class Cookie_Notice_Modules_LiteSpeedCache {
 		// add widget inline code
 		$excludes[] = 'huOptions';
 
+		// React admin asset exclusions — see Cookie_Notice::REACT_ADMIN_*.
+		// Defense-in-depth if LiteSpeed's JS combine / defer touches admin pages.
+		$excludes[] = Cookie_Notice::REACT_ADMIN_BUNDLE_BASENAME;
+		$excludes[] = Cookie_Notice::REACT_ADMIN_INLINE_KEYWORD;
+
 		return $excludes;
 	}
 }

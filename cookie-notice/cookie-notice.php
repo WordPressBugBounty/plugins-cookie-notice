@@ -2,7 +2,7 @@
 /*
 Plugin Name: Compliance by Hu-manity.co
 Description: Compliance by Hu-manity.co (formerly Cookie Notice) — cookie consent banner and full Consent Management Platform for GDPR, CCPA, and global data privacy laws.
-Version: 3.0.3
+Version: 3.0.4
 Author: Hu-manity.co
 Author URI: https://hu-manity.co/
 Plugin URI: https://cookie-compliance.co/
@@ -32,6 +32,21 @@ if ( ! defined( 'ABSPATH' ) )
  * @version	2.5.14
  */
 class Cookie_Notice {
+
+	/**
+	 * React admin asset identifiers.
+	 *
+	 * Single source of truth for the bundle name, script handle, and inline
+	 * data global emitted by wp_localize_script. Referenced by:
+	 * - Cookie_Notice_Settings::admin_enqueue_scripts() — enqueue + localize
+	 * - Cookie_Notice_Settings::add_react_admin_optimizer_attrs() — script_loader_tag filter
+	 * - includes/modules/<vendor>/<vendor>.php — optimizer-exclusion filters
+	 *
+	 * Anything that grep-finds "REACT_ADMIN_" is a call site for these.
+	 */
+	const REACT_ADMIN_HANDLE          = 'cookie-notice-react-admin';
+	const REACT_ADMIN_BUNDLE_BASENAME = 'cn-admin-react.js';
+	const REACT_ADMIN_INLINE_KEYWORD  = 'cnReactData';
 
 	private $status_data = [
 		'status'				=> '',
@@ -156,7 +171,7 @@ class Cookie_Notice {
 			'threshold_exceeded'	=> false,
 			'activation_datetime'	=> 0
 		],
-		'version'	=> '3.0.3'
+		'version'	=> '3.0.4'
 	];
 
 	/**
@@ -651,6 +666,8 @@ class Cookie_Notice {
 			$url = $this->app_dashboard_url;
 		elseif ( $type === 'widget' )
 			$url = $this->app_widget_url;
+		elseif ( $type === 'react-admin' )
+			$url = COOKIE_NOTICE_URL . '/assets/react-admin/' . self::REACT_ADMIN_BUNDLE_BASENAME;
 		elseif ( $type === 'host' )
 			$url = $this->app_host_url;
 		elseif ( $type === 'account_api' )

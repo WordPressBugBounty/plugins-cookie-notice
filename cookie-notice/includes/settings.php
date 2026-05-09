@@ -400,8 +400,46 @@ class Cookie_Notice_Settings {
 			<h2>' . esc_html__( 'Compliance by Hu-manity.co', 'cookie-notice' ) . '</h2>';
 
 		if ( $ui_mode === 'react' ) {
+			// Server-side fallback markup. React's createRoot().render() replaces
+			// these children on mount, so users only ever see this content if the
+			// JS bundle failed to load, was blocked, or threw before React could
+			// take over. The help block fades in via pure-CSS animation after 5s
+			// (no JS needed — survives a fully-failed bundle). Inline styles, so
+			// a CSS-load failure doesn't make the fallback ugly.
+			$support_url = esc_url( $cn->get_url( 'host' ) );
+
 			echo '
-			<div id="cn-react-root"></div>';
+			<style id="cn-react-fallback-styles">
+				#cn-react-root .cn-react-fallback { padding: 24px 28px; max-width: 640px; margin: 20px 0; background: #fff; border: 1px solid #c3c4c7; border-radius: 4px; font-size: 14px; line-height: 1.5; color: #1d2327; }
+				#cn-react-root .cn-react-fallback__heading { margin: 0 0 8px; font-size: 16px; font-weight: 600; }
+				#cn-react-root .cn-react-fallback__body { margin: 0 0 8px; }
+				#cn-react-root .cn-react-fallback__help { margin: 16px 0 0; padding: 12px 14px; background: #f6f7f7; border-left: 3px solid #d63638; opacity: 0; animation: cn-react-fallback-reveal 0.4s ease-in 5s forwards; }
+				#cn-react-root .cn-react-fallback__help-list { margin: 8px 0 0 18px; padding: 0; list-style: disc; }
+				#cn-react-root .cn-react-fallback__help-list li { margin: 4px 0; }
+				@keyframes cn-react-fallback-reveal { from { opacity: 0; transform: translateY( -4px ); } to { opacity: 1; transform: translateY( 0 ); } }
+			</style>
+			<div id="cn-react-root">
+				<div class="cn-react-fallback" role="status" aria-live="polite">
+					<p class="cn-react-fallback__heading">' . esc_html__( 'Loading Compliance dashboard…', 'cookie-notice' ) . '</p>
+					<p class="cn-react-fallback__body">' . esc_html__( 'This usually takes a second. If the page stays on this message, the admin UI failed to load.', 'cookie-notice' ) . '</p>
+					<noscript>
+						<p class="cn-react-fallback__body"><strong>' . esc_html__( 'JavaScript is required for this admin page.', 'cookie-notice' ) . '</strong> ' . esc_html__( 'Please enable JavaScript in your browser settings.', 'cookie-notice' ) . '</p>
+					</noscript>
+					<div class="cn-react-fallback__help">
+						<strong>' . esc_html__( 'Stuck on this screen?', 'cookie-notice' ) . '</strong>
+						<ul class="cn-react-fallback__help-list">
+							<li>' . esc_html__( 'A caching/optimizer plugin or CDN (Cloudflare Rocket Loader, WP Rocket, LiteSpeed, etc.) may be rewriting admin scripts.', 'cookie-notice' ) . '</li>
+							<li>' . esc_html__( 'A browser extension (ad-blocker, privacy tool) may be blocking the script.', 'cookie-notice' ) . '</li>
+							<li>' . esc_html__( 'Try opening this page in a private/incognito window with extensions disabled.', 'cookie-notice' ) . '</li>
+						</ul>
+						<p class="cn-react-fallback__body" style="margin-top:12px;">' . sprintf(
+							/* translators: %s: link to the Hu-manity support dashboard */
+							esc_html__( 'If the issue persists, %s.', 'cookie-notice' ),
+							'<a href="' . $support_url . '" target="_blank" rel="noopener noreferrer">' . esc_html__( 'open the Hu-manity dashboard to contact support', 'cookie-notice' ) . '</a>'
+						) . '</p>
+					</div>
+				</div>
+			</div>';
 		}
 
 		// get current tab
@@ -2454,7 +2492,7 @@ class Cookie_Notice_Settings {
 			// In CN_DEV_MODE use the file's mtime as the version so every deploy
 			// busts the browser cache automatically (the plugin version string only
 			// changes on official releases, causing stale bundles during testing).
-			$react_js_path  = COOKIE_NOTICE_PATH . 'assets/react-admin/cn-admin-react.js';
+			$react_js_path  = COOKIE_NOTICE_PATH . 'assets/react-admin/' . Cookie_Notice::REACT_ADMIN_BUNDLE_BASENAME;
 			$react_css_path = COOKIE_NOTICE_PATH . 'assets/react-admin/cn-admin-react.css';
 			$react_ver      = ( defined( 'CN_DEV_MODE' ) && CN_DEV_MODE && file_exists( $react_js_path ) )
 				? filemtime( $react_js_path )
@@ -2462,19 +2500,28 @@ class Cookie_Notice_Settings {
 
 			if ( $ui_mode === 'react' ) {
 				wp_enqueue_script(
-					'cookie-notice-react-admin',
-					COOKIE_NOTICE_URL . '/assets/react-admin/cn-admin-react.js',
+					Cookie_Notice::REACT_ADMIN_HANDLE,
+					$cn->get_url( 'react-admin' ),
 					[],
 					$react_ver,
 					true
 				);
 
 				wp_enqueue_style(
-					'cookie-notice-react-admin',
+					Cookie_Notice::REACT_ADMIN_HANDLE,
 					COOKIE_NOTICE_URL . '/assets/react-admin/cn-admin-react.css',
 					[],
 					$react_ver
 				);
+
+				// Stamp optimizer/CDN exclusion attributes on the React admin script
+				// (main bundle + wp_localize_script inline 'before' block) so JS minifiers,
+				// concatenators, deferers, and CDN script-rewriters skip our IIFE bundle.
+				// Mirrors the banner-script protection in includes/frontend.php (commit 765e96b).
+				// Without this, Cloudflare Rocket Loader (which processes admin pages) and
+				// any "minify admin" toggles in optimizer plugins can break the bundle and
+				// white-screen the admin page.
+				add_filter( 'script_loader_tag', [ $this, 'add_react_admin_optimizer_attrs' ], 10, 2 );
 
 				// Pull fresh config from Designer API before localizing data.
 				// Ensures the React UI starts with the latest state, even if
@@ -2493,7 +2540,7 @@ class Cookie_Notice_Settings {
 				$cn_rules_data = $cn_rules_json !== false ? json_decode( $cn_rules_json, true ) : null;
 				$cn_notification_rules = is_array( $cn_rules_data ) ? ( $cn_rules_data['rules'] ?? [] ) : [];
 
-				wp_localize_script( 'cookie-notice-react-admin', 'cnReactData', [
+				wp_localize_script( Cookie_Notice::REACT_ADMIN_HANDLE, Cookie_Notice::REACT_ADMIN_INLINE_KEYWORD, [
 					'ajaxURL'            => admin_url( 'admin-ajax.php' ),
 					'nonce'              => wp_create_nonce( 'cn_react_nonce' ),
 					'welcomeNonce'       => wp_create_nonce( 'cookie-notice-welcome' ),
@@ -2550,6 +2597,32 @@ class Cookie_Notice_Settings {
 			wp_enqueue_script( 'cookie-notice-admin-pagination', COOKIE_NOTICE_URL . '/assets/pagination/pagination.js', [ 'jquery' ], '2.6.0' );
 			wp_enqueue_style( 'cookie-notice-admin-pagination', COOKIE_NOTICE_URL . '/assets/pagination/pagination.css', [], '2.6.0' );
 		}
+	}
+
+	/**
+	 * Stamp optimizer/CDN exclusion attributes on the React admin script tags.
+	 *
+	 * WP's script_loader_tag filter receives the combined output for a handle
+	 * (main <script src> tag plus any inline 'before'/'after' blocks added via
+	 * wp_localize_script / wp_add_inline_script), so a single regex pass covers
+	 * both the bundle and the cnReactData inline block.
+	 *
+	 * Mirrors banner protection in includes/frontend.php (commit 765e96b).
+	 *
+	 * @param string $tag    Combined script tag(s) for this handle.
+	 * @param string $handle Script handle being filtered.
+	 * @return string
+	 */
+	public function add_react_admin_optimizer_attrs( $tag, $handle ) {
+		// React admin asset exclusions — see Cookie_Notice::REACT_ADMIN_*.
+		if ( $handle !== Cookie_Notice::REACT_ADMIN_HANDLE )
+			return $tag;
+
+		$attrs = ' data-cfasync="false" data-nowprocket data-noptimize="1" data-no-optimize="1" nitro-exclude data-jetpack-boost="ignore"';
+
+		// Stamp every <script> opening tag in the combined output that doesn't
+		// already carry data-cfasync (idempotent if the filter runs twice).
+		return preg_replace( '/(<script\b)(?![^>]*\bdata-cfasync\b)/i', '$1' . $attrs, $tag );
 	}
 
 	/**

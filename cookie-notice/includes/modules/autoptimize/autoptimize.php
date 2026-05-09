@@ -57,6 +57,14 @@ class Cookie_Notice_Modules_Autoptimize {
 		if ( strpos( $excludes, $widget_url ) === false )
 			$new_excludes[] = $widget_url;
 
+		// React admin asset exclusions — see Cookie_Notice::REACT_ADMIN_*.
+		// Keeps Autoptimize off our IIFE bundle if its "optimize admin" toggle is on.
+		if ( strpos( $excludes, Cookie_Notice::REACT_ADMIN_BUNDLE_BASENAME ) === false )
+			$new_excludes[] = Cookie_Notice::REACT_ADMIN_BUNDLE_BASENAME;
+
+		if ( strpos( $excludes, Cookie_Notice::REACT_ADMIN_INLINE_KEYWORD ) === false )
+			$new_excludes[] = Cookie_Notice::REACT_ADMIN_INLINE_KEYWORD;
+
 		return implode( ', ', $new_excludes );
 	}
 }
