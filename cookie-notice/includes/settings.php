@@ -1144,7 +1144,9 @@ class Cookie_Notice_Settings {
 
 		echo '
 		<div id="cn_app_blocking"' . ( $threshold_exceeded ? ' class="cn-option-disabled"' : '' ) . '>
-			<label><input type="checkbox" name="cookie_notice_options[app_blocking]" value="1" ' . checked( true, $cn->options['general']['app_blocking'], false ) . ' ' . disabled( $threshold_exceeded, true, false ) . ' />' . esc_html__( 'Enable to automatically block 3rd party scripts before user consent is set.', 'cookie-notice' ) . '</label>' .
+			<label>' .
+			( ! $threshold_exceeded ? '<input type="hidden" name="cookie_notice_options[app_blocking_rendered]" value="1" />' : '' ) .
+			'<input type="checkbox" name="cookie_notice_options[app_blocking]" value="1" ' . checked( true, $cn->options['general']['app_blocking'], false ) . ' ' . disabled( $threshold_exceeded, true, false ) . ' />' . esc_html__( 'Enable to automatically block 3rd party scripts before user consent is set.', 'cookie-notice' ) . '</label>' .
 			( $threshold_exceeded ? '<p class="description"><span class="cn-warning">*</span> ' . esc_html__( 'This option has been temporarily disabled because your website has reached the usage limit for the Compliance by Hu-manity.co Free Plan. It will become available again when the current visits cycle resets or you upgrade your website to a Professional plan.', 'cookie-notice' ) . '</p>' : '' ) .
 		'</div>';
 	}
@@ -1994,19 +1996,15 @@ class Cookie_Notice_Settings {
 			// to false. This prevents a legacy form save from zeroing out a value that was
 			// set via the React path (field partition: app_blocking is plugin-owned but the
 			// legacy form does not always render the checkbox, e.g. when connected). See #2272.
-			if ( isset( $input['app_blocking'] ) ) {
-				// Checkbox was present in the form — honour the submitted value, but
-				// cap it to false when threshold is exceeded.
-				$input['app_blocking'] = ! $cn->threshold_exceeded();
+			if ( isset( $input['app_blocking_rendered'] ) ) {
+				// Checkbox was rendered and enabled — honour the submitted value (absent = unchecked = false).
+				$input['app_blocking'] = isset( $input['app_blocking'] ) && ! $cn->threshold_exceeded();
 			} else {
-				// Checkbox absent (unchecked or not rendered) — preserve DB value to avoid
-				// silently clobbering a React-written true. The preservation loop below
-				// would normally handle this, but it runs after this block and only fills
-				// keys missing from $input entirely. Since we must not add app_blocking to
-				// $input here (the loop checks array_key_exists), we skip setting it and
-				// let the loop restore it from the DB.
+				// Checkbox not rendered (network admin, global_override sub-site) or threshold
+				// exceeded (disabled) — preserve the DB value via the preservation loop below.
 				unset( $input['app_blocking'] );
 			}
+			unset( $input['app_blocking_rendered'] );
 
 			// excluded script handles
 			$input['excluded_handles'] = isset( $input['excluded_handles'] )
