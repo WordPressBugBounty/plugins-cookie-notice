@@ -4,7 +4,7 @@ Tags: gdpr, ccpa, cookies, consent, privacy
 Requires at least: 4.9.6
 Requires PHP: 7.4
 Tested up to: 6.9
-Stable tag: 3.0.5
+Stable tag: 3.0.6
 License: MIT License
 License URI: http://opensource.org/licenses/MIT
 
@@ -202,6 +202,9 @@ Yes! The plugin + web appliaction version includes technical compliance features
 4. Cookie Compliance settings
 
 == Changelog ==
+
+= 3.0.6 =
+* Tweak: The Consent Security Policy (CSP) warning on the Compliance settings page now clears immediately once a valid .htaccess is detected — reloading the page, clicking Purge Cache, or clicking Pull Configuration each re-evaluate in real time.
 
 = 3.0.5 =
 * Fix: Disabling Autoblocking via the legacy settings form on multisite sites now saves correctly.

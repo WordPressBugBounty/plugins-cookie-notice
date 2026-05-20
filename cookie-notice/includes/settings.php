@@ -1918,6 +1918,59 @@ class Cookie_Notice_Settings {
 	}
 
 	/**
+	 * Refresh the stored csp_notice flag from a live .htaccess re-check, gated
+	 * by a transient so the file is read at most once per hour per scope.
+	 *
+	 * Why: the React admin save path does not invoke check_htaccess(), so the
+	 * stored flag goes stale once a customer fixes their .htaccess. Decoupling
+	 * the check from save side effects — render-time covers passive refresh;
+	 * on-demand callers (purge cache, sync config) pass force=true.
+	 *
+	 * @param bool $force Bypass the transient cache.
+	 * @return bool       Current invalid-CSP state (true = warning should show).
+	 */
+	public function refresh_csp_notice( $force = false ) {
+		$cn = Cookie_Notice();
+
+		if ( $cn->get_status() !== 'active' ) {
+			if ( ! empty( $cn->options['general']['csp_notice'] ) ) {
+				$cn->options['general']['csp_notice'] = false;
+
+				if ( $cn->is_network_admin() )
+					update_site_option( 'cookie_notice_options', $cn->options['general'] );
+				else
+					update_option( 'cookie_notice_options', $cn->options['general'] );
+			}
+
+			return false;
+		}
+
+		$network = $cn->is_network_admin();
+		$cached  = $network ? get_site_transient( 'cookie_notice_csp_check' ) : get_transient( 'cookie_notice_csp_check' );
+
+		if ( ! $force && $cached !== false )
+			return $cached === '1';
+
+		$invalid = $this->check_htaccess();
+
+		if ( $network )
+			set_site_transient( 'cookie_notice_csp_check', $invalid ? '1' : '0', HOUR_IN_SECONDS );
+		else
+			set_transient( 'cookie_notice_csp_check', $invalid ? '1' : '0', HOUR_IN_SECONDS );
+
+		if ( $cn->options['general']['csp_notice'] !== $invalid ) {
+			$cn->options['general']['csp_notice'] = $invalid;
+
+			if ( $network )
+				update_site_option( 'cookie_notice_options', $cn->options['general'] );
+			else
+				update_option( 'cookie_notice_options', $cn->options['general'] );
+		}
+
+		return $invalid;
+	}
+
+	/**
 	 * Check whether to display admin notices.
 	 *
 	 * @return void
@@ -1940,7 +1993,7 @@ class Cookie_Notice_Settings {
 			$allow_notice = true;
 
 		// display notice?
-		if ( $allow_notice && $pagenow === 'admin.php' && isset( $_GET['page'] ) && $_GET['page'] === 'cookie-notice' && $cn->get_status() === 'active' && $cn->options['general']['csp_notice'] ) {
+		if ( $allow_notice && $pagenow === 'admin.php' && isset( $_GET['page'] ) && $_GET['page'] === 'cookie-notice' && $cn->get_status() === 'active' && $this->refresh_csp_notice() ) {
 			add_settings_error( 'cn_cookie_notice_options', 'cookie_notice_csp_warning', esc_html__( "It looks like some of the Consent Security Policy (CSP) records in your website's .htaccess file may be causing Compliance by Hu-manity.co loading problems. Make sure you allow loading of Compliance by Hu-manity.co resources by adding the following record:", 'cookie-notice') . '<br><code>' .  esc_html__( "img-src data:; style-src 'unsafe-inline'; connect-src *.hu-manity.co; script-src 'unsafe-inline' *.hu-manity.co" ) . '</code>', 'error' );
 		}
 	}
@@ -2074,11 +2127,10 @@ class Cookie_Notice_Settings {
 			// caching compatibility
 			$input['caching_compatibility'] = isset( $input['caching_compatibility'] ) && ! empty( $active_plugins );
 
-			// display csp notice?
-			if ( $cn->get_status() === 'active' )
-				$input['csp_notice'] = $this->check_htaccess();
-			else
-				$input['csp_notice'] = false;
+			// csp_notice is refreshed on render and on-demand via refresh_csp_notice();
+			// preserve the existing stored value here so the legacy save path doesn't
+			// stomp it with a stale read.
+			$input['csp_notice'] = ! empty( $cn->options['general']['csp_notice'] );
 
 			// position
 			if ( isset( $input['position'] ) ) {
@@ -2716,6 +2768,10 @@ class Cookie_Notice_Settings {
 
 		// request for new config data
 		Cookie_Notice()->welcome_api->get_app_config( '', true );
+
+		// re-evaluate CSP state now that the operator clicked Purge — the next
+		// admin render should reflect any .htaccess change immediately.
+		$this->refresh_csp_notice( true );
 
 		// force new config on frontend
 		if ( Cookie_Notice()->is_network_options() )

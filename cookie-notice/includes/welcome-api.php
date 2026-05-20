@@ -1332,6 +1332,11 @@ class Cookie_Notice_Welcome_API {
 					else
 						set_transient( 'cookie_notice_config_update', time(), DAY_IN_SECONDS );
 
+					// re-evaluate CSP state on-demand — pairs with the same call
+					// in ajax_purge_cache() so both refresh buttons clear stale flags.
+					if ( isset( $cn->settings ) )
+						$cn->settings->refresh_csp_notice( true );
+
 					$response = [
 						'success' => true,
 						'message' => esc_html__( 'Configuration synced successfully.', 'cookie-notice' ),
