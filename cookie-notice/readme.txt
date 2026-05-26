@@ -4,7 +4,7 @@ Tags: gdpr, ccpa, cookies, consent, privacy
 Requires at least: 4.9.6
 Requires PHP: 7.4
 Tested up to: 6.9
-Stable tag: 3.0.6
+Stable tag: 3.1.0
 License: MIT License
 License URI: http://opensource.org/licenses/MIT
 
@@ -202,6 +202,10 @@ Yes! The plugin + web appliaction version includes technical compliance features
 4. Cookie Compliance settings
 
 == Changelog ==
+
+= 3.1.0 =
+* New: WP Consent API integration — Compliance now registers as the active Consent Management Platform under the [WP Consent API](https://wordpress.org/plugins/wp-consent-api/) when that plugin is installed, so cooperative plugins like WooCommerce, Google Site Kit, Burst Statistics, WP Statistics, AddToAny, and Pixel Manager for WooCommerce automatically gate themselves on the consent state captured by your banner. Hu-manity's four consent levels map to the WP Consent API's five categories: Strictly Necessary → functional (always allowed), Functional → preferences, Analytics → statistics and statistics-anonymous, Marketing → marketing. Global Privacy Control automatically suppresses the marketing category. A new "WP Consent API" toggle on the Configuration tab lets you turn the integration off; it is on by default when both plugins are active.
+* Tweak: The loading screen now reads "Hang tight — this may take a few seconds on slower connections" and the troubleshooting panel waits 15 seconds before appearing, giving slow connections more breathing room before setup suggestions surface.
 
 = 3.0.6 =
 * Tweak: The Consent Security Policy (CSP) warning on the Compliance settings page now clears immediately once a valid .htaccess is detected — reloading the page, clicking Purge Cache, or clicking Pull Configuration each re-evaluate in real time.

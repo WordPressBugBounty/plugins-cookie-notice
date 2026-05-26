@@ -2,7 +2,7 @@
 /*
 Plugin Name: Compliance by Hu-manity.co
 Description: Compliance by Hu-manity.co (formerly Cookie Notice) — cookie consent banner and full Consent Management Platform for GDPR, CCPA, and global data privacy laws.
-Version: 3.0.6
+Version: 3.1.0
 Author: Hu-manity.co
 Author URI: https://hu-manity.co/
 Plugin URI: https://cookie-compliance.co/
@@ -98,6 +98,7 @@ class Cookie_Notice {
 			'bot_detection'			=> true,
 			'caching_compatibility'	=> true,
 			'debug_mode'			=> false,
+			'wp_consent_api'		=> true,
 			'excluded_handles'		=> [],
 			'position'				=> 'bottom',
 			'message_text'			=> '',
@@ -171,7 +172,7 @@ class Cookie_Notice {
 			'threshold_exceeded'	=> false,
 			'activation_datetime'	=> 0
 		],
-		'version'	=> '3.0.6'
+		'version'	=> '3.1.0'
 	];
 
 	/**
@@ -212,6 +213,7 @@ class Cookie_Notice {
 		'amp_support',
 		'caching_compatibility',
 		'debug_mode',
+		'wp_consent_api',
 		'conditional_active',
 		'conditional_display',
 		'conditional_rules',
@@ -756,6 +758,7 @@ class Cookie_Notice {
 		include_once( COOKIE_NOTICE_PATH . 'includes/welcome.php' );
 		include_once( COOKIE_NOTICE_PATH . 'includes/welcome-api.php' );
 		include_once( COOKIE_NOTICE_PATH . 'includes/welcome-frontend.php' );
+		include_once( COOKIE_NOTICE_PATH . 'includes/modules/wp-consent-api/wp-consent-api.php' );
 	}
 
 	/**
