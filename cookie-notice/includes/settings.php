@@ -410,32 +410,29 @@ class Cookie_Notice_Settings {
 
 			echo '
 			<style id="cn-react-fallback-styles">
-				#cn-react-root .cn-react-fallback { padding: 32px 28px; max-width: 640px; margin: 20px 0; background: #fff; border: 1px solid #c3c4c7; border-radius: 4px; font-size: 14px; line-height: 1.5; color: #1d2327; display: flex; flex-direction: column; align-items: center; text-align: center; }
-				#cn-react-root .cn-react-fallback__spinner { width: 36px; height: 36px; border: 3px solid #e0e0e0; border-top-color: #2271b1; border-radius: 50%; animation: cn-react-spin 0.7s linear infinite; margin-bottom: 14px; flex-shrink: 0; }
-				#cn-react-root .cn-react-fallback__heading { margin: 0 0 4px; font-size: 15px; font-weight: 600; }
-				#cn-react-root .cn-react-fallback__body { margin: 0; color: #50575e; }
-				#cn-react-root .cn-react-fallback__help { width: 100%; margin: 20px 0 0; padding: 12px 14px; background: #f6f7f7; border-left: 3px solid #d63638; text-align: left; opacity: 0; animation: cn-react-fallback-reveal 0.4s ease-in 15s forwards; }
+				#cn-react-root .cn-react-fallback { padding: 24px 28px; max-width: 640px; margin: 20px 0; background: #fff; border: 1px solid #c3c4c7; border-radius: 4px; font-size: 14px; line-height: 1.5; color: #1d2327; }
+				#cn-react-root .cn-react-fallback__heading { margin: 0 0 8px; font-size: 16px; font-weight: 600; }
+				#cn-react-root .cn-react-fallback__body { margin: 0 0 8px; }
+				#cn-react-root .cn-react-fallback__help { margin: 16px 0 0; padding: 12px 14px; background: #f6f7f7; border-left: 3px solid #d63638; opacity: 0; animation: cn-react-fallback-reveal 0.4s ease-in 5s forwards; }
 				#cn-react-root .cn-react-fallback__help-list { margin: 8px 0 0 18px; padding: 0; list-style: disc; }
 				#cn-react-root .cn-react-fallback__help-list li { margin: 4px 0; }
-				@keyframes cn-react-spin { to { transform: rotate( 360deg ); } }
 				@keyframes cn-react-fallback-reveal { from { opacity: 0; transform: translateY( -4px ); } to { opacity: 1; transform: translateY( 0 ); } }
 			</style>
 			<div id="cn-react-root">
 				<div class="cn-react-fallback" role="status" aria-live="polite">
-					<div class="cn-react-fallback__spinner" aria-hidden="true"></div>
 					<p class="cn-react-fallback__heading">' . esc_html__( 'Loading Compliance dashboard…', 'cookie-notice' ) . '</p>
-					<p class="cn-react-fallback__body">' . esc_html__( 'Hang tight — this may take a few seconds on slower connections.', 'cookie-notice' ) . '</p>
+					<p class="cn-react-fallback__body">' . esc_html__( 'This usually takes a second. If the page stays on this message, the admin UI failed to load.', 'cookie-notice' ) . '</p>
 					<noscript>
 						<p class="cn-react-fallback__body"><strong>' . esc_html__( 'JavaScript is required for this admin page.', 'cookie-notice' ) . '</strong> ' . esc_html__( 'Please enable JavaScript in your browser settings.', 'cookie-notice' ) . '</p>
 					</noscript>
 					<div class="cn-react-fallback__help">
-						<strong>' . esc_html__( 'Taking longer than expected?', 'cookie-notice' ) . '</strong>
+						<strong>' . esc_html__( 'Stuck on this screen?', 'cookie-notice' ) . '</strong>
 						<ul class="cn-react-fallback__help-list">
 							<li>' . esc_html__( 'A caching/optimizer plugin or CDN (Cloudflare Rocket Loader, WP Rocket, LiteSpeed, etc.) may be rewriting admin scripts.', 'cookie-notice' ) . '</li>
 							<li>' . esc_html__( 'A browser extension (ad-blocker, privacy tool) may be blocking the script.', 'cookie-notice' ) . '</li>
 							<li>' . esc_html__( 'Try opening this page in a private/incognito window with extensions disabled.', 'cookie-notice' ) . '</li>
 						</ul>
-						<p class="cn-react-fallback__body" style="margin-top:12px;text-align:left;">' . sprintf(
+						<p class="cn-react-fallback__body" style="margin-top:12px;">' . sprintf(
 							/* translators: %s: link to the Hu-manity support dashboard */
 							esc_html__( 'If the issue persists, %s.', 'cookie-notice' ),
 							'<a href="' . $support_url . '" target="_blank" rel="noopener noreferrer">' . esc_html__( 'open the Hu-manity dashboard to contact support', 'cookie-notice' ) . '</a>'
@@ -874,7 +871,6 @@ class Cookie_Notice_Settings {
 			add_settings_field( 'cn_conditional_display', esc_html__( 'Conditional Display', 'cookie-notice' ), [ $this, 'cn_conditional_display' ], 'cookie_notice_options', 'cookie_notice_configuration' );
 			add_settings_field( 'cn_bot_detection', esc_html__( 'Bot Detection', 'cookie-notice' ), [ $this, 'cn_bot_detection' ], 'cookie_notice_options', 'cookie_notice_configuration' );
 			add_settings_field( 'cn_amp_support', esc_html__( 'AMP Support', 'cookie-notice' ), [ $this, 'cn_amp_support' ], 'cookie_notice_options', 'cookie_notice_configuration' );
-			add_settings_field( 'cn_wp_consent_api', esc_html__( 'WP Consent API', 'cookie-notice' ), [ $this, 'cn_wp_consent_api' ], 'cookie_notice_options', 'cookie_notice_configuration' );
 			add_settings_field( 'cn_debug_mode', esc_html__( 'Debug Mode', 'cookie-notice' ), [ $this, 'cn_debug_mode' ], 'cookie_notice_options', 'cookie_notice_configuration' );
 			add_settings_field( 'cn_deactivation_delete', esc_html__( 'Deactivation', 'cookie-notice' ), [ $this, 'cn_deactivation_delete' ], 'cookie_notice_options', 'cookie_notice_configuration' );
 		// compliance disabled
@@ -1302,21 +1298,6 @@ class Cookie_Notice_Settings {
 		<div id="cn_amp_support">
 			<label><input type="checkbox" name="cookie_notice_options[amp_support]" value="1" ' . checked( true, Cookie_Notice()->options['general']['amp_support'] && $amp_enabled, false ) . ' ' . disabled( ! $amp_enabled, true, false ) . ' />' . esc_html__( 'Enable to support AMP.', 'cookie-notice' ) . '</label>
 			<p class="description">' . ( ! $amp_enabled ? esc_html__( 'No compatible Google AMP plugins found.', 'cookie-notice' ) : esc_html__( 'Allows you to activate consent banner support for Google AMP.', 'cookie-notice' ) ) . '</p>
-		</div>';
-	}
-
-	/**
-	 * WP Consent API option.
-	 *
-	 * @return void
-	 */
-	public function cn_wp_consent_api() {
-		$wpca_active = function_exists( 'wp_has_consent' );
-
-		echo '
-		<div id="cn_wp_consent_api">
-			<label><input type="checkbox" name="cookie_notice_options[wp_consent_api]" value="1" ' . checked( true, Cookie_Notice()->options['general']['wp_consent_api'] && $wpca_active, false ) . ' ' . disabled( ! $wpca_active, true, false ) . ' />' . esc_html__( 'Register as the active CMP under the WP Consent API.', 'cookie-notice' ) . '</label>
-			<p class="description">' . ( ! $wpca_active ? esc_html__( 'The WP Consent API plugin is not active. Install and activate it to enable this integration.', 'cookie-notice' ) : esc_html__( 'Allows cooperative plugins (WooCommerce, Google Site Kit, Burst Statistics, WP Statistics, and others) to gate themselves on the consent state captured by the banner.', 'cookie-notice' ) ) . '</p>
 		</div>';
 	}
 
@@ -2146,10 +2127,6 @@ class Cookie_Notice_Settings {
 			// caching compatibility
 			$input['caching_compatibility'] = isset( $input['caching_compatibility'] ) && ! empty( $active_plugins );
 
-			// wp consent api — stored preference; not gated on function_exists( 'wp_has_consent' )
-			// so an admin's intent survives WPCA being temporarily inactive.
-			$input['wp_consent_api'] = isset( $input['wp_consent_api'] );
-
 			// csp_notice is refreshed on render and on-demand via refresh_csp_notice();
 			// preserve the existing stored value here so the legacy save path doesn't
 			// stomp it with a stale read.
@@ -2586,15 +2563,6 @@ class Cookie_Notice_Settings {
 					[],
 					$react_ver
 				);
-
-				// Preload the React bundle so the browser starts fetching it while
-				// parsing <head>, rather than discovering it at the footer <script> tag.
-				// On a cold cache (e.g. first activation) this moves the download
-				// earlier in the waterfall and reduces the blank-shell window.
-				$react_preload_url = esc_url( $cn->get_url( 'react-admin' ) . '?ver=' . rawurlencode( $react_ver ) );
-				add_action( 'admin_head', static function() use ( $react_preload_url ) {
-					echo '<link rel="preload" as="script" href="' . $react_preload_url . '">' . "\n";
-				} );
 
 				// Stamp optimizer/CDN exclusion attributes on the React admin script
 				// (main bundle + wp_localize_script inline 'before' block) so JS minifiers,
