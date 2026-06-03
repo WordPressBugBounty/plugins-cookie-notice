@@ -199,7 +199,7 @@ class Cookie_Notice_Modules_Mailchimp_Privacy_Consent {
 			] );
 
 			$html .= '
-			<script>
+			<script data-cfasync="false" data-nowprocket data-noptimize="1" data-no-optimize="1" nitro-exclude data-jetpack-boost="ignore">
 			if ( typeof huOptions !== \'undefined\' ) {
 				var huFormData = ' . wp_json_encode( $form_data ) . ';
 				var huFormNode = document.querySelector( \'form[class*="mc4wp-form-' . (int) $form->ID . '"]\' );

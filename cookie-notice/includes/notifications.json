@@ -70,14 +70,63 @@
 			"cta": { "label": "Upgrade to Pro \u2192", "action": "openPricingModal" }
 		},
 		{
-			"id": "dashboard-near-limit",
+			"id": "dashboard-banner-only",
+			"type": "critical",
+			"priority": 50,
+			"slot": "wpDashboard",
+			"condition": { "state": "banner_only" },
+			"title": "Your banner shows \u2014 but nothing is blocked",
+			"gapLabel": "Not protected",
+			"description": "Scripts fire before consent. Connect free to protect.",
+			"cta": { "label": "Connect free to activate protection \u2192", "action": "openWelcomeModal" },
+			"ctaSmall": "No credit card \u00b7 protects up to 10,000 visits / month"
+		},
+		{
+			"id": "dashboard-free-under",
+			"type": "info",
+			"priority": 20,
+			"slot": "wpDashboard",
+			"condition": { "state": "free_under" },
+			"title": "Protected, with gaps to close",
+			"gapLabel": "Free plan",
+			"description": "Close the gaps below to fully cover your ad stack.",
+			"cta": { "label": "Close all gaps with Pro \u2192", "action": "openWelcomeModal" },
+			"ctaSmall": "Unlimited visits \u00b7 every consent mode \u00b7 lifetime records"
+		},
+		{
+			"id": "dashboard-free-near",
 			"type": "warning",
 			"priority": 80,
 			"slot": "wpDashboard",
-			"condition": { "tier": "free", "usagePercent": [ 70, null ] },
-			"title": "Approaching your visit limit",
-			"description": "You\u2019ve used {usagePercent}% of your monthly limit. Autoblocking will be disabled and consent records will not be stored once you reach your limit.",
-			"cta": { "label": "Upgrade to Professional \u2192", "action": "openPricingModal" }
+			"condition": { "state": "free_near" },
+			"title": "You\u2019re about to lose protection",
+			"gapLabel": "{usagePercent}% used",
+			"description": "You\u2019ve used {usagePercent}% of your monthly limit \u2014 protection switches off at 100%.",
+			"cta": { "label": "Upgrade before you hit the limit \u2192", "action": "openWelcomeModal" },
+			"ctaSmall": "Keep protection on \u00b7 go unlimited"
+		},
+		{
+			"id": "dashboard-free-over",
+			"type": "critical",
+			"priority": 100,
+			"slot": "wpDashboard",
+			"condition": { "state": "free_over" },
+			"title": "Protection paused \u2014 limit reached",
+			"gapLabel": "{usagePercent}% used",
+			"description": "Limit reached \u2014 protection is paused. {sessionUsed} / {sessionTotal} visits used.",
+			"cta": { "label": "Upgrade to restore protection \u2192", "action": "openWelcomeModal" },
+			"ctaSmall": "Re-enable protection instantly \u00b7 go unlimited"
+		},
+		{
+			"id": "dashboard-pro",
+			"type": "success",
+			"priority": 10,
+			"slot": "wpDashboard",
+			"condition": { "state": "pro" },
+			"title": "Fully protected",
+			"gapLabel": "All systems active",
+			"description": "Everything\u2019s on. Nothing to do.",
+			"cta": { "label": "View consent & traffic analytics \u2192", "action": "openWelcomeModal" }
 		}
 	]
 }

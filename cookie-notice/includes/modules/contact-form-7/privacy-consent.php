@@ -227,7 +227,7 @@ class Cookie_Notice_Modules_ContactForm7_Privacy_Consent {
 
 				$output = (string) $output;
 				$output .= '
-				<script>
+				<script data-cfasync="false" data-nowprocket data-noptimize="1" data-no-optimize="1" nitro-exclude data-jetpack-boost="ignore">
 				if ( typeof huOptions !== \'undefined\' ) {
 					var huFormData = ' . wp_json_encode( $form_data ) . ';
 					var huFormNode = document.querySelector( \'[id^="wpcf7-f' . (int) $form_id . '-"] form\' );

@@ -95,7 +95,7 @@ class Cookie_Notice_Welcome_Frontend {
 
 		echo '
 		<!-- Cookie Compliance -->
-		<script type="text/javascript" id="hu-banner-options" data-nowprocket data-noptimize="1" data-no-optimize="1" nitro-exclude data-jetpack-boost="ignore">var huOptions = ' . wp_json_encode( $options, JSON_UNESCAPED_SLASHES ) . '; // nowprocket</script>
+		<script type="text/javascript" id="hu-banner-options" data-cfasync="false" data-nowprocket data-noptimize="1" data-no-optimize="1" nitro-exclude data-jetpack-boost="ignore">var huOptions = ' . wp_json_encode( $options, JSON_UNESCAPED_SLASHES ) . '; // nowprocket</script>
 		<script type="text/javascript" id="hu-banner-js" data-cfasync="false" data-nowprocket data-noptimize="1" data-no-optimize="1" nitro-exclude data-jetpack-boost="ignore" src="' . esc_url( ( is_ssl() ? 'https:' : 'http:' ) . Cookie_Notice()->get_url( 'widget' ) ) . '"></script>
 		<style>.hu-preview-mode #hu::after {content: "";position: fixed;width: 100%;height: 100%;display: block;top: 0;left: 0}</style>';
 	}

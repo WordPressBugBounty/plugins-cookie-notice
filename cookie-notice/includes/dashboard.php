@@ -5,13 +5,15 @@ if ( ! defined( 'ABSPATH' ) )
 	exit;
 
 /**
- * Evaluate notification rules from notifications.json for the wpDashboard slot.
+ * Fetch the wpDashboard notification rule for a given scorecard state.
  *
- * @param float  $threshold_used Usage percentage (0-100).
- * @param string $tier           Current tier: 'basic', 'free', or 'pro'.
- * @return array|null Highest-priority matching rule, or null.
+ * Copy for the dashboard widget lives in includes/notifications.json so it
+ * stays centrally editable (same source the React topBar/sidebar use).
+ *
+ * @param string $state Scorecard state: banner_only|free_under|free_near|free_over|pro.
+ * @return array|null Highest-priority matching wpDashboard rule, or null.
  */
-function cn_get_dashboard_notification( $threshold_used, $tier ) {
+function cn_get_dashboard_notification( $state ) {
 	$rules_json = file_get_contents( COOKIE_NOTICE_PATH . 'includes/notifications.json' );
 	$rules_data = $rules_json !== false ? json_decode( $rules_json, true ) : null;
 
@@ -26,26 +28,12 @@ function cn_get_dashboard_notification( $threshold_used, $tier ) {
 			continue;
 		}
 
-		// Tier check.
-		if ( isset( $rule['condition']['tier'] ) && $rule['condition']['tier'] !== $tier ) {
+		// Match on the scorecard state.
+		if ( ( $rule['condition']['state'] ?? '' ) !== $state ) {
 			continue;
 		}
 
-		// Usage range check: [inclusive, exclusive).
-		if ( isset( $rule['condition']['usagePercent'] ) ) {
-			$min = $rule['condition']['usagePercent'][0];
-			$max = $rule['condition']['usagePercent'][1];
-
-			if ( $min !== null && $threshold_used < $min ) {
-				continue;
-			}
-
-			if ( $max !== null && $threshold_used >= $max ) {
-				continue;
-			}
-		}
-
-		if ( ! $best || $rule['priority'] > $best['priority'] ) {
+		if ( ! $best || ( $rule['priority'] ?? 0 ) > ( $best['priority'] ?? 0 ) ) {
 			$best = $rule;
 		}
 	}
@@ -117,7 +105,7 @@ class Cookie_Notice_Dashboard {
 		// set widget key
 		$widget_key = 'cn_dashboard_stats';
 
-		// add dashboard chart widget
+		// add dashboard scorecard widget
 		wp_add_dashboard_widget( $widget_key, __( 'Compliance by Hu-manity.co', 'cookie-notice' ), [ $this, 'dashboard_widget' ] );
 
 		// get widgets
@@ -141,6 +129,10 @@ class Cookie_Notice_Dashboard {
 	/**
 	 * Enqueue admin scripts and styles.
 	 *
+	 * The scorecard renders in every status, so CSS + the dashboard JS (which
+	 * also sets the usage-bar widths) load unconditionally. Chart.js and the
+	 * activity chart data only load when compliance is active.
+	 *
 	 * @param string $pagenow
 	 * @return void
 	 */
@@ -155,278 +147,676 @@ class Cookie_Notice_Dashboard {
 		// get main instance
 		$cn = Cookie_Notice();
 
-		$date_format = get_option( 'date_format' );
+		// localized asset version so the redesign busts browser/CDN caches without touching the global version constant
+		$assets_ver = $cn->defaults['version'] . '-sc4';
+		$active      = ( $cn->get_status() === 'active' );
 
+		// styles (always)
+		wp_enqueue_style( 'cookie-notice-admin-dashboard', COOKIE_NOTICE_URL . '/css/admin-dashboard.css', [], $assets_ver );
+
+		// dashboard script (always — drives bar widths + charts when present)
+		$dash_deps = [ 'jquery' ];
+
+		if ( $active ) {
+			wp_register_script( 'cookie-notice-admin-chartjs', COOKIE_NOTICE_URL . '/assets/chartjs/chart.min.js', [ 'jquery' ], '4.5.1', true );
+			wp_enqueue_script( 'cookie-notice-admin-chartjs' );
+			$dash_deps[] = 'cookie-notice-admin-chartjs';
+		}
+
+		wp_register_script( 'cookie-notice-admin-dashboard', COOKIE_NOTICE_URL . '/js/admin-dashboard.js', $dash_deps, $assets_ver, true );
+		wp_enqueue_script( 'cookie-notice-admin-dashboard' );
+
+		add_filter( 'script_loader_tag', [ $this, 'add_dashboard_optimizer_attrs' ], 10, 2 );
+
+		$chartdata = [];
+
+		if ( $active ) {
+			// analytics scope (network-aware)
+			if ( is_multisite() && $cn->is_network_admin() && $cn->is_plugin_network_active() && $cn->network_options['general']['global_override'] )
+				$analytics = get_site_option( 'cookie_notice_app_analytics', [] );
+			else
+				$analytics = get_option( 'cookie_notice_app_analytics', [] );
+
+			$line_options = [
+				'maintainAspectRatio'	=> false,
+				'responsive'			=> true,
+				'scales'				=> [
+					'x'	=> [
+						'display'	=> true,
+						'title'		=> [ 'display' => false ]
+					],
+					'y'	=> [
+						'display'		=> true,
+						'grace'			=> 0,
+						'beginAtZero'	=> true,
+						'title'			=> [ 'display' => false ],
+						'ticks'			=> [
+							'precision'		=> 0,
+							'maxTicksLimit'	=> 12
+						]
+					]
+				],
+				'plugins' => [ 'legend' => [ 'display' => false ] ]
+			];
+
+			$chartdata = [
+				'consent-activity'				=> [ 'type' => 'line', 'options' => $line_options ],
+				'privacy-consent-logs-activity'	=> [ 'type' => 'line', 'options' => $line_options ]
+			];
+
+			// consent activity dataset (3 levels)
+			$consent_activity_data = [
+				'labels' => [],
+				'datasets' => [
+					0 => [
+						'label'					=> sprintf( __( 'Level %s', 'cookie-notice' ), 1 ),
+						'data'					=> [],
+						'fill'					=> true,
+						'backgroundColor'		=> 'rgba(196, 196, 196, 0.3)',
+						'borderColor'			=> 'rgba(196, 196, 196, 1)',
+						'borderWidth'			=> 1.2,
+						'borderDash'			=> [],
+						'pointBorderColor'		=> 'rgba(196, 196, 196, 1)',
+						'pointBackgroundColor'	=> 'rgba(255, 255, 255, 1)',
+						'pointBorderWidth'		=> 1.2
+					],
+					1 => [
+						'label'					=> sprintf( __( 'Level %s', 'cookie-notice' ), 2 ),
+						'data'					=> [],
+						'fill'					=> true,
+						'backgroundColor'		=> 'rgba(213, 181, 101, 0.3)',
+						'borderColor'			=> 'rgba(213, 181, 101, 1)',
+						'borderWidth'			=> 1.2,
+						'borderDash'			=> [],
+						'pointBorderColor'		=> 'rgba(213, 181, 101, 1)',
+						'pointBackgroundColor'	=> 'rgba(255, 255, 255, 1)',
+						'pointBorderWidth'		=> 1.2
+					],
+					2 => [
+						'label'					=> sprintf( __( 'Level %s', 'cookie-notice' ), 3 ),
+						'data'					=> [],
+						'fill'					=> true,
+						'backgroundColor'		=> 'rgba(152, 145, 177, 0.3)',
+						'borderColor'			=> 'rgba(152, 145, 177, 1)',
+						'borderWidth'			=> 1.2,
+						'borderDash'			=> [],
+						'pointBorderColor'		=> 'rgba(152, 145, 177, 1)',
+						'pointBackgroundColor'	=> 'rgba(255, 255, 255, 1)',
+						'pointBorderWidth'		=> 1.2
+					]
+				]
+			];
+
+			$chart_date_format = 'j/m';
+
+			for ( $i = 29; $i >= 0; $i-- ) {
+				$consent_activity_data['labels'][] = date( $chart_date_format, strtotime( '-'. ( $i + 1 ) .' days' ) );
+				$consent_activity_data['datasets'][0]['data'][] = 0;
+				$consent_activity_data['datasets'][1]['data'][] = 0;
+				$consent_activity_data['datasets'][2]['data'][] = 0;
+			}
+
+			if ( ! empty( $analytics['consentActivities'] ) && is_array( $analytics['consentActivities'] ) ) {
+				foreach ( $analytics['consentActivities'] as $index => $entry ) {
+					$time = date_i18n( $chart_date_format, strtotime( $entry->eventdt ) );
+					$i = array_search( $time, $consent_activity_data['labels'] );
+
+					if ( $i !== false )
+						$consent_activity_data['datasets'][(int) $entry->consentlevel - 1]['data'][$i] = (int) $entry->totalrecd;
+				}
+			}
+
+			$chartdata['consent-activity']['data'] = $consent_activity_data;
+
+			// privacy consent logs dataset
+			$privacy_consent_logs_activity_data = [
+				'labels' => [],
+				'datasets' => [
+					0 => [
+						'label'					=> __( 'Privacy Content Logs', 'cookie-notice' ),
+						'data'					=> [],
+						'fill'					=> true,
+						'backgroundColor'		=> 'rgba(32, 193, 158, 0.3)',
+						'borderColor'			=> 'rgba(32, 193, 158, 1)',
+						'borderWidth'			=> 1.2,
+						'borderDash'			=> [],
+						'pointBorderColor'		=> 'rgba(32, 193, 158, 1)',
+						'pointBackgroundColor'	=> 'rgba(255, 255, 255, 1)',
+						'pointBorderWidth'		=> 1.2
+					]
+				]
+			];
+
+			for ( $i = 29; $i >= 0; $i-- ) {
+				$privacy_consent_logs_activity_data['labels'][] = date( $chart_date_format, strtotime( '-'. ( $i + 1 ) .' days' ) );
+				$privacy_consent_logs_activity_data['datasets'][0]['data'][] = 0;
+			}
+
+			if ( ! empty( $analytics['privacyActivities'] ) && is_array( $analytics['privacyActivities'] ) ) {
+				foreach ( $analytics['privacyActivities'] as $index => $entry ) {
+					$time = date_i18n( $chart_date_format, strtotime( $entry->date ) );
+					$i = array_search( $time, $privacy_consent_logs_activity_data['labels'] );
+
+					if ( $i !== false )
+						$privacy_consent_logs_activity_data['datasets'][0]['data'][$i] = (int) $entry->count;
+				}
+			}
+
+			$chartdata['privacy-consent-logs-activity']['data'] = $privacy_consent_logs_activity_data;
+		}
+
+		// prepare script data
+		$script_data = [
+			'ajaxURL'	=> admin_url( 'admin-ajax.php' ),
+			'charts'	=> $chartdata
+		];
+
+		wp_add_inline_script( 'cookie-notice-admin-dashboard', 'var cnDashboardArgs = ' . wp_json_encode( $script_data ) . ";\n", 'before' );
+	}
+
+	/**
+	 * Stamp optimizer/CDN exclusion attributes on the dashboard script tags.
+	 *
+	 * Mirrors the pattern in Cookie_Notice_Settings::add_react_admin_optimizer_attrs().
+	 *
+	 * @param string $tag    Combined script tag(s) for this handle.
+	 * @param string $handle Script handle being filtered.
+	 * @return string
+	 */
+	public function add_dashboard_optimizer_attrs( $tag, $handle ) {
+		if ( $handle !== 'cookie-notice-admin-dashboard' && $handle !== 'cookie-notice-admin-chartjs' )
+			return $tag;
+
+		$attrs = ' data-cfasync="false" data-nowprocket data-noptimize="1" data-no-optimize="1" nitro-exclude data-jetpack-boost="ignore"';
+
+		return preg_replace( '/(<script\b)(?![^>]*\bdata-cfasync\b)/i', '$1' . $attrs, $tag );
+	}
+
+	/**
+	 * Gather every signal the scorecard reads, in one place.
+	 *
+	 * Applies the CN_DEV_MODE ?cn_usage / ?cn_tier overrides so all five
+	 * lifecycle states are demoable on a dev install.
+	 *
+	 * @return array
+	 */
+	protected function get_signals() {
+		$cn = Cookie_Notice();
+
+		// analytics scope (network-aware, mirrors enqueue logic)
 		if ( is_multisite() && $cn->is_network_admin() && $cn->is_plugin_network_active() && $cn->network_options['general']['global_override'] )
 			$analytics = get_site_option( 'cookie_notice_app_analytics', [] );
 		else
 			$analytics = get_option( 'cookie_notice_app_analytics', [] );
 
-		// styles
-		wp_enqueue_style( 'cookie-notice-admin-dashboard', COOKIE_NOTICE_URL . '/css/admin-dashboard.css', [], $cn->defaults['version'] );
-		wp_enqueue_style( 'cookie-notice-microtip', COOKIE_NOTICE_URL . '/assets/microtip/microtip.min.css', [], $cn->defaults['version'] );
+		// blocking option scope (mirrors frontend.php is_network_options)
+		if ( method_exists( $cn, 'is_network_options' ) && $cn->is_network_options() )
+			$blocking = get_site_option( 'cookie_notice_app_blocking' );
+		else
+			$blocking = get_option( 'cookie_notice_app_blocking' );
 
-		// bail if compliance is not active
-		if ( $cn->get_status() !== 'active' )
-			return;
+		if ( ! is_array( $blocking ) )
+			$blocking = [];
 
-		// scripts
-		wp_register_script( 'cookie-notice-admin-chartjs', COOKIE_NOTICE_URL . '/assets/chartjs/chart.min.js', [ 'jquery' ], '4.5.1', true );
-		wp_enqueue_script( 'cookie-notice-admin-dashboard', COOKIE_NOTICE_URL . '/js/admin-dashboard.js', [ 'jquery', 'cookie-notice-admin-chartjs' ], $cn->defaults['version'], true );
+		$status       = $cn->get_status();
+		$connected    = ( $status === 'active' );
+		$app_id       = ! empty( $cn->options['general']['app_id'] ) ? $cn->options['general']['app_id'] : '';
+		$tier         = $cn->get_subscription();
+		$exceeded     = (bool) $cn->threshold_exceeded();
+		$app_blocking = ! empty( $cn->options['general']['app_blocking'] ); // already forced false when threshold exceeded
 
-		// cycle usage data
-		$cycle_usage = [
-			'threshold'	=> ! empty( $analytics['cycleUsage']->threshold ) ? (int) $analytics['cycleUsage']->threshold : 0,
-			'visits'	=> ! empty( $analytics['cycleUsage']->visits ) ? (int) $analytics['cycleUsage']->visits : 0
-		];
+		// consent modes are ON only when configured as a non-empty array
+		$google_cm    = ! empty( $blocking['google_consent_default'] )    && is_array( $blocking['google_consent_default'] );
+		$facebook_cm  = ! empty( $blocking['facebook_consent_default'] )  && is_array( $blocking['facebook_consent_default'] );
+		$microsoft_cm = ! empty( $blocking['microsoft_consent_default'] ) && is_array( $blocking['microsoft_consent_default'] );
+		$gpc          = ! empty( $blocking['gpc_support'] );
 
-		// no more than threshold available
-		$cycle_usage['visits'] = $cycle_usage['visits'] > $cycle_usage['threshold'] ? $cycle_usage['threshold'] : $cycle_usage['visits'];
+		// usage
+		$threshold = ! empty( $analytics['cycleUsage']->threshold ) ? (int) $analytics['cycleUsage']->threshold : 0;
+		$visits    = ! empty( $analytics['cycleUsage']->visits ) ? (int) $analytics['cycleUsage']->visits : 0;
 
-		// available visits, -1 for no pro plans
-		$cycle_usage['visits_available'] = $cycle_usage['threshold'] ? $cycle_usage['threshold'] - $cycle_usage['visits'] : -1;
+		if ( $threshold > 0 && $visits > $threshold )
+			$visits = $threshold;
 
-		// get used threshold info
-		if ( $cycle_usage['threshold'] > 0 ) {
-			$threshold_used = ( $cycle_usage['visits'] / $cycle_usage['threshold'] ) * 100;
+		$threshold_used = $threshold > 0 ? ( $visits / $threshold ) * 100 : 0;
 
-			if ( $threshold_used > 100 )
-				$threshold_used = 100;
-		} else
-			$threshold_used = 0;
+		if ( $threshold_used > 100 )
+			$threshold_used = 100;
 
-		// CN_DEV_MODE: override usage % for testing. Param: ?cn_usage=0-100
-		if ( defined( 'CN_DEV_MODE' ) && CN_DEV_MODE && current_user_can( 'manage_options' ) && isset( $_GET['cn_usage'] ) ) {
-			$cn_usage_override = (int) $_GET['cn_usage'];
+		$days_to_go = ! empty( $analytics['cycleUsage']->daysToGo ) ? (int) $analytics['cycleUsage']->daysToGo : 0;
 
-			if ( $cn_usage_override >= 0 && $cn_usage_override <= 100 ) {
-				$threshold_used = $cn_usage_override;
+		// thirty days summary
+		$td_visits = ! empty( $analytics['thirtyDaysUsage']->visits ) ? (int) $analytics['thirtyDaysUsage']->visits : 0;
 
-				if ( $cycle_usage['threshold'] <= 0 )
-					$cycle_usage['threshold'] = 10000;
-
-				$cycle_usage['visits']           = (int) round( $cycle_usage['threshold'] * ( $threshold_used / 100 ) );
-				$cycle_usage['visits_available'] = $cycle_usage['threshold'] - $cycle_usage['visits'];
-			}
-		}
-
-		$chartdata = [
-			'usage' => [
-				'type'		=> 'doughnut',
-				'options'	=> [
-					'responsive'	=> true,
-					'plugins'		=> [
-						'legend' => [
-							'position' => 'top'
-						]
-					],
-					'hover'			=> [
-						'mode' => 'label'
-					],
-					'layout'		=> [
-						'padding' => 0
-					]
-				],
-				'data'		=> [
-					'labels'	=> [
-						_x( 'Used', 'threshold limit', 'cookie-notice' ),
-						_x( 'Free', 'threshold limit', 'cookie-notice' )
-					],
-					'datasets'	=> [
-						[
-							'data'				=> [ $cycle_usage['visits'], $cycle_usage['visits_available'] ],
-							'backgroundColor'	=> [
-								'rgb(32, 193, 158)',
-								'rgb(235, 233, 235)'
-							]
-						]
-					]
-				]
-			],
-			'consent-activity' => [
-				'type'		=> 'line',
-				'options'	=> [
-					'maintainAspectRatio'	=> false,
-					'responsive'			=> true,
-					'scales'				=> [
-						'x'	=> [
-							'display'	=> true,
-							'title'		=> [
-								'display' => false
-							]
-						],
-						'y'	=> [
-							'display'		=> true,
-							'grace'			=> 0,
-							'beginAtZero'	=> true,
-							'title'			=> [
-								'display' => false
-							],
-							'ticks'			=> [
-								'precision'		=> 0,
-								'maxTicksLimit'	=> 12
-							]
-						]
-					]
-				]
-			],
-			'privacy-consent-logs-activity' => [
-				'type'		=> 'line',
-				'options'	=> [
-					'maintainAspectRatio'	=> false,
-					'responsive'			=> true,
-					'scales'				=> [
-						'x'	=> [
-							'display'	=> true,
-							'title'		=> [
-								'display' => false
-							]
-						],
-						'y'	=> [
-							'display'		=> true,
-							'grace'			=> 0,
-							'beginAtZero'	=> true,
-							'title'			=> [
-								'display' => false
-							],
-							'ticks'			=> [
-								'precision'		=> 0,
-								'maxTicksLimit'	=> 12
-							]
-						]
-					],
-					'plugins' =>  [
-						'legend' => [
-							'display' => false
-						]
-					]
-				]
-			]
-		];
-
-		// warning usage color
-		if ( $threshold_used > 80 && $threshold_used < 100 )
-			$chartdata['usage']['data']['datasets'][0]['backgroundColor'][0] = 'rgb(255, 193, 7)';
-		// danger usage color
-		elseif ( $threshold_used == 100 )
-			$chartdata['usage']['data']['datasets'][0]['backgroundColor'][0] = 'rgb(220, 53, 69)';
-
-		$consent_activity_data = [
-			'labels' => [],
-			'datasets' => [
-				0 => [
-					'label'					=> sprintf( __( 'Level %s', 'cookie-notice' ), 1 ),
-					'data'					=> [],
-					'fill'					=> true,
-					'backgroundColor'		=> 'rgba(196, 196, 196, 0.3)',
-					'borderColor'			=> 'rgba(196, 196, 196, 1)',
-					'borderWidth'			=> 1.2,
-					'borderDash'			=> [],
-					'pointBorderColor'		=> 'rgba(196, 196, 196, 1)',
-					'pointBackgroundColor'	=> 'rgba(255, 255, 255, 1)',
-					'pointBorderWidth'		=> 1.2
-				],
-				1 => [
-					'label'					=> sprintf( __( 'Level %s', 'cookie-notice' ), 2 ),
-					'data'					=> [],
-					'fill'					=> true,
-					'backgroundColor'		=> 'rgba(213, 181, 101, 0.3)',
-					'borderColor'			=> 'rgba(213, 181, 101, 1)',
-					'borderWidth'			=> 1.2,
-					'borderDash'			=> [],
-					'pointBorderColor'		=> 'rgba(213, 181, 101, 1)',
-					'pointBackgroundColor'	=> 'rgba(255, 255, 255, 1)',
-					'pointBorderWidth'		=> 1.2
-				],
-				2 => [
-					'label'					=> sprintf( __( 'Level %s', 'cookie-notice' ), 3 ),
-					'data'					=> [],
-					'fill'					=> true,
-					'backgroundColor'		=> 'rgba(152, 145, 177, 0.3)',
-					'borderColor'			=> 'rgba(152, 145, 177, 1)',
-					'borderWidth'			=> 1.2,
-					'borderDash'			=> [],
-					'pointBorderColor'		=> 'rgba(152, 145, 177, 1)',
-					'pointBackgroundColor'	=> 'rgba(255, 255, 255, 1)',
-					'pointBorderWidth'		=> 1.2
-				]
-			]
-		];
-
-		// generate chart days
-		$chart_date_format = 'j/m';
-
-		for ( $i = 29; $i >= 0; $i-- ) {
-			// set label
-			$consent_activity_data['labels'][] = date( $chart_date_format, strtotime( '-'. ( $i + 1 ) .' days' ) );
-
-			// reset datasets
-			$consent_activity_data['datasets'][0]['data'][] = 0;
-			$consent_activity_data['datasets'][1]['data'][] = 0;
-			$consent_activity_data['datasets'][2]['data'][] = 0;
-		}
+		$consents = 0;
 
 		if ( ! empty( $analytics['consentActivities'] ) && is_array( $analytics['consentActivities'] ) ) {
-			// set consent records in charts days
-			foreach ( $analytics['consentActivities'] as $index => $entry ) {
-				$time = date_i18n( $chart_date_format, strtotime( $entry->eventdt ) );
-				$i = array_search( $time, $consent_activity_data['labels'] );
-
-				if ( $i !== false )
-					$consent_activity_data['datasets'][(int) $entry->consentlevel - 1]['data'][$i] = (int) $entry->totalrecd;
+			foreach ( $analytics['consentActivities'] as $entry ) {
+				$consents += (int) $entry->totalrecd;
 			}
 		}
 
-		$chartdata['consent-activity']['data'] = $consent_activity_data;
+		// CN_DEV_MODE overrides — admin-only, constant-gated. Make all 5 states demoable.
+		if ( defined( 'CN_DEV_MODE' ) && CN_DEV_MODE && current_user_can( 'manage_options' ) ) {
+			// ?cn_tier=free|pro should behave as a connected site even if status isn't active yet
+			if ( isset( $_GET['cn_tier'] ) ) {
+				$cn_tier = sanitize_key( $_GET['cn_tier'] );
 
-		$privacy_consent_logs_activity_data = [
-			'labels' => [],
-			'datasets' => [
-				0 => [
-					'label'					=> __( 'Privacy Content Logs', 'cookie-notice' ),
-					'data'					=> [],
-					'fill'					=> true,
-					'backgroundColor'		=> 'rgba(32, 193, 158, 0.3)',
-					'borderColor'			=> 'rgba(32, 193, 158, 1)',
-					'borderWidth'			=> 1.2,
-					'borderDash'			=> [],
-					'pointBorderColor'		=> 'rgba(32, 193, 158, 1)',
-					'pointBackgroundColor'	=> 'rgba(255, 255, 255, 1)',
-					'pointBorderWidth'		=> 1.2
-				]
-			]
-		];
+				if ( $cn_tier === 'free' || $cn_tier === 'pro' )
+					$connected = true;
+			}
 
-		for ( $i = 29; $i >= 0; $i-- ) {
-			// set label
-			$privacy_consent_logs_activity_data['labels'][] = date( $chart_date_format, strtotime( '-'. ( $i + 1 ) .' days' ) );
+			// ?cn_usage=0-100
+			if ( isset( $_GET['cn_usage'] ) ) {
+				$ov = (int) $_GET['cn_usage'];
 
-			// reset dataset
-			$privacy_consent_logs_activity_data['datasets'][0]['data'][] = 0;
-		}
+				if ( $ov >= 0 && $ov <= 100 ) {
+					$threshold_used = $ov;
 
-		if ( ! empty( $analytics['privacyActivities'] ) && is_array( $analytics['privacyActivities'] ) ) {
-			// set consent records in charts days
-			foreach ( $analytics['privacyActivities'] as $index => $entry ) {
-				$time = date_i18n( $chart_date_format, strtotime( $entry->date ) );
-				$i = array_search( $time, $privacy_consent_logs_activity_data['labels'] );
+					if ( $threshold <= 0 )
+						$threshold = 10000;
 
-				if ( $i !== false )
-					$privacy_consent_logs_activity_data['datasets'][0]['data'][$i] = (int) $entry->count;
+					$visits = (int) round( $threshold * ( $ov / 100 ) );
+
+					if ( $ov >= 100 ) {
+						$exceeded     = true;
+						$app_blocking = false;
+					}
+				}
 			}
 		}
 
-		$chartdata['privacy-consent-logs-activity']['data'] = $privacy_consent_logs_activity_data;
+		return [
+			'connected'      => $connected,
+			'app_id'         => $app_id,
+			'tier'           => $tier,
+			'exceeded'       => $exceeded,
+			'app_blocking'   => $app_blocking,
+			'google_cm'      => $google_cm,
+			'facebook_cm'    => $facebook_cm,
+			'microsoft_cm'   => $microsoft_cm,
+			'gpc'            => $gpc,
+			'threshold'      => $threshold,
+			'visits'         => $visits,
+			'threshold_used' => $threshold_used,
+			'days_to_go'     => $days_to_go,
+			'td_visits'      => $td_visits,
+			'consents'       => $consents
+		];
+	}
 
-		// prepare script data
-		$script_data = [
-			'ajaxURL'	=> admin_url( 'admin-ajax.php' ),
-			'nonce'		=> wp_create_nonce( 'cn-dashboard-widget' ),
-			'nonceUser'	=> wp_create_nonce( 'cn-dashboard-user-options' ),
-			'charts'	=> $chartdata
+	/**
+	 * Derive the single lifecycle state from the signals.
+	 *
+	 * @param array $s
+	 * @return string banner_only|free_under|free_near|free_over|pro
+	 */
+	protected function derive_state( $s ) {
+		if ( ! $s['connected'] || $s['app_id'] === '' )
+			return 'banner_only';
+
+		if ( $s['tier'] === 'pro' )
+			return 'pro';
+
+		if ( $s['exceeded'] || $s['threshold_used'] >= 100 )
+			return 'free_over';
+
+		if ( $s['threshold_used'] >= 70 )
+			return 'free_near';
+
+		return 'free_under';
+	}
+
+	/**
+	 * Build the six status boxes for the given state.
+	 *
+	 * @param string $state
+	 * @param array  $s
+	 * @return array
+	 */
+	protected function build_boxes( $state, $s ) {
+		$cn = Cookie_Notice();
+
+		$welcome_url = $cn->is_network_admin()
+			? network_admin_url( 'admin.php?page=cookie-notice&cn_react_welcome=1' )
+			: admin_url( 'admin.php?page=cookie-notice&cn_react_welcome=1' );
+
+		$pro_cta = [ 'label' => __( 'Turn on with Pro →', 'cookie-notice' ), 'url' => $welcome_url ];
+
+		$boxes = [];
+
+		// 1. Banner — the plugin shows a notice in every state
+		$boxes[] = [
+			'title'  => __( 'Banner', 'cookie-notice' ),
+			'status' => 'ok',
+			'value'  => __( 'Showing', 'cookie-notice' ),
+			'pill'   => [ 'label' => __( 'Active', 'cookie-notice' ), 'cls' => 'ok' ]
 		];
 
-		wp_add_inline_script( 'cookie-notice-admin-dashboard', 'var cnDashboardArgs = ' . wp_json_encode( $script_data ) . ";\n", 'before' );
+		// 2. Script blocking
+		if ( $state === 'banner_only' || ! $s['app_blocking'] ) {
+			$boxes[] = [
+				'title'  => __( 'Script blocking', 'cookie-notice' ),
+				'status' => 'crit',
+				'value'  => __( 'Off', 'cookie-notice' ),
+				'value_cls' => $state === 'free_over' ? 'crit' : 'off',
+				'sub'    => esc_html__( 'Firing before consent', 'cookie-notice' ),
+				'pill'   => [ 'label' => __( 'Exposed', 'cookie-notice' ), 'cls' => 'crit' ]
+			];
+		} elseif ( $state === 'free_near' ) {
+			$boxes[] = [
+				'title'  => __( 'Script blocking', 'cookie-notice' ),
+				'status' => 'warn',
+				'value'  => __( 'On · at risk', 'cookie-notice' ),
+				'sub'    => esc_html__( 'Off at 100%', 'cookie-notice' ),
+				'pill'   => [ 'label' => __( 'Ends soon', 'cookie-notice' ), 'cls' => 'warn' ]
+			];
+		} else {
+			$boxes[] = [
+				'title'  => __( 'Script blocking', 'cookie-notice' ),
+				'status' => 'ok',
+				'value'  => __( 'On', 'cookie-notice' ),
+				'pill'   => [ 'label' => __( 'Compliant', 'cookie-notice' ), 'cls' => 'ok' ]
+			];
+		}
+
+		// 3. Google Consent Mode
+		if ( $state === 'banner_only' ) {
+			$boxes[] = [
+				'title'  => __( 'Google Consent Mode', 'cookie-notice' ),
+				'status' => 'off',
+				'value'  => __( 'Off', 'cookie-notice' ),
+				'pill'   => [ 'label' => __( 'Inactive', 'cookie-notice' ), 'cls' => 'off' ]
+			];
+		} elseif ( $state === 'free_over' ) {
+			$boxes[] = [
+				'title'  => __( 'Google Consent Mode', 'cookie-notice' ),
+				'status' => 'crit',
+				'value'  => __( 'Off', 'cookie-notice' ),
+				'sub'    => esc_html__( 'Signals stopped', 'cookie-notice' ),
+				'pill'   => [ 'label' => __( 'Stopped', 'cookie-notice' ), 'cls' => 'crit' ]
+			];
+		} elseif ( $state === 'free_near' ) {
+			$boxes[] = [
+				'title'  => __( 'Google Consent Mode', 'cookie-notice' ),
+				'status' => 'warn',
+				'value'  => __( 'v2 · at risk', 'cookie-notice' ),
+				'sub'    => esc_html__( 'Stops at limit', 'cookie-notice' ),
+				'pill'   => [ 'label' => __( 'Ends soon', 'cookie-notice' ), 'cls' => 'warn' ]
+			];
+		} else {
+			$boxes[] = [
+				'title'  => __( 'Google Consent Mode', 'cookie-notice' ),
+				'status' => 'ok',
+				'value'  => __( 'v2 active', 'cookie-notice' ),
+				'pill'   => [ 'label' => __( 'Compliant', 'cookie-notice' ), 'cls' => 'ok' ]
+			];
+		}
+
+		// 4. Meta & Microsoft — green only for Pro with a mode configured
+		if ( $state === 'pro' && ( $s['facebook_cm'] || $s['microsoft_cm'] ) ) {
+			$boxes[] = [
+				'title'  => __( 'Meta & Microsoft', 'cookie-notice' ),
+				'status' => 'ok',
+				'value'  => __( 'On', 'cookie-notice' ),
+				'pill'   => [ 'label' => __( 'Compliant', 'cookie-notice' ), 'cls' => 'ok' ]
+			];
+		} elseif ( $state === 'banner_only' ) {
+			$boxes[] = [
+				'title'  => __( 'Meta & Microsoft', 'cookie-notice' ),
+				'status' => 'off',
+				'value'  => __( 'Off', 'cookie-notice' ),
+				'pill'   => [ 'label' => __( 'Inactive', 'cookie-notice' ), 'cls' => 'off' ]
+			];
+		} else {
+			$boxes[] = [
+				'title'  => __( 'Meta & Microsoft', 'cookie-notice' ),
+				'status' => 'crit',
+				'value'  => __( 'Off', 'cookie-notice' ),
+				'value_cls' => 'off',
+				'sub'    => esc_html__( 'Pixels uncovered', 'cookie-notice' ),
+				'cta'    => $pro_cta
+			];
+		}
+
+		// 5. GPC signal (Global Privacy Control)
+		if ( $state === 'banner_only' ) {
+			$boxes[] = [
+				'title'  => __( 'GPC signal', 'cookie-notice' ),
+				'status' => 'off',
+				'value'  => __( 'Off', 'cookie-notice' ),
+				'pill'   => [ 'label' => __( 'Inactive', 'cookie-notice' ), 'cls' => 'off' ]
+			];
+		} elseif ( $state === 'free_over' ) {
+			$boxes[] = [
+				'title'  => __( 'GPC signal', 'cookie-notice' ),
+				'status' => 'crit',
+				'value'  => __( 'Off', 'cookie-notice' ),
+				'sub'    => esc_html__( 'Not honored', 'cookie-notice' ),
+				'pill'   => [ 'label' => __( 'Off', 'cookie-notice' ), 'cls' => 'crit' ]
+			];
+		} elseif ( $state === 'pro' || $s['gpc'] ) {
+			$boxes[] = [
+				'title'  => __( 'GPC signal', 'cookie-notice' ),
+				'status' => 'ok',
+				'value'  => __( 'Honored', 'cookie-notice' ),
+				'pill'   => [ 'label' => __( 'Compliant', 'cookie-notice' ), 'cls' => 'ok' ]
+			];
+		} else {
+			$boxes[] = [
+				'title'  => __( 'GPC signal', 'cookie-notice' ),
+				'status' => 'warn',
+				'value'  => __( 'Off', 'cookie-notice' ),
+				'sub'    => esc_html__( 'Not honored', 'cookie-notice' ),
+				'pill'   => [ 'label' => __( 'Recommended', 'cookie-notice' ), 'cls' => 'warn' ]
+			];
+		}
+
+		// 6. Visit limit
+		$pct = (int) round( $s['threshold_used'] );
+
+		if ( $state === 'banner_only' ) {
+			$boxes[] = [
+				'title'  => __( 'Visits', 'cookie-notice' ),
+				'status' => 'off',
+				'value'  => '—',
+				'pill'   => [ 'label' => __( 'Inactive', 'cookie-notice' ), 'cls' => 'off' ]
+			];
+		} elseif ( $state === 'pro' ) {
+			$boxes[] = [
+				'title'  => __( 'Visit limit', 'cookie-notice' ),
+				'status' => 'ok',
+				'value'  => __( 'Unlimited', 'cookie-notice' ),
+				'pill'   => [ 'label' => __( 'Compliant', 'cookie-notice' ), 'cls' => 'ok' ]
+			];
+		} else {
+			$status   = $state === 'free_over' ? 'crit' : ( $state === 'free_near' ? 'warn' : 'ok' );
+			$usage_str = sprintf(
+				/* translators: 1: visits used, 2: visit threshold */
+				esc_html__( '%1$s / %2$s visits', 'cookie-notice' ),
+				number_format_i18n( $s['visits'] ),
+				number_format_i18n( $s['threshold'] )
+			);
+
+			$boxes[] = [
+				'title'  => __( 'Visit limit', 'cookie-notice' ),
+				'status' => $status,
+				'value'  => $pct . '%',
+				'bar'    => [ 'pct' => $pct, 'cls' => $status ],
+				'sub'    => $usage_str,
+				'cta'    => [ 'label' => __( 'Go unlimited →', 'cookie-notice' ), 'url' => $welcome_url ]
+			];
+		}
+
+		return $boxes;
+	}
+
+	/**
+	 * Build the hero headline, gap chip and primary CTA for the state.
+	 *
+	 * @param string $state
+	 * @param array  $s
+	 * @param int    $gap_count
+	 * @return array
+	 */
+	protected function build_hero( $state, $s, $gap_count ) {
+		$cn = Cookie_Notice();
+
+		$welcome_url = $cn->is_network_admin()
+			? network_admin_url( 'admin.php?page=cookie-notice&cn_react_welcome=1' )
+			: admin_url( 'admin.php?page=cookie-notice&cn_react_welcome=1' );
+
+		// Presentation (visual severity) per state — copy itself lives in notifications.json.
+		$pres = [
+			'banner_only' => [ 'hero' => 'crit', 'gap' => 'crit' ],
+			'free_under'  => [ 'hero' => 'ok',   'gap' => 'neutral' ],
+			'free_near'   => [ 'hero' => 'warn', 'gap' => 'warn' ],
+			'free_over'   => [ 'hero' => 'crit', 'gap' => 'crit', 'danger' => true ],
+			'pro'         => [ 'hero' => 'ok',   'gap' => 'good', 'is_pro' => true ]
+		];
+		$p = isset( $pres[ $state ] ) ? $pres[ $state ] : $pres['free_under'];
+
+		// Copy from notifications.json (wpDashboard slot), with token interpolation.
+		$rule = cn_get_dashboard_notification( $state );
+
+		$repl = [
+			'{usagePercent}' => number_format_i18n( (int) round( $s['threshold_used'] ) ),
+			'{sessionUsed}'  => number_format_i18n( $s['visits'] ),
+			'{sessionTotal}' => number_format_i18n( $s['threshold'] )
+		];
+
+		if ( $rule ) {
+			$grade     = strtr( (string) ( $rule['title'] ?? '' ), $repl );
+			$gap_label = strtr( (string) ( $rule['gapLabel'] ?? '' ), $repl );
+			$intro     = strtr( (string) ( $rule['description'] ?? '' ), $repl );
+			$cta_label = strtr( (string) ( $rule['cta']['label'] ?? '' ), $repl );
+			$cta_small = strtr( (string) ( $rule['ctaSmall'] ?? '' ), $repl );
+		} else {
+			// defensive fallback if notifications.json is missing/unreadable
+			$grade     = esc_html__( 'Compliance status', 'cookie-notice' );
+			$gap_label = '';
+			$intro     = '';
+			$cta_label = esc_html__( 'Upgrade to Pro →', 'cookie-notice' );
+			$cta_small = '';
+		}
+
+		return [
+			'hero_cls'   => $p['hero'],
+			'grade'      => $grade,
+			'gap_label'  => $gap_label,
+			'gap_cls'    => $p['gap'],
+			'intro'      => $intro,
+			'cta_label'  => $cta_label,
+			'cta_small'  => $cta_small,
+			'cta_url'    => $welcome_url,
+			'cta_danger' => ! empty( $p['danger'] ),
+			'is_pro'     => ! empty( $p['is_pro'] )
+		];
+	}
+
+	/**
+	 * Render a single status box.
+	 *
+	 * @param array $b
+	 * @return string
+	 */
+	protected function render_box( $b ) {
+		$vcls = isset( $b['value_cls'] ) ? $b['value_cls'] : $b['status'];
+
+		$card_cls = 'cn-card' . ( $b['status'] === 'crit' ? ' cn-card--crit' : '' );
+
+		$html  = '<div class="' . esc_attr( $card_cls ) . '">';
+		$html .= '<div class="cn-card__top"><span class="cn-card__label">' . esc_html( $b['title'] ) . '</span><span class="cn-card__dot dot--' . esc_attr( $b['status'] ) . '"></span></div>';
+		$html .= '<div class="cn-card__main main--' . esc_attr( $vcls ) . '">' . esc_html( $b['value'] ) . '</div>';
+
+		if ( ! empty( $b['bar'] ) ) {
+			$html .= '<div class="cn-card__bar-wrap"><div class="cn-card__bar bar--' . esc_attr( $b['bar']['cls'] ) . '" data-pct="' . esc_attr( (int) $b['bar']['pct'] ) . '"></div></div>';
+		}
+
+		// $b['sub'] is pre-escaped copy that may contain a literal <b> wrapper
+		if ( ! empty( $b['sub'] ) )
+			$html .= '<div class="cn-card__sub">' . $b['sub'] . '</div>';
+
+		if ( ! empty( $b['pill'] ) ) {
+			$html .= '<span class="cn-card__pill pill--' . esc_attr( $b['pill']['cls'] ) . '">' . esc_html( $b['pill']['label'] ) . '</span>';
+		}
+
+		if ( ! empty( $b['cta'] ) ) {
+			$html .= '<div class="cn-card__foot"><a href="' . esc_url( $b['cta']['url'] ) . '">' . esc_html( $b['cta']['label'] ) . '</a></div>';
+		}
+
+		$html .= '</div>';
+
+		return $html;
+	}
+
+	/**
+	 * Render the full protection scorecard.
+	 *
+	 * @return string
+	 */
+	protected function render_scorecard() {
+		$s         = $this->get_signals();
+		$state     = $this->derive_state( $s );
+		$boxes     = $this->build_boxes( $state, $s );
+
+		$gap_count = 0;
+		foreach ( $boxes as $b ) {
+			if ( in_array( $b['status'], [ 'warn', 'crit' ], true ) )
+				$gap_count++;
+		}
+
+		$hero = $this->build_hero( $state, $s, $gap_count );
+
+		$html  = '<div id="cn-scorecard" class="cn-sc cn-sc--' . esc_attr( $state ) . '">';
+
+		// hero
+		$html .= '<div class="cn-sc-hero hero--' . esc_attr( $hero['hero_cls'] ) . '">';
+		$html .= '<div class="cn-sc-hero__top"><span class="cn-sc-hero__grade">' . esc_html( $hero['grade'] ) . '</span><span class="cn-sc-hero__gap gap--' . esc_attr( $hero['gap_cls'] ) . '">' . esc_html( $hero['gap_label'] ) . '</span></div>';
+		$html .= '<p>' . esc_html( $hero['intro'] ) . '</p>';
+		$html .= '</div>';
+
+		// boxes
+		$html .= '<div class="cn-sc-grid">';
+		foreach ( $boxes as $b ) {
+			$html .= $this->render_box( $b );
+		}
+		$html .= '</div>';
+
+		// primary CTA (or reassurance footer link for pro)
+		if ( empty( $hero['is_pro'] ) ) {
+			$btn_cls = 'cn-sc-cta__btn' . ( ! empty( $hero['cta_danger'] ) ? ' is-danger' : '' );
+
+			$html .= '<div class="cn-sc-cta">';
+			$html .= '<a class="' . esc_attr( $btn_cls ) . '" href="' . esc_url( $hero['cta_url'] ) . '">' . esc_html( $hero['cta_label'] ) . '</a>';
+
+			if ( ! empty( $hero['cta_small'] ) )
+				$html .= '<small>' . esc_html( $hero['cta_small'] ) . '</small>';
+
+			$html .= '</div>';
+		} else {
+			$html .= '<div class="cn-sc-foot"><a href="' . esc_url( $hero['cta_url'] ) . '">' . esc_html( $hero['cta_label'] ) . '</a></div>';
+		}
+
+		// analytics charts (connected states only)
+		if ( $s['connected'] ) {
+			$html .= '<details class="cn-sc-analytics">';
+			$html .= '<summary class="cn-sc-analytics__summary">' . esc_html__( 'Consent & traffic analytics', 'cookie-notice' ) . '</summary>';
+			$html .= '<div class="cn-sc-analytics__body">';
+			$html .= '<div class="cn-legend">';
+			$html .= '<span><i class="lvl1"></i>' . esc_html( sprintf( __( 'Level %s', 'cookie-notice' ), 1 ) ) . '</span>';
+			$html .= '<span><i class="lvl2"></i>' . esc_html( sprintf( __( 'Level %s', 'cookie-notice' ), 2 ) ) . '</span>';
+			$html .= '<span><i class="lvl3"></i>' . esc_html( sprintf( __( 'Level %s', 'cookie-notice' ), 3 ) ) . '</span>';
+			$html .= '</div>';
+			$html .= '<div class="cn-chart-wrap"><canvas id="cn-consent-activity-chart"></canvas></div>';
+			$html .= '<div class="cn-chart-wrap"><canvas id="cn-privacy-consent-logs-activity-chart"></canvas></div>';
+			$html .= '</div>';
+			$html .= '</details>';
+		}
+
+		$html .= '</div>';
+
+		return $html;
 	}
 
 	/**
@@ -435,276 +825,25 @@ class Cookie_Notice_Dashboard {
 	 * @return void
 	 */
 	public function dashboard_widget() {
-		// get main instance
-		$cn = Cookie_Notice();
+		$html = $this->render_scorecard();
 
-		if ( $cn->is_network_admin() )
-			$upgrade_url = network_admin_url( 'admin.php?page=cookie-notice&welcome=1' );
-		else
-			$upgrade_url = admin_url( 'admin.php?page=cookie-notice&welcome=1' );
+		// allow the scorecard markup: post tags + canvas/details/summary + data-pct
+		$allowed_html = wp_kses_allowed_html( 'post' );
+		$allowed_html['canvas']  = [ 'id' => true ];
+		$allowed_html['details'] = [ 'class' => true, 'open' => true ];
+		$allowed_html['summary'] = [ 'class' => true ];
 
-		$html = '';
+		foreach ( [ 'div', 'span', 'a', 'i', 'small', 'b', 'p' ] as $tag ) {
+			if ( ! isset( $allowed_html[$tag] ) || ! is_array( $allowed_html[$tag] ) )
+				$allowed_html[$tag] = [];
 
-		// compliance active, display chart
-		if ( $cn->get_status() === 'active' ) {
-			// get user options
-			$user_options = get_user_meta( get_current_user_id(), 'pvc_dashboard', true );
-
-			// empty options?
-			if ( empty( $user_options ) || ! is_array( $user_options ) )
-				$user_options = [];
-
-			// sanitize options
-			$user_options = map_deep( $user_options, 'sanitize_text_field' );
-
-			// get menu items
-			$menu_items = ! empty( $user_options['menu_items'] ) ? $user_options['menu_items'] : [];
-
-			$items = [
-				[
-					'id'			=> 'visits',
-					'title'			=> esc_html__( 'Traffic Overview', 'cookie-notice' ),
-					'description'	=> esc_html__( 'Displays the general visits information for your domain.', 'cookie-notice' )
-				],
-				[
-					'id'			=> 'consent-activity',
-					'title'			=> esc_html__( 'Cookie Consent Activity', 'cookie-notice' ),
-					'description'	=> esc_html__( 'Displays the chart of the domain cookie consent activity in the last 30 days.', 'cookie-notice' )
-				],
-				[
-					'id'			=> 'privacy-consent-logs-activity',
-					'title'			=> esc_html__( 'Privacy Consent Activity', 'cookie-notice' ),
-					'description'	=> esc_html__( 'Displays the chart of the domain privacy consent activity in the last 30 days.', 'cookie-notice' )
-				]
-			];
-
-			$html .= '
-			<div id="cn-dashboard-accordion" class="cn-accordion">';
-
-			foreach ( $items as $item ) {
-				$html .= $this->widget_item( $item, $menu_items );
-			}
-
-			$html .= '
-			</div>';
-		// compliance inactive, display image
-		} else {
-			$html .= '
-			<div id="cn-dashboard-accordion" class="cn-accordion cn-widget-block">
-				<img src="' . esc_url( COOKIE_NOTICE_URL ) . '/img/cookie-compliance-widget.png" alt="Compliance by Hu-manity.co widget" />
-				<div id="cn-dashboard-upgrade">
-					<div id="cn-dashboard-modal">
-						<h2>' . esc_html__( 'View consent activity inside WordPress Dashboard', 'cookie-notice' ) . '</h2>
-						<p>' . esc_html__( 'Display information about the visits.', 'cookie-notice' ) . '</p>
-						<p>' . esc_html__( 'Get Consent logs data for the last 30 days.', 'cookie-notice' ) . '</p>
-						<p>' . esc_html__( 'Enable consent purpose categories, automatic cookie blocking and more.', 'cookie-notice' ) . '</p>
-						<p><a href="' . esc_url( $upgrade_url ) . '" class="button button-primary button-hero cn-button">' . esc_html__( 'Try Compliance by Hu-manity.co free', 'cookie-notice' ) . '</a></p>
-					</div>
-				</div>
-			</div>';
+			$allowed_html[$tag]['class']    = true;
+			$allowed_html[$tag]['data-pct'] = true;
 		}
 
-		// allows a list of html entities such as
-		$allowed_html = wp_kses_allowed_html( 'post' );
-		$allowed_html['canvas'] = [
-			'id'		=> true,
-			'height'	=> true
-		];
+		$allowed_html['a']['href'] = true;
 
 		echo wp_kses( $html, $allowed_html );
-	}
-
-	/**
-	 * Generate dashboard widget item HTML.
-	 *
-	 * @param array $item
-	 * @param array $menu_items
-	 * @return string
-	 */
-	public function widget_item( $item, $menu_items ) {
-		return '
-		<div id="cn-' . esc_attr( $item['id'] ) . '" class="cn-accordion-item' . ( in_array( $item['id'], $menu_items, true ) ? ' cn-collapsed' : '' ) . '">
-			<div class="cn-accordion-header">
-				<div class="cn-accordion-toggle"><span class="cn-accordion-title">' . esc_html( $item['title'] ) . '</span><span class="cn-tooltip" aria-label="' . esc_attr( $item['description'] ) . '" data-microtip-position="top" data-microtip-size="large" role="tooltip"><span class="cn-tooltip-icon"></span></span></div>
-			</div>
-			<div class="cn-accordion-content">
-				<div class="cn-dashboard-container">
-					<div class="cn-data-container">
-						' . $this->widget_item_content( $item['id'] ) . '
-						<span class="spinner"></span>
-					</div>
-				</div>
-			</div>
-		</div>';
-	}
-
-	/**
-	 * Generate dashboard widget item content HTML.
-	 *
-	 * @param array $item
-	 * @return void
-	 */
-	public function widget_item_content( $item ) {
-		$html = '';
-
-		switch ( $item ) {
-			case 'visits':
-				// get main instance
-				$cn = Cookie_Notice();
-
-				$date_format = get_option( 'date_format' );
-
-				// get analytics data options
-				if ( is_multisite() && $cn->is_network_admin() && $cn->is_plugin_network_active() && $cn->network_options['general']['global_override'] )
-					$analytics = get_site_option( 'cookie_notice_app_analytics', [] );
-				else
-					$analytics = get_option( 'cookie_notice_app_analytics', [] );
-
-				// thirty days data
-				$thirty_days_usage = [
-					'visits'			=> ! empty( $analytics['thirtyDaysUsage']->visits ) ? (int) $analytics['thirtyDaysUsage']->visits : 0,
-					'consents'			=> 0,
-					'consents_updated'	=> ! empty( $analytics['lastUpdated'] ) ? date_create_from_format( 'Y-m-d H:i:s', $analytics['lastUpdated'] ) : date_create_from_format( 'Y-m-d H:i:s', current_time( 'mysql', true ) )
-				];
-
-				// set current timezone
-				$current_timezone = new DateTimeZone( $this->timezone_string() );
-
-				// update date
-				$thirty_days_usage['consents_updated']->setTimezone( $current_timezone );
-
-				if ( ! empty( $analytics['consentActivities'] ) ) {
-					foreach ( $analytics['consentActivities'] as $index => $entry ) {
-						$thirty_days_usage['consents'] += (int) $entry->totalrecd;
-					}
-				}
-
-				// cycle usage data
-				$cycle_usage = [
-					'threshold'		=> ! empty( $analytics['cycleUsage']->threshold ) ? (int) $analytics['cycleUsage']->threshold : 0,
-					'visits'		=> ! empty( $analytics['cycleUsage']->visits ) ? (int) $analytics['cycleUsage']->visits : 0,
-					'days_to_go'	=> ! empty( $analytics['cycleUsage']->daysToGo ) ? (int) $analytics['cycleUsage']->daysToGo : 0,
-					'start_date'	=> ! empty( $analytics['cycleUsage']->startDate ) ? date_create_from_format( '!Y-m-d', $analytics['cycleUsage']->startDate ) : ''
-				];
-
-				// get used threshold info
-				if ( $cycle_usage['threshold'] > 0 ) {
-					$threshold_used = ( $cycle_usage['visits'] / $cycle_usage['threshold'] ) * 100;
-
-					if ( $threshold_used > 100 )
-						$threshold_used = 100;
-				} else
-					$threshold_used = 0;
-
-				// CN_DEV_MODE: override usage % for testing. Param: ?cn_usage=0-100
-				if ( defined( 'CN_DEV_MODE' ) && CN_DEV_MODE && current_user_can( 'manage_options' ) && isset( $_GET['cn_usage'] ) ) {
-					$cn_usage_override = (int) $_GET['cn_usage'];
-
-					if ( $cn_usage_override >= 0 && $cn_usage_override <= 100 ) {
-						$threshold_used = $cn_usage_override;
-
-						if ( $cycle_usage['threshold'] <= 0 )
-							$cycle_usage['threshold'] = 10000;
-
-						$cycle_usage['visits']           = (int) round( $cycle_usage['threshold'] * ( $threshold_used / 100 ) );
-						$cycle_usage['visits_available'] = $cycle_usage['threshold'] - $cycle_usage['visits'];
-					}
-				}
-
-				$html .= '
-					<div id="cn-dashboard-' . esc_attr( $item ) . '">
-						<div id="cn-' . esc_attr( $item ) . '-infobox-traffic-overview" class="cn-infobox-container">
-							<div id="cn-' . esc_attr( $item ) . '-infobox-visits" class="cn-infobox">
-								<div class="cn-infobox-title">' . esc_html__( 'Total Visits', 'cookie-notice' ) . '</div>
-								<div class="cn-infobox-number">' . esc_html( number_format_i18n( $thirty_days_usage['visits'], 0 ) ) . '</div>
-								<div class="cn-infobox-subtitle">' . esc_html__( 'Last 30 days', 'cookie-notice' ) . '</div>
-							</div>
-							<div id="cn-' . esc_attr( $item ) . '-infobox-consents" class="cn-infobox">
-								<div class="cn-infobox-title">' . esc_html__( 'Consent Logs', 'cookie-notice' ) . '</div>
-								<div class="cn-infobox-number">' . esc_html( number_format_i18n( $thirty_days_usage['consents'], 0 ) ) . '</div>
-								<div class="cn-infobox-subtitle">' . esc_html( sprintf( __( 'Updated %s', 'cookie-notice' ), date_i18n( $date_format, $thirty_days_usage['consents_updated']->getTimestamp() ) ) ) . '</div>
-							</div>
-						</div>';
-
-				if ( $cycle_usage['threshold'] ) {
-					$usage_class = 'success';
-
-					// warning usage color
-					if ( $threshold_used > 80 && $threshold_used < 100 )
-						$usage_class = 'warning';
-					// danger usage color
-					elseif ( $threshold_used === 100 )
-						$usage_class = 'danger';
-
-					$html .= '
-						<div id="cn-' . esc_attr( $item ) . '-infobox-traffic-usage" class="cn-infobox-container">
-							<div id="cn-' . esc_attr( $item ) . '-infobox-limits" class="cn-infobox">
-								<div class="cn-infobox-title">' . esc_html__( 'Traffic Usage', 'cookie-notice' ) . '</div>
-								<div class="cn-infobox-number cn-text-' . esc_attr( $usage_class ) . '">' . esc_html( number_format_i18n( $threshold_used, 1 ) ) . ' %</div>
-								<div class="cn-infobox-subtitle">
-									<p>' . esc_html( sprintf( __( 'Visits usage: %1$s / %2$s', 'cookie-notice' ), $cycle_usage['visits'], $cycle_usage['threshold'] ) ) . '</p>
-									<p>' . esc_html( sprintf( __( 'Cycle started: %s', 'cookie-notice' ), date_i18n( $date_format, $cycle_usage['start_date']->getTimestamp() ) ) ) . '</p>
-									<p>' . esc_html( sprintf( __( 'Days to go: %s', 'cookie-notice' ), $cycle_usage['days_to_go'] ) ) . '</p>
-								</div>
-							</div>
-							<div id="cn-' . esc_attr( $item ) . '-chart-limits" class="cn-infobox cn-chart-container">
-								<canvas id="cn-usage-chart" style="height: 100px"></canvas>
-							</div>';
-
-					// Near-limit nudge — reads copy from shared notifications.json.
-					$cn_dash_tier = 'basic';
-					if ( ! empty( $cn->options['general']['app_id'] ) ) {
-						$cn_dash_tier = ( $cn->get_subscription() === 'pro' ) ? 'pro' : 'free';
-					}
-					$cn_dash_notification = cn_get_dashboard_notification( $threshold_used, $cn_dash_tier );
-
-					if ( $cn_dash_notification ) {
-						$react_welcome_url = $cn->is_network_admin()
-							? network_admin_url( 'admin.php?page=cookie-notice&cn_react_welcome=1' )
-							: admin_url( 'admin.php?page=cookie-notice&cn_react_welcome=1' );
-
-						$cn_dash_desc = str_replace(
-							[ '{usagePercent}', '{sessionTotal}', '{sessionUsed}' ],
-							[ number_format_i18n( $threshold_used, 0 ), number_format_i18n( $cycle_usage['threshold'] ), number_format_i18n( $cycle_usage['visits'] ) ],
-							$cn_dash_notification['description'] ?? ''
-						);
-						$cn_dash_cta_label = $cn_dash_notification['cta']['label'] ?? 'Upgrade &rarr;';
-
-						$html .= '
-							<div id="cn-' . esc_attr( $item ) . '-traffic-notice" class="cn-infobox-notice">
-								<p><b>' . esc_html( $cn_dash_desc ) . '</b></p>
-								<p><a href="' . esc_url( $react_welcome_url ) . '">' . esc_html( $cn_dash_cta_label ) . '</a></p>
-							</div>';
-					}
-
-					$html .= '
-						</div>';
-				}
-
-				$html .= '
-					</div>';
-				break;
-
-			case 'consent-activity':
-				$html .= '
-					<div id="cn-dashboard-' . esc_attr( $item ) . '">
-						<div id="cn-' . esc_attr( $item ) . '-chart-container cn-chart-container">
-							<canvas id="cn-' . esc_attr( $item ) . '-chart" style="height: 300px"></canvas>
-						</div>
-					</div>';
-				break;
-
-			case 'privacy-consent-logs-activity':
-				$html .= '
-					<div id="cn-dashboard-' . esc_attr( $item ) . '">
-						<div id="cn-' . esc_attr( $item ) . '-chart-container cn-chart-container">
-							<canvas id="cn-' . esc_attr( $item ) . '-chart" style="height: 300px"></canvas>
-						</div>
-					</div>';
-				break;
-		}
-
-		return $html;
 	}
 
 	/**

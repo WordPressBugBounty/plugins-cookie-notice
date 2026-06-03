@@ -198,7 +198,7 @@ class Cookie_Notice_Modules_EasyDigitalDownloads_Privacy_Consent {
 			] );
 
 			echo '
-			<script>
+			<script data-cfasync="false" data-nowprocket data-noptimize="1" data-no-optimize="1" nitro-exclude data-jetpack-boost="ignore">
 			if ( typeof huOptions !== \'undefined\' ) {
 				var huFormData = ' . wp_json_encode( $form_data ) . ';
 				var huFormNode = document.getElementById( \'edd_register_form\' );';
@@ -251,7 +251,7 @@ class Cookie_Notice_Modules_EasyDigitalDownloads_Privacy_Consent {
 			$block_content = '
 			<div class="wp-block" data-blockType="' . esc_attr( $block['blockName'] ) . '">
 				' . $block_content . '
-				<script>
+				<script data-cfasync="false" data-nowprocket data-noptimize="1" data-no-optimize="1" nitro-exclude data-jetpack-boost="ignore">
 				if ( typeof huOptions !== \'undefined\' ) {
 					var huFormData = ' . wp_json_encode( $form_data ) . ';
 					var huFormNode = document.getElementById( \'edd-blocks-form__register\' );
@@ -361,7 +361,7 @@ class Cookie_Notice_Modules_EasyDigitalDownloads_Privacy_Consent {
 	 * @return string
 	 */
 	public function checkout_form_script( $form_data ) {
-		return '<script>
+		return '<script data-cfasync="false" data-nowprocket data-noptimize="1" data-no-optimize="1" nitro-exclude data-jetpack-boost="ignore">
 		if ( typeof huOptions !== \'undefined\' ) {
 			var huFormData = ' . wp_json_encode( $form_data ) . ';
 			var huFormNode = document.getElementById( \'edd_purchase_form\' );

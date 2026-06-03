@@ -973,6 +973,7 @@ class Cookie_Notice_React_Admin_Ajax {
 			'amp_support',
 			'caching_compatibility',
 			'debug_mode',
+			'wp_consent_api',
 			'conditional_active',
 			'deactivation_delete',
 			'app_blocking',

@@ -200,7 +200,7 @@ class Cookie_Notice_Modules_WPForms_Privacy_Consent {
 			] );
 
 			echo '
-			<script>
+			<script data-cfasync="false" data-nowprocket data-noptimize="1" data-no-optimize="1" nitro-exclude data-jetpack-boost="ignore">
 			if ( typeof huOptions !== \'undefined\' ) {
 				var huFormData = ' . wp_json_encode( $form_data ) . ';
 				var huFormNode = document.querySelector( \'[id="wpforms-' . (int) $data['id'] . '"] form\' );

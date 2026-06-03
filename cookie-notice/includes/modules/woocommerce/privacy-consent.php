@@ -224,7 +224,7 @@ class Cookie_Notice_Modules_WooCommerce_Privacy_Consent {
 			] );
 
 			echo '
-			<script>
+			<script data-cfasync="false" data-nowprocket data-noptimize="1" data-no-optimize="1" nitro-exclude data-jetpack-boost="ignore">
 			if ( typeof huOptions !== \'undefined\' ) {
 				var huFormData = ' . wp_json_encode( $form_data ) . ';
 				var huFormNode = document.querySelector( \'.woocommerce-form-register\' );
@@ -297,7 +297,7 @@ class Cookie_Notice_Modules_WooCommerce_Privacy_Consent {
 			] );
 
 			echo '
-			<script>
+			<script data-cfasync="false" data-nowprocket data-noptimize="1" data-no-optimize="1" nitro-exclude data-jetpack-boost="ignore">
 			if ( typeof huOptions !== \'undefined\' ) {
 				jQuery( document.body ).on( \'init_checkout\', function() {
 					var huFormData = ' . wp_json_encode( $form_data ) . ';
@@ -338,7 +338,7 @@ class Cookie_Notice_Modules_WooCommerce_Privacy_Consent {
 			$block_content = '
 			<div class="wp-block" data-blockType="' . esc_attr( $block['blockName'] ) . '">
 				' . $block_content . '
-				<script>
+				<script data-cfasync="false" data-nowprocket data-noptimize="1" data-no-optimize="1" nitro-exclude data-jetpack-boost="ignore">
 				if ( typeof huOptions !== \'undefined\' ) {
 					var huFormData = ' . wp_json_encode( $form_data ) . ';
 					var huFormNode = null;

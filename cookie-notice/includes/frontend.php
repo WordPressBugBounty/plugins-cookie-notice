@@ -370,6 +370,16 @@ class Cookie_Notice_Frontend {
 		if ( $cn->options['general']['debug_mode'] )
 			$options['debugMode'] = true;
 
+		// WP Consent API integration toggle. Mirrors the PHP-side gate in
+		// includes/modules/wp-consent-api/wp-consent-api.php::is_enabled() so the
+		// banner's JS bridge (Web Channel src/thirdparty.js) can short-circuit
+		// wp_set_consent calls when the integration is disabled. Without this,
+		// the bridge would keep pushing per-category state into WPCA even after
+		// the PHP-side filters returned false, leaving consumer plugins gated
+		// on banner consent while we no longer claim to be the active CMP.
+		// Default true when missing — matches is_enabled() upgrade semantics.
+		$options['wpConsentApiEnabled'] = ! isset( $cn->options['general']['wp_consent_api'] ) || (bool) $cn->options['general']['wp_consent_api'];
+
 		// blocking data (custom patterns, providers, consent mode defaults)
 		// always include in huOptions so the widget has the full configuration;
 		// the huOptions.blocking flag controls whether scripts are actually blocked
@@ -438,7 +448,7 @@ class Cookie_Notice_Frontend {
 	public function get_cc_output( $options ) {
 		$output = '
 		<!-- Cookie Compliance -->
-		<script type="text/javascript" id="hu-banner-options" data-nowprocket data-noptimize="1" data-no-optimize="1" nitro-exclude data-jetpack-boost="ignore">var huOptions = ' . wp_json_encode( $options, JSON_UNESCAPED_SLASHES ) . '; // nowprocket</script>
+		<script type="text/javascript" id="hu-banner-options" data-cfasync="false" data-nowprocket data-noptimize="1" data-no-optimize="1" nitro-exclude data-jetpack-boost="ignore">var huOptions = ' . wp_json_encode( $options, JSON_UNESCAPED_SLASHES ) . '; // nowprocket</script>
 		<script type="text/javascript" id="hu-banner-js" data-cfasync="false" data-nowprocket data-noptimize="1" data-no-optimize="1" nitro-exclude data-jetpack-boost="ignore" src="' . esc_url( ( is_ssl() ? 'https:' : 'http:' ) . Cookie_Notice()->get_url( 'widget' ) ) . '"></script>';
 
 		return apply_filters( 'cn_cookie_compliance_output', $output, $options );
