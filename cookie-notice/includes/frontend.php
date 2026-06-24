@@ -22,6 +22,7 @@ class Cookie_Notice_Frontend {
 		// general actions
 		add_action( 'init', [ $this, 'early_init' ], 9 );
 		add_action( 'wp', [ $this, 'init' ] );
+		add_action( 'rest_api_init', [ $this, 'register_purge_route' ] );
 		add_action( 'wp_head', [ $this, 'wp_print_header_scripts' ] );
 		add_action( 'wp_print_footer_scripts', [ $this, 'wp_print_footer_scripts' ] );
 
@@ -112,14 +113,10 @@ class Cookie_Notice_Frontend {
 		if ( is_admin() )
 			return;
 
-		// purge cache
-		if (
-			isset( $_GET['hu_purge_cache'], $_GET['_wpnonce'] )
-			&& current_user_can( apply_filters( 'cn_manage_cookie_notice_cap', 'manage_options' ) )
-			&& wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'cn-purge-cache' )
-		) {
-			$this->purge_cache();
-		}
+		// Note: the legacy `?hu_purge_cache=1&_wpnonce=` URL trigger was removed in
+		// 3.1.3 — config purges now arrive server-to-server via the authenticated
+		// REST route (see register_purge_route()). The admin settings "Purge Cache"
+		// button still works via its own AJAX action (settings.php ajax_purge_cache()).
 
 		// get main instance
 		$cn = Cookie_Notice();
@@ -446,6 +443,9 @@ class Cookie_Notice_Frontend {
 	 * @return string
 	 */
 	public function get_cc_output( $options ) {
+		// The optimizer/CDN skip attributes below are the literal twin of
+		// Cookie_Notice::optimizer_skip_attrs() — kept inline here for the heredoc.
+		// If that set changes, change these tags too.
 		$output = '
 		<!-- Cookie Compliance -->
 		<script type="text/javascript" id="hu-banner-options" data-cfasync="false" data-nowprocket data-noptimize="1" data-no-optimize="1" nitro-exclude data-jetpack-boost="ignore">var huOptions = ' . wp_json_encode( $options, JSON_UNESCAPED_SLASHES ) . '; // nowprocket</script>
@@ -887,26 +887,124 @@ class Cookie_Notice_Frontend {
 	}
 
 	/**
-	 * Purge config cache.
+	 * Resolve the active app credentials (network-aware), mirroring purge_cache().
 	 *
-	 * @return void
+	 * @return array { app_id, app_key, network } — empty strings when unpaired.
 	 */
-	public function purge_cache() {
-		// get main instance
+	private function get_app_credentials() {
 		$cn = Cookie_Notice();
 
 		if ( is_multisite() && $cn->is_plugin_network_active() && $cn->network_options['general']['global_override'] ) {
-			$app_id = $cn->network_options['general']['app_id'];
-			$app_key = $cn->network_options['general']['app_key'];
-		} else {
-			$app_id = $cn->options['general']['app_id'];
-			$app_key = $cn->options['general']['app_key'];
+			return [
+				'app_id'  => $cn->network_options['general']['app_id'],
+				'app_key' => $cn->network_options['general']['app_key'],
+				'network' => true,
+			];
 		}
 
-		// compliance active only
-		if ( $app_id !== '' && $app_key !== '' ) {
-			// request for new config data too
-			$cn->welcome_api->get_app_config( $app_id, true );
-		}
+		return [
+			'app_id'  => $cn->options['general']['app_id'],
+			'app_key' => $cn->options['general']['app_key'],
+			'network' => false,
+		];
 	}
+
+	/**
+	 * Register the authenticated server-to-server cache-purge REST route.
+	 *
+	 * Added in 3.1.3. Lets our backend (Designer API on publish, Account API on
+	 * plan change) force a config + tier re-pull immediately, instead of waiting
+	 * on the WP-Cron pull (daily active / hourly inactive). Authentication is the
+	 * shared app secret (app-secret-key header) — no WP login / nonce, by design.
+	 *
+	 * @return void
+	 */
+	public function register_purge_route() {
+		register_rest_route(
+			'cookie-notice/v1',
+			'/purge',
+			[
+				'methods'             => 'POST',
+				'callback'            => [ $this, 'rest_purge_cache' ],
+				'permission_callback' => [ $this, 'rest_purge_permission_check' ],
+			]
+		);
+	}
+
+	/**
+	 * Permission callback for the purge route.
+	 *
+	 * Fails closed: rejects unpaired sites, non-TLS requests, app-id mismatch, and
+	 * any secret mismatch (constant-time). Returns bool only — no detail leaks to
+	 * the caller on denial.
+	 *
+	 * @param WP_REST_Request $request
+	 * @return bool
+	 */
+	public function rest_purge_permission_check( $request ) {
+		$creds = $this->get_app_credentials();
+
+		// unpaired site — no credentials to verify against
+		if ( $creds['app_id'] === '' || $creds['app_key'] === '' )
+			return false;
+
+		// the secret travels in the header — require TLS
+		if ( ! is_ssl() )
+			return false;
+
+		$req_app_id = (string) $request->get_header( 'app-id' );
+		$req_secret = (string) $request->get_header( 'app-secret-key' );
+
+		if ( $req_app_id === '' || $req_secret === '' )
+			return false;
+
+		// app-id must match the paired app
+		if ( ! hash_equals( (string) $creds['app_id'], $req_app_id ) )
+			return false;
+
+		// constant-time secret compare
+		return hash_equals( (string) $creds['app_key'], $req_secret );
+	}
+
+	/**
+	 * Handle an authenticated purge request.
+	 *
+	 * Mirrors ajax_purge_cache() (settings.php) so the server path and the admin
+	 * "Purge Cache" button behave identically. A short per-site cooldown bounds
+	 * forced re-pull amplification toward our own Designer API.
+	 *
+	 * @param WP_REST_Request $request
+	 * @return WP_REST_Response
+	 */
+	public function rest_purge_cache( $request ) {
+		$cn    = Cookie_Notice();
+		$creds = $this->get_app_credentials();
+
+		// per-site cooldown (2 min) — reject rapid repeats with 429
+		$cooldown    = 120;
+		$cooldown_at = $creds['network'] ? get_site_transient( 'cookie_notice_purge_cooldown' ) : get_transient( 'cookie_notice_purge_cooldown' );
+
+		if ( $cooldown_at !== false )
+			return new WP_REST_Response( [ 'purged' => false, 'reason' => 'cooldown' ], 429 );
+
+		if ( $creds['network'] )
+			set_site_transient( 'cookie_notice_purge_cooldown', current_time( 'timestamp', true ), $cooldown );
+		else
+			set_transient( 'cookie_notice_purge_cooldown', current_time( 'timestamp', true ), $cooldown );
+
+		// force a config + tier re-pull (bypasses the 1h throttle)
+		$cn->welcome_api->get_app_config( $creds['app_id'], true );
+
+		// re-evaluate CSP state (parity with the admin Purge button)
+		$cn->settings->refresh_csp_notice( true );
+
+		// tell the frontend JS widget to bust its client cache
+		if ( $cn->is_network_options() )
+			set_site_transient( 'cookie_notice_config_update', current_time( 'timestamp', true ), 600 );
+		else
+			set_transient( 'cookie_notice_config_update', current_time( 'timestamp', true ), 600 );
+
+		return new WP_REST_Response( [ 'purged' => true ], 200 );
+	}
+
 }

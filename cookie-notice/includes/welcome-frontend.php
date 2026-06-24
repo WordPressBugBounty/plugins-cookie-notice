@@ -93,6 +93,8 @@ class Cookie_Notice_Welcome_Frontend {
 			'debugMode'			=> true
 		];
 
+		// Optimizer/CDN skip attributes below mirror Cookie_Notice::optimizer_skip_attrs()
+		// (literal twin, kept inline for the heredoc). Change there -> change here.
 		echo '
 		<!-- Cookie Compliance -->
 		<script type="text/javascript" id="hu-banner-options" data-cfasync="false" data-nowprocket data-noptimize="1" data-no-optimize="1" nitro-exclude data-jetpack-boost="ignore">var huOptions = ' . wp_json_encode( $options, JSON_UNESCAPED_SLASHES ) . '; // nowprocket</script>

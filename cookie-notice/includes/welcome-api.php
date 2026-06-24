@@ -115,9 +115,9 @@ class Cookie_Notice_Welcome_API {
 					]
 				);
 
-				// errors?
-				if ( ! empty( $result->message ) ) {
-					$response = [ 'error' => $result->message ];
+				// require an explicit success signal; anything else is an error
+				if ( empty( $result->success ) || $result->success !== true ) {
+					$response = [ 'error' => ! empty( $result->message ) ? $result->message : esc_html__( 'License assignment failed.', 'cookie-notice' ) ];
 					break;
 				}
 
@@ -2062,6 +2062,11 @@ class Cookie_Notice_Welcome_API {
 			// check subscription
 			if ( ! empty( $result_raw['SubscriptionType'] ) )
 				$status_data['subscription'] = $cn->check_subscription( strtolower( $result_raw['SubscriptionType'] ) );
+
+			// Backend-controlled banner build selector (rides the same get_config
+			// response as SubscriptionType). 'v2' selects the v2 build; anything
+			// else (incl. absent/null) resolves to v1 in get_banner_channel().
+			$status_data['widget_version'] = ! empty( $result_raw['WidgetVersion'] ) ? sanitize_key( $result_raw['WidgetVersion'] ) : '';
 
 			if ( $status_data['subscription'] === 'basic' ) {
 				// get analytics data options

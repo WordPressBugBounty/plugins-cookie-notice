@@ -327,7 +327,7 @@ class Cookie_Notice_Dashboard {
 		if ( $handle !== 'cookie-notice-admin-dashboard' && $handle !== 'cookie-notice-admin-chartjs' )
 			return $tag;
 
-		$attrs = ' data-cfasync="false" data-nowprocket data-noptimize="1" data-no-optimize="1" nitro-exclude data-jetpack-boost="ignore"';
+		$attrs = Cookie_Notice::optimizer_skip_attrs();
 
 		return preg_replace( '/(<script\b)(?![^>]*\bdata-cfasync\b)/i', '$1' . $attrs, $tag );
 	}

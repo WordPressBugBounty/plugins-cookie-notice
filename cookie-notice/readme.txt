@@ -3,8 +3,8 @@ Contributors: humanityco
 Tags: gdpr, ccpa, cookies, consent, privacy, gpc, google-consent-mode
 Requires at least: 4.9.6
 Requires PHP: 7.4
-Tested up to: 6.9
-Stable tag: 3.1.1
+Tested up to: 7.0
+Stable tag: 3.1.2
 License: MIT License
 License URI: http://opensource.org/licenses/MIT
 
@@ -203,6 +203,14 @@ Yes! The plugin + web application version includes technical compliance features
 4. Cookie Compliance settings
 
 == Changelog ==
+
+= 3.1.2 =
+* Compatibility: Verified and confirmed compatible with WordPress 7.0.
+* Fix: Banner position and banner size now save correctly on sites without a Cookie Compliance subscription — since 3.0.1 these settings appeared to save but silently reverted on every reload.
+* Fix: Reconnecting a domain to a different Cookie Compliance app now refreshes its plan status right away — the visit-limit notice and autoblocking allowance update on save instead of lagging until the next hourly sync.
+* Fix: Account setup now confirms an explicit success response before activating a paid plan, so an incomplete or interrupted server reply can no longer leave an account on the wrong plan.
+* Tweak: Banner-script delivery is now server-controlled, so future banner improvements can roll out gradually and safely without requiring a plugin update. Your current banner is unchanged.
+* Tweak: Configuration and plan changes made in your Cookie Compliance dashboard now apply to your site faster. Previously a publish or plan upgrade could take until the next scheduled sync to take effect; your site now refreshes its settings right away via a secure server signal.
 
 = 3.1.1 =
 * Fix: The cookie compliance banner and per-form privacy consent prompts now render correctly on sites where Cloudflare Rocket Loader or a caching/optimizer plugin (WP Rocket, LiteSpeed Cache, Autoptimize, NitroPack, Jetpack Boost) defers script execution. The plugin's inline configuration and per-form helper scripts now signal these tools to skip them, extending the banner-script protection added in 3.0.3.

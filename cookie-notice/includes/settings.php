@@ -2700,7 +2700,7 @@ class Cookie_Notice_Settings {
 		if ( $handle !== Cookie_Notice::REACT_ADMIN_HANDLE )
 			return $tag;
 
-		$attrs = ' data-cfasync="false" data-nowprocket data-noptimize="1" data-no-optimize="1" nitro-exclude data-jetpack-boost="ignore"';
+		$attrs = Cookie_Notice::optimizer_skip_attrs();
 
 		// Stamp every <script> opening tag in the combined output that doesn't
 		// already carry data-cfasync (idempotent if the filter runs twice).
@@ -3293,6 +3293,20 @@ class Cookie_Notice_Settings {
 	 */
 	public function get_analytics_app_data() {
 		return $this->analytics_app_data;
+	}
+
+	/**
+	 * Set fresh cookie compliance credentials for analytics.
+	 *
+	 * Lets the React save path supply the just-saved credentials so get_app_analytics()
+	 * authenticates against the new app id immediately after a connection change, instead
+	 * of waiting for the hourly cron. Pass an empty array to clear.
+	 *
+	 * @param array $data
+	 * @return void
+	 */
+	public function set_analytics_app_data( $data ) {
+		$this->analytics_app_data = is_array( $data ) ? $data : [];
 	}
 
 	/**

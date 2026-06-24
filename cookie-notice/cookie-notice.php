@@ -2,7 +2,7 @@
 /*
 Plugin Name: Compliance by Hu-manity.co
 Description: Compliance by Hu-manity.co (formerly Cookie Notice) — cookie consent banner and full Consent Management Platform for GDPR, CCPA, and global data privacy laws.
-Version: 3.1.1
+Version: 3.1.2
 Author: Hu-manity.co
 Author URI: https://hu-manity.co/
 Plugin URI: https://cookie-compliance.co/
@@ -51,6 +51,7 @@ class Cookie_Notice {
 	private $status_data = [
 		'status'				=> '',
 		'subscription'			=> 'basic',
+		'widget_version'		=> '',
 		'threshold_exceeded'	=> false,
 		'activation_datetime'	=> 0
 	];
@@ -169,10 +170,11 @@ class Cookie_Notice {
 		'data'	=> [
 			'status'				=> '',
 			'subscription'			=> 'basic',
+			'widget_version'		=> '',
 			'threshold_exceeded'	=> false,
 			'activation_datetime'	=> 0
 		],
-		'version'	=> '3.1.1'
+		'version'	=> '3.1.2'
 	];
 
 	/**
@@ -181,14 +183,21 @@ class Cookie_Notice {
 	 * Only these keys may be written to cookie_notice_options by plugin code paths
 	 * (save_options in react-admin-ajax.php, validate_options in settings.php).
 	 *
-	 * API-owned fields (position, displayType, bannerColor, primaryColor) are
-	 * NEVER written here — cookie_notice_app_design is their exclusive store.
-	 * The Designer API config-pull populates that option via get_app_config().
+	 * API-owned fields (bannerColor, primaryColor) are NEVER written here —
+	 * cookie_notice_app_design is their exclusive store, populated by the
+	 * Designer API via get_app_config().
+	 *
+	 * position and displayType are dual-homed: for connected sites the Designer
+	 * API owns them (stored in cookie_notice_app_design); for disconnected sites
+	 * there is no API path, so these must be writable here and are read from
+	 * cookie_notice_options by the settings layer and React admin on load.
 	 *
 	 * @var string[]
 	 */
 	public static $plugin_owned_fields = [
 		'message_text',
+		'position',
+		'displayType',
 		'accept_text',
 		'refuse_text',
 		'revoke_text',
@@ -550,6 +559,7 @@ class Cookie_Notice {
 		$this->status_data = [
 			'status'				=> $status,
 			'subscription'			=> $this->check_subscription( $status_data['subscription'] ),
+			'widget_version'		=> isset( $status_data['widget_version'] ) ? $status_data['widget_version'] : '',
 			'threshold_exceeded'	=> (bool) $status_data['threshold_exceeded'],
 			'activation_datetime'	=> $activation
 		];
@@ -625,6 +635,83 @@ class Cookie_Notice {
 	}
 
 	/**
+	 * Resolve which Web Channel banner build to load.
+	 *
+	 * Backend-controlled: the server-fed WidgetVersion flag (Application table,
+	 * delivered on the get_config response alongside SubscriptionType) is the
+	 * SOLE source of the channel decision. There is no plugin UI and no
+	 * tier-based fallback — cohorts are flipped in the database.
+	 *
+	 *   - 'v2'                 -> v2 build.
+	 *   - anything else / ''   -> v1 (the current serving script; safe default).
+	 *
+	 * v1 by default means a fresh install — which has no widget_version until
+	 * its first successful config pull — never ships v2 before the backend
+	 * explicitly opts it in.
+	 *
+	 * @return string 'v1' | 'v2'
+	 */
+	public function get_banner_channel() {
+		return $this->status_data['widget_version'] === 'v2' ? 'v2' : 'v1';
+	}
+
+	/**
+	 * Canonical optimizer/CDN skip attributes for plugin-owned <script> tags.
+	 *
+	 * Single source of truth for the data-cfasync / nowprocket / noptimize /
+	 * nitro-exclude / jetpack-boost attribute set that tells caching and
+	 * optimizer plugins to leave our scripts alone. Consumed by the
+	 * script_loader_tag filters in Cookie_Notice_Settings and
+	 * Cookie_Notice_Dashboard; the inline frontend banner tags
+	 * ( frontend.php / welcome-frontend.php ) carry the same literal string —
+	 * if this set changes, update those heredocs too.
+	 *
+	 * @return string Leading-space attribute string, ready to append after '<script'.
+	 */
+	public static function optimizer_skip_attrs() {
+		return ' data-cfasync="false" data-nowprocket data-noptimize="1" data-no-optimize="1" nitro-exclude data-jetpack-boost="ignore"';
+	}
+
+	/**
+	 * Insert a '/v2/' path segment before the filename of a widget URL.
+	 *
+	 * Splits any query string off first so it stays trailing
+	 * ( …/v2/hu-banner.min.js?ver=1, not …/hu-banner.min.js/v2/?ver=1 ), and
+	 * only injects when the URL actually has a path segment after the host —
+	 * a host-only override ( '//cdn.example.com', 'https://cdn.example.com' )
+	 * has no filename to sit beside, so it is returned unchanged rather than
+	 * emit a broken 'https:/v2//…' URL. The contract for CN_APP_WIDGET_URL is
+	 * therefore "must point at a file"; anything else stays on the v1 shape.
+	 *
+	 * @param string $url Base widget URL (no query string assumptions).
+	 * @return string
+	 */
+	private function inject_v2_segment( $url ) {
+		// peel off ?query / #fragment so the segment lands before the filename
+		$suffix = '';
+		$cut = strcspn( $url, '?#' );
+
+		if ( $cut < strlen( $url ) ) {
+			$suffix = substr( $url, $cut );
+			$url    = substr( $url, 0, $cut );
+		}
+
+		$slash = strrpos( $url, '/' );
+
+		// Need a real filename to sit the segment beside: bail if there is no
+		// slash, if the only slash(es) are the scheme's '//' (host-only, e.g.
+		// 'https://cdn.example.com'), or if nothing follows the final slash
+		// (trailing-slash host, e.g. 'https://cdn.example.com/'). Any of these
+		// stays on the v1 shape rather than emit a broken or file-less URL.
+		$filename = $slash === false ? '' : substr( $url, $slash + 1 );
+
+		if ( $slash === false || $slash === strpos( $url, '//' ) + 1 || $filename === '' )
+			return $url . $suffix;
+
+		return substr( $url, 0, $slash + 1 ) . 'v2/' . $filename . $suffix;
+	}
+
+	/**
 	 * Check cookie compliance subscription.
 	 *
 	 * @param string $subscription
@@ -666,8 +753,16 @@ class Cookie_Notice {
 			$url = $this->app_login_url;
 		elseif ( $type === 'dashboard' )
 			$url = $this->app_dashboard_url;
-		elseif ( $type === 'widget' )
+		elseif ( $type === 'widget' ) {
 			$url = $this->app_widget_url;
+
+			// Inject a '/v2/' path segment before the filename when the resolved
+			// channel is v2 (so //cdn.hu-manity.co/hu-banner.min.js becomes
+			// //cdn.hu-manity.co/v2/hu-banner.min.js, and any CN_APP_WIDGET_URL
+			// override carries to v2 too). v1 returns the base unchanged.
+			if ( $this->get_banner_channel() === 'v2' )
+				$url = $this->inject_v2_segment( $url );
+		}
 		elseif ( $type === 'react-admin' )
 			$url = COOKIE_NOTICE_URL . '/assets/react-admin/' . self::REACT_ADMIN_BUNDLE_BASENAME;
 		elseif ( $type === 'host' )

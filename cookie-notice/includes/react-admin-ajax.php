@@ -961,6 +961,10 @@ class Cookie_Notice_React_Admin_Ajax {
 		$cn      = Cookie_Notice();
 		$options = $cn->options['general'];
 
+		// Capture the connected app id before any $_POST override, so a connection
+		// change can be detected after persist (see the refresh block at the end).
+		$old_app_id = isset( $options['app_id'] ) ? $options['app_id'] : '';
+
 		// Boolean fields.
 		$bool_fields = [
 			'refuse_opt',
@@ -1170,6 +1174,36 @@ class Cookie_Notice_React_Admin_Ajax {
 			update_site_option( 'cookie_notice_options', $options );
 		} else {
 			update_option( 'cookie_notice_options', $options );
+		}
+
+		// Connection changed — refresh cached app data for the new app id.
+		//
+		// The cached analytics ( cookie_notice_app_analytics ) and derived status
+		// ( cookie_notice_status['threshold_exceeded'] ) are otherwise refreshed only
+		// hourly via the cookie_notice_get_app_analytics cron. Without this, a domain
+		// reconnected from a Free to a Pro app keeps showing the Free-plan visit-limit
+		// notice -- and the app_blocking cap applied above -- until the cron next runs.
+		// Mirrors the legacy form path in Settings::validate_options().
+		$new_app_id = isset( $options['app_id'] ) ? $options['app_id'] : '';
+
+		if ( $new_app_id !== '' && ! empty( $options['app_key'] ) && $new_app_id !== $old_app_id ) {
+			// Mirror the just-persisted credentials into the in-memory options so the
+			// config/token requests below authenticate as the new app, exactly as the
+			// legacy form path does after register_setting() writes the new options.
+			$cn->options['general'] = $options;
+
+			$app_data = $cn->welcome_api->get_app_config( $new_app_id, true, false );
+
+			// get_app_config() returns the status_data array normally, but can
+			// return null (its one-cron-per-hour throttle branch). Guard the shape
+			// before reading 'status' so a null/partial return can't fatal the save.
+			if ( is_array( $app_data ) && isset( $app_data['status'] ) && $cn->check_status( $app_data['status'] ) === 'active' ) {
+				// get_app_analytics authenticates with the just-saved credentials via the
+				// analytics_app_data shim ( welcome-api.php 'get_analytics' request branch ).
+				$cn->settings->set_analytics_app_data( [ 'id' => $new_app_id, 'key' => $options['app_key'] ] );
+				$cn->welcome_api->get_app_analytics( $new_app_id, true, false );
+				$cn->settings->set_analytics_app_data( [] );
+			}
 		}
 
 		wp_send_json_success( [ 'message' => __( 'Settings saved.', 'cookie-notice' ) ] );
