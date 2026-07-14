@@ -4,7 +4,7 @@ Tags: gdpr, ccpa, cookies, consent, privacy, gpc, google-consent-mode
 Requires at least: 4.9.6
 Requires PHP: 7.4
 Tested up to: 7.0
-Stable tag: 3.1.2
+Stable tag: 3.1.3
 License: MIT License
 License URI: http://opensource.org/licenses/MIT
 
@@ -203,6 +203,12 @@ Yes! The plugin + web application version includes technical compliance features
 4. Cookie Compliance settings
 
 == Changelog ==
+
+= 3.1.3 =
+* Fix: On sites that use SiteGround Speed Optimizer, LiteSpeed Cache, or Breeze to combine, defer, or minify JavaScript, the plugin now reliably keeps the Cookie Compliance script out of those optimizations — so the banner displays and cookies stay blocked until a visitor consents. These tools could previously prevent the script from loading; this extends the compatibility added in 3.1.1.
+* Tweak: The plugin's upgrade screen now links you to the Admin Portal to complete a subscription there, with the plan pre-filled. Use it when you need a multi-domain plan, an invoice/VAT receipt, or a payment method other than card — all long available in the Admin Portal; the in-plugin card checkout remains available as before.
+* Tweak: Privacy-law settings now stay in sync with the Admin Portal. Per-region (geolocation) rules are configured in the Admin Portal and are respected when you save a law selection in the plugin, and each law's on-screen description reflects what the banner does on your plan.
+* Tweak: Standardized wording across the plugin — the Hu-manity.co web application is now consistently referred to as the "Admin Portal".
 
 = 3.1.2 =
 * Compatibility: Verified and confirmed compatible with WordPress 7.0.

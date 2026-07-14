@@ -29,7 +29,7 @@ class Cookie_Notice_Modules_LiteSpeedCache {
 	 */
 	public function load_module() {
 		add_filter( 'litespeed_optimize_js_excludes', [ $this, 'exclude_js' ] );
-		add_filter( 'litespeed_optm_js_defer_exc ', [ $this, 'exclude_js' ] );
+		add_filter( 'litespeed_optm_js_defer_exc', [ $this, 'exclude_js' ] );
 	}
 
 	/**

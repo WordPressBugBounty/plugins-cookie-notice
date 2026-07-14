@@ -1044,38 +1044,14 @@ class Cookie_Notice_Welcome_API {
 							else
 								$options['config']['dontSellLink'] = false;
 
-							// Build geolocationRules based on selected laws
-							$geolocation_rules = [];
-
-							foreach ( $options['regulations'] as $law => $enabled ) {
-								if ( ! $enabled )
-									continue;
-
-								// CCPA/otherus: Do Not Sell pattern
-								if ( in_array( $law, [ 'ccpa', 'otherus' ], true ) ) {
-									$geolocation_rules[] = [
-										'name'      => $law,
-										'display'   => true,
-										'blocking'  => false,
-										'revoke'    => false,
-										'privacy'   => false,
-										'doNotSell' => true,
-									];
-								} else {
-									// GDPR/LGPD/UKPECR/PIPEDA/POPIA: full blocking
-									$geolocation_rules[] = [
-										'name'      => $law,
-										'display'   => true,
-										'blocking'  => true,
-										'revoke'    => true,
-										'privacy'   => true,
-										'doNotSell' => false,
-									];
-								}
-							}
-
-							if ( ! empty( $geolocation_rules ) )
-								$options['config']['geolocationRules'] = $geolocation_rules;
+							// geolocationRules is intentionally NOT written here (OBS-28).
+							// Per-jurisdiction geolocation rules are owned by the Admin Portal.
+							// The plugin's flat law selection deliberately does not drive
+							// geolocationRules: the by-app PATCH endpoint deep-merges and
+							// preserves the stored (portal-tuned) rules when this key is
+							// omitted (Designer API userDesign.controller.ts merge + noDefaults
+							// schema). Writing a hardcoded matrix here previously clobbered
+							// Admin-Portal-tuned per-jurisdiction blocking rules on every law save.
 
 							// ── Auto-set compliance settings based on selected laws (#2143) ──────────
 							//

@@ -46,7 +46,7 @@ class Cookie_Notice_Privacy_Consent_Logs_List_Table extends WP_List_Table {
 		$login_url = esc_url( $cn->get_url( 'login', '?utm_campaign=consentlogs&utm_source=wordpress&utm_medium=link' ) );
 
 		$message = __( 'The table below shows the latest privacy consent records collected from the forms on your website.', 'cookie-notice' );
-		$message .= ' ' . sprintf( __( 'Log in to the <a href="%s" target="_blank">Compliance by Hu-manity.co</a> dashboard to view details or export proof of consent.', 'cookie-notice' ), $login_url );
+		$message .= ' ' . sprintf( __( 'Log in to the <a href="%s" target="_blank">Compliance by Hu-manity.co</a> Admin Portal to view details or export proof of consent.', 'cookie-notice' ), $login_url );
 		
 		// disable if basic plan and data older than 7 days
 		if ( $cn->get_subscription() === 'basic' )

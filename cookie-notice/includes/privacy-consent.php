@@ -303,7 +303,7 @@ class Cookie_Notice_Privacy_Consent {
 				</div>
 				<div id="cn_app_actions">
 					<a href="' . esc_url( $cn->get_url( 'host', '?utm_campaign=configure&utm_source=wordpress&utm_medium=button#/dashboard' ) ) . '" class="button button-primary button-hero cn-button" target="_blank">' . esc_html__( 'Log in & Configure', 'cookie-notice' ) . '</a>
-					<p class="description">' . esc_html__( 'Log in to the Compliance by Hu-manity.co dashboard to explore, configure and manage its functionalities.', 'cookie-notice' ) . '</p>
+					<p class="description">' . esc_html__( 'Log in to the Compliance by Hu-manity.co Admin Portal to explore, configure and manage its functionalities.', 'cookie-notice' ) . '</p>
 				</div>';
 				break;
 
@@ -316,7 +316,7 @@ class Cookie_Notice_Privacy_Consent {
 				</div>
 				<div id="cn_app_actions">
 					<a href="' . esc_url( $cn->get_url( 'host', '?utm_campaign=configure&utm_source=wordpress&utm_medium=button#/dashboard' ) ) . '" class="button button-primary button-hero cn-button" target="_blank">' . esc_html__( 'Log in & Configure', 'cookie-notice' ) . '</a>
-					<p class="description">' . esc_html__( 'Log in to the Compliance by Hu-manity.co web application and complete the setup process.', 'cookie-notice' ) . '</p>
+					<p class="description">' . esc_html__( 'Log in to the Compliance by Hu-manity.co Admin Portal and complete the setup process.', 'cookie-notice' ) . '</p>
 				</div>';
 				break;
 

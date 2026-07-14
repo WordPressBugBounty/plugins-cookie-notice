@@ -35,6 +35,13 @@ class Cookie_Notice_Modules_Breeze {
 		if ( version_compare( $cn->db_version, '2.5.7', '<=' ) )
 			$this->remove_excluded_external_script();
 
+		// Keep the current widget FILE out of Breeze's JS minify/combine. The
+		// other module concern only tags the inline huOptions (via the
+		// //breeze-extra/ marker below); nothing excluded the widget bundle
+		// itself, so a combine could still swallow it and break the widget's
+		// self-locate. Mirror the file-exclusion the other optimizer modules do.
+		$this->exclude_widget_script();
+
 		// is caching active?
 		if ( (int) Breeze_Options_Reader::get_option_value( 'breeze-active' ) === 1 ) {
 			// update 2.4.16+
@@ -82,6 +89,43 @@ class Cookie_Notice_Modules_Breeze {
 		// found pattern? remove it
 		if ( $key !== false )
 			unset( $file_options['breeze-exclude-js'][$key] );
+
+		// update breeze file options
+		breeze_update_option( 'file_settings', $file_options, true );
+	}
+
+	/**
+	 * Add the current widget script to Breeze's JS exclusion list, so it is
+	 * never minified/combined into another bundle.
+	 *
+	 * @return void
+	 */
+	public function exclude_widget_script() {
+		// current widget filename (e.g. hu-banner.min.js) — matches what the
+		// other optimizer modules exclude.
+		$widget = basename( Cookie_Notice()->get_url( 'widget' ) );
+
+		if ( $widget === '' )
+			return;
+
+		$pattern = '(.*)/' . $widget . '(.*)';
+
+		// get breeze file options
+		$file_options = breeze_get_option( 'file_settings' );
+
+		// guard the option shape
+		if ( ! is_array( $file_options ) )
+			$file_options = [];
+
+		if ( ! isset( $file_options['breeze-exclude-js'] ) || ! is_array( $file_options['breeze-exclude-js'] ) )
+			$file_options['breeze-exclude-js'] = [];
+
+		// already excluded? nothing to do (idempotent).
+		if ( in_array( $pattern, $file_options['breeze-exclude-js'], true ) )
+			return;
+
+		// add the exclusion
+		$file_options['breeze-exclude-js'][] = $pattern;
 
 		// update breeze file options
 		breeze_update_option( 'file_settings', $file_options, true );

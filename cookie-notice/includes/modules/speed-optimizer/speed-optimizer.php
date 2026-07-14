@@ -45,15 +45,21 @@ class Cookie_Notice_Modules_SpeedOptimizer {
 			}
 		}
 
+		// JS minify/combine is INDEPENDENT of caching in SiteGround Optimizer —
+		// a site can combine/minify with caching off. So the widget exclusions
+		// must register regardless of $cache_active, or the combiner swallows our
+		// loader + inline huOptions and the widget can't self-locate (banner AND
+		// pre-consent blocking both die). Registering a filter for an inactive
+		// optimizer is a harmless no-op. Cache purging, by contrast, only makes
+		// sense when caching is on, so it stays gated below.
+		add_filter( 'sgo_js_minify_exclude', [ $this, 'exclude_script' ] );
+		add_filter( 'sgo_javascript_combine_exclude', [ $this, 'exclude_script' ] );
+		add_filter( 'sgo_javascript_combine_excluded_external_paths', [ $this, 'exclude_script' ] );
+		add_filter( 'sgo_javascript_combine_excluded_inline_content', [ $this, 'exclude_code' ] );
+
 		if ( $cache_active ) {
 			// actions
 			add_action( 'cn_configuration_updated', [ $this, 'delete_cache' ] );
-
-			// filters
-			add_filter( 'sgo_js_minify_exclude', [ $this, 'exclude_script' ] );
-			add_filter( 'sgo_javascript_combine_exclude', [ $this, 'exclude_script' ] );
-			add_filter( 'sgo_javascript_combine_excluded_external_paths', [ $this, 'exclude_script' ] );
-			add_filter( 'sgo_javascript_combine_excluded_inline_content', [ $this, 'exclude_code' ] );
 		}
 	}
 
