@@ -2664,8 +2664,10 @@ class Cookie_Notice_Welcome_API {
 
 		$result = $this->request( $write_type, $params );
 
-		// Temporary diagnostic — log raw API response for consent mode debugging.
-		error_log( 'react_update_design API result: ' . var_export( $result, true ) );
+		// debug: log raw API response for consent mode debugging.
+		if ( $cn->options['general']['debug_mode'] ) {
+			error_log( 'react_update_design API result: ' . var_export( $result, true ) );
+		}
 
 		// Design record not yet created — fall back to quick_config to seed it.
 		// The API returns { i18n_msg: 'user_design_update_id_not_found', status: 400 } (HTTP 200)

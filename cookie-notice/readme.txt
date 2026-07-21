@@ -4,7 +4,7 @@ Tags: gdpr, ccpa, cookies, consent, privacy, gpc, google-consent-mode
 Requires at least: 4.9.6
 Requires PHP: 7.4
 Tested up to: 7.0
-Stable tag: 3.1.3
+Stable tag: 3.1.4
 License: MIT License
 License URI: http://opensource.org/licenses/MIT
 
@@ -203,6 +203,10 @@ Yes! The plugin + web application version includes technical compliance features
 4. Cookie Compliance settings
 
 == Changelog ==
+
+= 3.1.4 =
+* Fix: On sites protected by a security plugin or firewall (such as WordFence), saving your settings after adding Google Tag Manager or analytics code could fail with a "403" error. The plugin now sends that code in a form these tools don't mistake for an attack, so your settings save normally.
+* Fix: The consent banner now displays and blocks cookies reliably on sites using a JavaScript optimizer — including WP Rocket, Autoptimize, LiteSpeed Cache, SiteGround Speed Optimizer, WP Fastest Cache, and WP Hummingbird's "Delay JavaScript". These tools could delay or combine the Cookie Compliance script, so the banner appeared late (or not at all) and cookies could load before a visitor consented; the plugin now signals them to leave its script alone, whether or not the plugin's "Caching Compatibility" option is enabled.
 
 = 3.1.3 =
 * Fix: On sites that use SiteGround Speed Optimizer, LiteSpeed Cache, or Breeze to combine, defer, or minify JavaScript, the plugin now reliably keeps the Cookie Compliance script out of those optimizations — so the banner displays and cookies stay blocked until a visitor consents. These tools could previously prevent the script from loading; this extends the compatibility added in 3.1.1.

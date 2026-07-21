@@ -37,9 +37,11 @@ class Cookie_Notice_Modules_SpeedOptimizer {
 		// check caching status
 		$cache_active = Options::is_enabled( 'siteground_optimizer_enable_cache' ) || Options::is_enabled( 'siteground_optimizer_file_caching' );
 
-		// update 2.4.17
+		// update 2.4.17 — cache purge is a caching concern, so it self-gates
+		// behind the caching-compatibility toggle (this module now loads ungated
+		// per DEC-006, so the purge must self-gate to preserve prior behavior).
 		if ( version_compare( Cookie_Notice()->db_version, '2.4.16', '<=' ) ) {
-			if ( $cache_active ) {
+			if ( $cache_active && Cookie_Notice()->settings->is_caching_compatibility() ) {
 				// clear cache
 				$this->delete_cache();
 			}
@@ -47,17 +49,19 @@ class Cookie_Notice_Modules_SpeedOptimizer {
 
 		// JS minify/combine is INDEPENDENT of caching in SiteGround Optimizer —
 		// a site can combine/minify with caching off. So the widget exclusions
-		// must register regardless of $cache_active, or the combiner swallows our
-		// loader + inline huOptions and the widget can't self-locate (banner AND
-		// pre-consent blocking both die). Registering a filter for an inactive
-		// optimizer is a harmless no-op. Cache purging, by contrast, only makes
-		// sense when caching is on, so it stays gated below.
+		// must register regardless of $cache_active OR the caching-compatibility
+		// toggle, or the combiner swallows our loader + inline huOptions and the
+		// widget can't self-locate (banner AND pre-consent blocking both die; N1
+		// failure, see DEC-006). Registering a filter for an inactive optimizer is
+		// a harmless no-op. Cache purging, by contrast, only makes sense when
+		// caching is on, so it stays gated (below + above) behind both
+		// $cache_active and is_caching_compatibility().
 		add_filter( 'sgo_js_minify_exclude', [ $this, 'exclude_script' ] );
 		add_filter( 'sgo_javascript_combine_exclude', [ $this, 'exclude_script' ] );
 		add_filter( 'sgo_javascript_combine_excluded_external_paths', [ $this, 'exclude_script' ] );
 		add_filter( 'sgo_javascript_combine_excluded_inline_content', [ $this, 'exclude_code' ] );
 
-		if ( $cache_active ) {
+		if ( $cache_active && Cookie_Notice()->settings->is_caching_compatibility() ) {
 			// actions
 			add_action( 'cn_configuration_updated', [ $this, 'delete_cache' ] );
 		}

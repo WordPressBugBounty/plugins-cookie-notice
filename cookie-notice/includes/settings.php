@@ -88,31 +88,48 @@ class Cookie_Notice_Settings {
 	 * @return void
 	 */
 	public function load_modules() {
-		// caching compatibility enabled?
+		// JS-EXCLUSION-capable optimizers load UNCONDITIONALLY (regardless of the
+		// caching-compatibility toggle or connection status). Their JS-exclusion
+		// FILTER must register even with caching-compat OFF: a combined/delayed
+		// banner arms pre-consent script blocking too late (or not at all), which
+		// is an N1 pre-consent-blocking failure — a compliance concern, not a
+		// caching one. Each module self-gates its own persisted DB writes and
+		// cache-purge actions behind is_caching_compatibility() (those ARE caching
+		// concerns). Per-optimizer presence guards (cn_is_plugin_active) stay.
+		// See DEC-006.
+
+		// autoptimize
+		if ( cn_is_plugin_active( 'autoptimize' ) )
+			include_once( COOKIE_NOTICE_PATH . 'includes/modules/autoptimize/autoptimize.php' );
+
+		// breeze
+		if ( cn_is_plugin_active( 'breeze' ) )
+			include_once( COOKIE_NOTICE_PATH . 'includes/modules/breeze/breeze.php' );
+
+		// hummingbird
+		if ( cn_is_plugin_active( 'hummingbird' ) )
+			include_once( COOKIE_NOTICE_PATH . 'includes/modules/hummingbird/hummingbird.php' );
+
+		// litespeed cache
+		if ( cn_is_plugin_active( 'litespeed' ) )
+			include_once( COOKIE_NOTICE_PATH . 'includes/modules/litespeed-cache/litespeed-cache.php' );
+
+		// speed optimizer
+		if ( cn_is_plugin_active( 'speedoptimizer' ) )
+			include_once( COOKIE_NOTICE_PATH . 'includes/modules/speed-optimizer/speed-optimizer.php' );
+
+		// wp rocket
+		if ( cn_is_plugin_active( 'wprocket' ) )
+			include_once( COOKIE_NOTICE_PATH . 'includes/modules/wp-rocket/wp-rocket.php' );
+
+		// PURGE-ONLY optimizers stay fully gated behind the caching-compatibility
+		// toggle + active status: they contribute no JS-exclusion filter (only
+		// cache purging), so there is no pre-consent-blocking reason to load them
+		// when caching compatibility is off. See DEC-006.
 		if ( $this->is_caching_compatibility() && Cookie_Notice()->get_status() === 'active' ) {
-			// autoptimize
-			if ( cn_is_plugin_active( 'autoptimize' ) )
-				include_once( COOKIE_NOTICE_PATH . 'includes/modules/autoptimize/autoptimize.php' );
-
-			// breeze
-			if ( cn_is_plugin_active( 'breeze' ) )
-				include_once( COOKIE_NOTICE_PATH . 'includes/modules/breeze/breeze.php' );
-
-			// hummingbird
-			if ( cn_is_plugin_active( 'hummingbird' ) )
-				include_once( COOKIE_NOTICE_PATH . 'includes/modules/hummingbird/hummingbird.php' );
-
-			// litespeed cache
-			if ( cn_is_plugin_active( 'litespeed' ) )
-				include_once( COOKIE_NOTICE_PATH . 'includes/modules/litespeed-cache/litespeed-cache.php' );
-
 			// speedycache
 			if ( cn_is_plugin_active( 'speedycache' ) )
 				include_once( COOKIE_NOTICE_PATH . 'includes/modules/speedycache/speedycache.php' );
-
-			// speed optimizer
-			if ( cn_is_plugin_active( 'speedoptimizer' ) )
-				include_once( COOKIE_NOTICE_PATH . 'includes/modules/speed-optimizer/speed-optimizer.php' );
 
 			// wp fastest cache
 			if ( cn_is_plugin_active( 'wpfastestcache' ) )
@@ -121,10 +138,6 @@ class Cookie_Notice_Settings {
 			// wp-optimize
 			if ( cn_is_plugin_active( 'wpoptimize' ) )
 				include_once( COOKIE_NOTICE_PATH . 'includes/modules/wp-optimize/wp-optimize.php' );
-
-			// wp rocket
-			if ( cn_is_plugin_active( 'wprocket' ) )
-				include_once( COOKIE_NOTICE_PATH . 'includes/modules/wp-rocket/wp-rocket.php' );
 
 			// wp super cache
 			if ( cn_is_plugin_active( 'wpsupercache' ) )

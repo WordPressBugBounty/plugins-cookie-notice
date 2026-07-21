@@ -2,7 +2,7 @@
 /*
 Plugin Name: Compliance by Hu-manity.co
 Description: Compliance by Hu-manity.co (formerly Cookie Notice) — cookie consent banner and full Consent Management Platform for GDPR, CCPA, and global data privacy laws.
-Version: 3.1.3
+Version: 3.1.4
 Author: Hu-manity.co
 Author URI: https://hu-manity.co/
 Plugin URI: https://cookie-compliance.co/
@@ -174,7 +174,7 @@ class Cookie_Notice {
 			'threshold_exceeded'	=> false,
 			'activation_datetime'	=> 0
 		],
-		'version'	=> '3.1.3'
+		'version'	=> '3.1.4'
 	];
 
 	/**
@@ -659,8 +659,8 @@ class Cookie_Notice {
 	 * Canonical optimizer/CDN skip attributes for plugin-owned <script> tags.
 	 *
 	 * Single source of truth for the data-cfasync / nowprocket / noptimize /
-	 * nitro-exclude / jetpack-boost attribute set that tells caching and
-	 * optimizer plugins to leave our scripts alone. Consumed by the
+	 * nitro-exclude / jetpack-boost / no-minify attribute set that tells caching
+	 * and optimizer plugins to leave our scripts alone. Consumed by the
 	 * script_loader_tag filters in Cookie_Notice_Settings and
 	 * Cookie_Notice_Dashboard; the inline frontend banner tags
 	 * ( frontend.php / welcome-frontend.php ) carry the same literal string —
@@ -669,7 +669,7 @@ class Cookie_Notice {
 	 * @return string Leading-space attribute string, ready to append after '<script'.
 	 */
 	public static function optimizer_skip_attrs() {
-		return ' data-cfasync="false" data-nowprocket data-noptimize="1" data-no-optimize="1" nitro-exclude data-jetpack-boost="ignore"';
+		return ' data-cfasync="false" data-nowprocket data-noptimize="1" data-no-optimize="1" nitro-exclude data-jetpack-boost="ignore" data-no-minify';
 	}
 
 	/**

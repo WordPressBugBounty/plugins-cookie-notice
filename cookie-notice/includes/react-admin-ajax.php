@@ -15,6 +15,33 @@ if ( ! defined( 'ABSPATH' ) )
 class Cookie_Notice_React_Admin_Ajax {
 
 	/**
+	 * Sentinel prefix for WAF-safe base64-encoded save fields.
+	 *
+	 * The React admin base64-encodes code/markup-bearing fields (refuse_code,
+	 * refuse_code_head, conditional_rules) and prefixes this marker so a WAF
+	 * (WordFence &c.) can't 403 the POST for carrying a raw <script>.
+	 *
+	 * The marker is PRINTABLE ASCII containing none of the characters
+	 * wp_magic_quotes() (addslashes) escapes on $_POST — no NUL, no single/
+	 * double quote, no backslash. That is load-bearing: WordPress runs
+	 * wp_magic_quotes() on every request BEFORE admin-ajax dispatch, so by the
+	 * time save_options() reads $_POST the value is already addslashes()'d. A
+	 * slash-safe marker survives that untouched, so the raw-value strncmp
+	 * detection below still matches. (An earlier "\x00CNB64\x00" marker was
+	 * silently broken: addslashes turns NUL into backslash-zero, so the leading
+	 * bytes no longer matched and every encoded save fell to the passthrough
+	 * branch — storing the literal marker+base64 text instead of the script.)
+	 *
+	 * It also can't begin a real pasted value: a legacy payload is a <script…>,
+	 * an <!-- comment -->, or a JSON array "[…]" — none start with "--", so a
+	 * non-sentinel value is unambiguously a legacy (non-encoded) payload.
+	 *
+	 * MUST match the JS side byte-for-byte:
+	 * WAF_B64_SENTINEL in src/admin-react/api/index.js ("--CNWAF-B64--").
+	 */
+	const WAF_B64_SENTINEL = "--CNWAF-B64--";
+
+	/**
 	 * Class constructor.
 	 *
 	 * @return void
@@ -947,6 +974,54 @@ class Cookie_Notice_React_Admin_Ajax {
 	}
 
 	/**
+	 * Decode a WAF-safe save field: strict-decode-or-reject with legacy passthrough.
+	 *
+	 * The React admin base64-encodes code/markup-bearing fields behind
+	 * self::WAF_B64_SENTINEL so a WAF can't 403 the POST. This reverses that:
+	 *
+	 *  - No sentinel  → legacy (non-encoded) payload. Sets $ok = true and returns
+	 *    the raw value UNCHANGED; the caller then runs today's exact passthrough
+	 *    (wp_unslash etc.). The sentinel is checked on the RAW $_POST value (post
+	 *    wp_magic_quotes, pre wp_unslash): this works because the marker is
+	 *    printable ASCII with none of the characters addslashes escapes (no NUL,
+	 *    quote, or backslash), so wp_magic_quotes leaves the prefix byte-identical
+	 *    and the strncmp match holds. The base64 body is likewise slash-free.
+	 *  - Sentinel present → strip it, strict base64_decode (4th arg true), then
+	 *    require valid UTF-8. On any failure sets $ok = false and returns '' so the
+	 *    caller can reject the whole save (no partial store). On success sets
+	 *    $ok = true and returns the decoded bytes VERBATIM — the caller MUST store
+	 *    them directly, with NO second wp_unslash (a second unslash corrupts
+	 *    backslash-bearing scripts). An empty field (sentinel + '') round-trips to ''.
+	 *
+	 * Kept static + pure (no $this) so it is unit-testable in isolation.
+	 *
+	 * @param  string $raw The raw $_POST value (not yet wp_unslash'd).
+	 * @param  bool   $ok  Out-param: true on success/passthrough, false on decode failure.
+	 * @return string      Decoded value, unchanged passthrough value, or '' on failure.
+	 */
+	private static function decode_waf_field( $raw, &$ok ) {
+		$sentinel = self::WAF_B64_SENTINEL;
+		$len      = strlen( $sentinel );
+
+		// Not sentinel-tagged → legacy passthrough, unchanged.
+		if ( strncmp( (string) $raw, $sentinel, $len ) !== 0 ) {
+			$ok = true;
+			return $raw;
+		}
+
+		$body    = substr( (string) $raw, $len );
+		$decoded = base64_decode( $body, true ); // strict: false on any non-base64 input
+
+		if ( $decoded === false || ! mb_check_encoding( $decoded, 'UTF-8' ) ) {
+			$ok = false;
+			return '';
+		}
+
+		$ok = true;
+		return $decoded;
+	}
+
+	/**
 	 * Save plugin options submitted from the React admin UI.
 	 *
 	 * Reads each recognized POST field, sanitizes it, and merges it into the
@@ -964,6 +1039,49 @@ class Cookie_Notice_React_Admin_Ajax {
 		// Capture the connected app id before any $_POST override, so a connection
 		// change can be detected after persist (see the refresh block at the end).
 		$old_app_id = isset( $options['app_id'] ) ? $options['app_id'] : '';
+
+		// WAF-safe decode gate (#47585, #47616). The React admin base64-encodes the
+		// code/markup-bearing fields (refuse_code, refuse_code_head, conditional_rules)
+		// behind self::WAF_B64_SENTINEL so a firewall can't 403 the POST for carrying a
+		// raw <script>. Decode-or-reject ALL of them up-front, before any $options
+		// mutation for these fields, so a corrupt encoded payload rejects the whole save
+		// (no partial store). Legacy (non-sentinel) values pass through unchanged and the
+		// existing per-field passthrough below still applies.
+		//
+		// array_key_exists( '<field>', $waf )  → field was sentinel-decoded; store the
+		//     decoded value DIRECTLY (NO second wp_unslash — that corrupts backslash-bearing
+		//     scripts). Key-presence (not isset) is the test, so an empty decoded value counts.
+		// key absent  → field is a legacy passthrough; keep today's exact wp_unslash below.
+		$waf              = [];
+		$waf_fields       = [ 'refuse_code', 'refuse_code_head', 'conditional_rules' ];
+		$sentinel         = self::WAF_B64_SENTINEL;
+		$sentinel_len     = strlen( $sentinel );
+
+		foreach ( $waf_fields as $waf_field ) {
+			if ( ! isset( $_POST[ $waf_field ] ) ) {
+				continue;
+			}
+
+			// Was this value sentinel-tagged (encoded) or a legacy passthrough? Match
+			// the marker on the RAW value (post wp_magic_quotes, pre wp_unslash). The
+			// marker is printable ASCII with no addslashes-escaped chars (no NUL, quote,
+			// or backslash), so wp_magic_quotes leaves it intact and this strncmp holds.
+			$is_encoded = strncmp( (string) $_POST[ $waf_field ], $sentinel, $sentinel_len ) === 0;
+
+			$ok      = false;
+			$decoded = self::decode_waf_field( $_POST[ $waf_field ], $ok );
+
+			if ( ! $ok ) {
+				// Reject the entire save — no store, no partial write.
+				wp_send_json_error( [ 'error' => __( 'Could not save: the settings payload could not be decoded. Please retry.', 'cookie-notice' ) ] );
+			}
+
+			// Record the decoded value only for the sentinel branch; a legacy
+			// passthrough is left absent so it keeps today's exact wp_unslash below.
+			if ( $is_encoded ) {
+				$waf[ $waf_field ] = $decoded;
+			}
+		}
 
 		// Boolean fields.
 		$bool_fields = [
@@ -1020,13 +1138,20 @@ class Cookie_Notice_React_Admin_Ajax {
 			$options['app_key'] = sanitize_key( $_POST['app_key'] );
 		}
 
-		// Script blocking code fields — these can contain <script> tags,
-		// so use wp_unslash only (admin-only, manage_options cap verified).
-		if ( isset( $_POST['refuse_code'] ) ) {
+		// Script blocking code fields — these can contain <script> tags.
+		// Sentinel-decoded (WAF-safe) values are stored VERBATIM: base64 decode
+		// already yields the exact bytes the admin typed, so a second wp_unslash
+		// would corrupt any backslash-bearing script/regex. Legacy (non-encoded)
+		// values keep today's exact wp_unslash passthrough (admin-only, manage_options).
+		if ( array_key_exists( 'refuse_code', $waf ) ) {
+			$options['refuse_code'] = $waf['refuse_code'];
+		} elseif ( isset( $_POST['refuse_code'] ) ) {
 			$options['refuse_code'] = wp_unslash( $_POST['refuse_code'] );
 		}
 
-		if ( isset( $_POST['refuse_code_head'] ) ) {
+		if ( array_key_exists( 'refuse_code_head', $waf ) ) {
+			$options['refuse_code_head'] = $waf['refuse_code_head'];
+		} elseif ( isset( $_POST['refuse_code_head'] ) ) {
 			$options['refuse_code_head'] = wp_unslash( $_POST['refuse_code_head'] );
 		}
 
@@ -1036,8 +1161,13 @@ class Cookie_Notice_React_Admin_Ajax {
 		}
 
 		// Conditional rules — JSON string from React → validated nested array.
+		// Sentinel-decoded values are already the exact JSON bytes (no wp_unslash);
+		// legacy values keep today's wp_unslash. The per-rule validation loop below
+		// is unchanged for both paths.
 		if ( isset( $_POST['conditional_rules'] ) ) {
-			$raw_rules = json_decode( wp_unslash( $_POST['conditional_rules'] ), true );
+			$raw_rules = array_key_exists( 'conditional_rules', $waf )
+				? json_decode( $waf['conditional_rules'], true )
+				: json_decode( wp_unslash( $_POST['conditional_rules'] ), true );
 
 			if ( is_array( $raw_rules ) ) {
 				$settings  = Cookie_Notice()->settings;

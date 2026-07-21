@@ -25,37 +25,50 @@ class Cookie_Notice_Modules_Breeze {
 	/**
 	 * Add compatibility to Breeze plugin.
 	 *
+	 * The runtime inline-huOptions exclusion FILTER (cn_cookie_compliance_output)
+	 * registers regardless of the caching-compatibility toggle or breeze-active —
+	 * a minified/combined banner arms pre-consent script blocking too late (N1
+	 * failure; see DEC-006). It stays conditioned only on breeze-minify-js, which
+	 * reflects whether Breeze will actually minify. Breeze's PERSISTED DB WRITES
+	 * (exclude_widget_script + remove_excluded_external_script, both breeze_update_option)
+	 * and its cache purge are caching concerns and self-gate behind
+	 * is_caching_compatibility() — they must NOT run on anonymous GETs when the
+	 * toggle is off (DEC-006 (c), OBS-39).
+	 *
 	 * @return void
 	 */
 	public function load_module() {
 		// get main instance
 		$cn = Cookie_Notice();
 
-		// update 2.5.7+
-		if ( version_compare( $cn->db_version, '2.5.7', '<=' ) )
-			$this->remove_excluded_external_script();
+		// runtime inline-huOptions exclusion filter — N1, registers regardless of
+		// caching-compat (only conditioned on breeze-minify-js).
+		if ( (int) Breeze_Options_Reader::get_option_value( 'breeze-minify-js' ) === 1 )
+			add_filter( 'cn_cookie_compliance_output', [ $this, 'update_cc_output' ] );
 
-		// Keep the current widget FILE out of Breeze's JS minify/combine. The
-		// other module concern only tags the inline huOptions (via the
-		// //breeze-extra/ marker below); nothing excluded the widget bundle
-		// itself, so a combine could still swallow it and break the widget's
-		// self-locate. Mirror the file-exclusion the other optimizer modules do.
-		$this->exclude_widget_script();
+		// persisted writes + purge are caching concerns — self-gate behind the
+		// caching-compatibility toggle.
+		if ( Cookie_Notice()->settings->is_caching_compatibility() ) {
+			// update 2.5.7+
+			if ( version_compare( $cn->db_version, '2.5.7', '<=' ) )
+				$this->remove_excluded_external_script();
 
-		// is caching active?
-		if ( (int) Breeze_Options_Reader::get_option_value( 'breeze-active' ) === 1 ) {
-			// update 2.4.16+
-			if ( version_compare( $cn->db_version, '2.4.16', '<=' ) ) {
-				// clear cache
-				$this->delete_cache();
-			}
+			// Keep the current widget FILE out of Breeze's JS minify/combine. The
+			// other module concern only tags the inline huOptions (via the
+			// //breeze-extra/ marker); nothing excluded the widget bundle itself,
+			// so a combine could still swallow it and break the widget's
+			// self-locate. Mirror the file-exclusion the other optimizer modules do.
+			$this->exclude_widget_script();
 
-			add_action( 'cn_configuration_updated', [ $this, 'delete_cache' ] );
+			// is caching active?
+			if ( (int) Breeze_Options_Reader::get_option_value( 'breeze-active' ) === 1 ) {
+				// update 2.4.16+
+				if ( version_compare( $cn->db_version, '2.4.16', '<=' ) ) {
+					// clear cache
+					$this->delete_cache();
+				}
 
-			// is js minification active?
-			if ( (int) Breeze_Options_Reader::get_option_value( 'breeze-minify-js' ) === 1 ) {
-				// filters
-				add_filter( 'cn_cookie_compliance_output', [ $this, 'update_cc_output' ] );
+				add_action( 'cn_configuration_updated', [ $this, 'delete_cache' ] );
 			}
 		}
 	}

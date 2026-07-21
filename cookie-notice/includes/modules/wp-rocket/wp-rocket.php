@@ -28,20 +28,30 @@ class Cookie_Notice_Modules_WPRocket {
 	 * @return void
 	 */
 	public function load_module() {
-		// update 2.4.17
-		if ( version_compare( Cookie_Notice()->db_version, '2.4.16', '<=' ) )
-			$this->delete_cache();
-
-		// delete cache files after updating settings or status
-		add_action( 'cn_configuration_updated', [ $this, 'delete_cache' ] );
-
-		// filters
+		// JS-exclusion filters register UNCONDITIONALLY (regardless of the
+		// caching-compatibility toggle). Rocket's delay/defer/minify can swallow
+		// our loader + inline huOptions with caching-compat off, breaking the
+		// widget's self-locate and arming pre-consent blocking too late (N1
+		// failure; see DEC-006). Registering a filter for an inactive optimizer is
+		// a harmless no-op.
 		add_filter( 'rocket_exclude_defer_js', [ $this, 'exclude_script' ] );
 		add_filter( 'rocket_exclude_js', [ $this, 'exclude_script' ] );
 		add_filter( 'rocket_delay_js_exclusions', [ $this, 'exclude_script' ] );
 		add_filter( 'rocket_delay_js_exclusions', [ $this, 'exclude_code' ] );
 		add_filter( 'rocket_defer_inline_exclusions', [ $this, 'exclude_code' ] );
 		add_filter( 'rocket_excluded_inline_js_content', [ $this, 'exclude_code' ] );
+
+		// Cache purging is a caching concern — self-gate behind the
+		// caching-compatibility toggle (this module now loads ungated per
+		// DEC-006, so the purge must self-gate to preserve prior behavior).
+		if ( Cookie_Notice()->settings->is_caching_compatibility() ) {
+			// update 2.4.17
+			if ( version_compare( Cookie_Notice()->db_version, '2.4.16', '<=' ) )
+				$this->delete_cache();
+
+			// delete cache files after updating settings or status
+			add_action( 'cn_configuration_updated', [ $this, 'delete_cache' ] );
+		}
 	}
 
 	/**
