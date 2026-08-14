@@ -143,6 +143,7 @@ function cn_is_plugin_active( $plugin = '', $module = 'caching' ) {
 		'easydigitaldownloads',
 		'elementor',
 		'formidableforms',
+		'gravityforms',
 		'hummingbird',
 		'litespeed',
 		'mailchimp',
@@ -208,6 +209,17 @@ function cn_is_plugin_active( $plugin = '', $module = 'caching' ) {
 		// formidable forms
 		case 'formidableforms':
 			if ( $module === 'privacy-consent' && class_exists( 'FrmAppHelper' ) && method_exists( 'FrmAppHelper', 'plugin_version' ) && version_compare( FrmAppHelper::plugin_version(), '2.0', '>=' ) )
+				$is_plugin_active = true;
+			break;
+
+		// gravity forms
+		case 'gravityforms':
+			// GFForms is Gravity Forms core's main class. Note the reCAPTCHA ADD-ON is
+			// deliberately not detected here — it is a paid bundle whose class name we
+			// have no copy of, and guessing one that never matches would silently do
+			// nothing. The module keys off the add-on's script handle instead, so it is
+			// simply inert when the add-on is absent.
+			if ( $module === 'captcha' && class_exists( 'GFForms' ) )
 				$is_plugin_active = true;
 			break;
 

@@ -128,6 +128,10 @@ class Cookie_Notice_Frontend {
 				// contact form 7 compatibility
 				if ( cn_is_plugin_active( 'contactform7', 'captcha' ) )
 					include_once( COOKIE_NOTICE_PATH . 'includes/modules/contact-form-7/contact-form-7.php' );
+
+				// gravity forms compatibility
+				if ( cn_is_plugin_active( 'gravityforms', 'captcha' ) )
+					include_once( COOKIE_NOTICE_PATH . 'includes/modules/gravity-forms/gravity-forms.php' );
 			}
 		}
 	}
@@ -334,13 +338,23 @@ class Cookie_Notice_Frontend {
 		// get active sources
 		$sources = $cn->privacy_consent->get_active_sources();
 
+		// Autoblocking is switched off for whoever administers the banner, so they can
+		// work on the site without scripts being held. That exemption used to cover EVERY
+		// logged-in user (is_user_logged_in()), which on a membership, LMS or shop site
+		// means ordinary customers — people whose consent we are required to obtain, and
+		// who were getting no script blocking at all before they answered the banner
+		// (HelpScout #47786). It is now scoped to the same capability the admin screens
+		// use; widen it with the cn_manage_cookie_notice_cap filter if a site genuinely
+		// needs a broader exemption.
+		$is_admin = current_user_can( apply_filters( 'cn_manage_cookie_notice_cap', 'manage_options' ) );
+
 		// prepare huOptions
 		$options = [
 			'appID'				=> $cn->options['general']['app_id'],
 			'currentLanguage'	=> $locale_code[0],
-			'blocking'			=> ! is_user_logged_in() ? $cn->options['general']['app_blocking'] : false,
+			'blocking'			=> ! $is_admin ? $cn->options['general']['app_blocking'] : false,
 			'globalCookie'		=> is_multisite() && $cn->options['general']['global_cookie'] && is_subdomain_install(),
-			'isAdmin'			=> current_user_can( apply_filters( 'cn_manage_cookie_notice_cap', 'manage_options' ) ),
+			'isAdmin'			=> $is_admin,
 			'privacyConsent'	=> ! empty( $sources )
 		];
 

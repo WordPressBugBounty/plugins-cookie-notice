@@ -4,7 +4,7 @@ Tags: gdpr, ccpa, cookies, consent, privacy, gpc, google-consent-mode
 Requires at least: 4.9.6
 Requires PHP: 7.4
 Tested up to: 7.0
-Stable tag: 3.1.4
+Stable tag: 3.1.5
 License: MIT License
 License URI: http://opensource.org/licenses/MIT
 
@@ -51,7 +51,7 @@ Cookie Compliance gives you access to the most up-to-date formatting guidelines 
 * <strong>Consent analytics dashboard</strong> shows event data for number of visits and provides a “trust score” to help you track how site visitors are setting their consent. Make adjustments to your banner to improve your cookie acceptance rate and monitor progress via the consent activity graph.
 * <strong>Default configurations</strong> for GDPR, CCPA and more help to remove dark patterns and allow for quick and easy deployment of the consent banner without any guesswork. Customize the design of any default configuration to match the look and feel of your site.
 * <strong>Automatic script blocking</strong> blocks all non-essential cookie scripts and iFrames by default and <em>complies with valid consent rules under GDPR and other data protection laws</em>; in order to be compliant, your site must record visitor consent before setting or sending cookies.
-* <strong>Google Consent Mode</strong> ensures that your website can still gather valuable insights and perform effectively while respecting users' privacy preferences by <em>dynamically adjusting the behavior of Google services according to user consent.</em>
+* <strong>Google Consent Mode v2</strong> ensures that your website can still gather valuable insights and perform effectively while respecting users' privacy preferences by <em>dynamically adjusting the behavior of Google services (ad_storage, analytics_storage, ad_user_data, ad_personalization) according to user consent.</em>
 * <strong>Facebook Consent Mode</strong> allows your website to <em>measure the impact of your ads on Facebook</em>, track website activities and conversions and automatically deliver ads to Facebook if the user has agreed to.
 * <strong>Consent record storage</strong> automatically stores a record of each consent and makes these records available for export. <em>Complies with proof-of-consent requirements prescribed under GDPR and other data protection laws.</em>
 * <strong>Multilingual support</strong> automatically translates all banner text strings and allows you to provide custom translations for every text field to ensure visitors get a consistent consent experience.
@@ -203,6 +203,10 @@ Yes! The plugin + web application version includes technical compliance features
 4. Cookie Compliance settings
 
 == Changelog ==
+
+= 3.1.5 =
+* Fix: On sites using Gravity Forms with Google reCAPTCHA, forms can now be submitted as soon as a visitor accepts cookies — on the same page, with no reload. Previously the submit button could stay in a loading state indefinitely. Visitors who have not chosen yet are now asked to accept cookies, instead of seeing a button that appears to do nothing. Sites that have already moved Google Recaptcha to Basic Operations are unaffected.
+* Fix: On sites where visitors sign in — membership sites, online courses, shops — signed-in visitors now get cookie blocking and the correct consent signals to Google, Microsoft and Meta, the same as every other visitor. Previously any signed-in visitor was treated as someone working on the site: nothing was held back for them, and those services were told consent had been given before the visitor had answered the banner. Blocking is still switched off for users who can manage the banner, so you can keep working on your own site as before. If your site needs a wider exemption, a developer can adjust it with the `cn_manage_cookie_notice_cap` filter.
 
 = 3.1.4 =
 * Fix: On sites protected by a security plugin or firewall (such as WordFence), saving your settings after adding Google Tag Manager or analytics code could fail with a "403" error. The plugin now sends that code in a form these tools don't mistake for an attack, so your settings save normally.
