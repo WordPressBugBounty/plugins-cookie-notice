@@ -4,7 +4,7 @@ Tags: gdpr, ccpa, cookies, consent, privacy, gpc, google-consent-mode
 Requires at least: 4.9.6
 Requires PHP: 7.4
 Tested up to: 7.0
-Stable tag: 3.1.5
+Stable tag: 3.1.6
 License: MIT License
 License URI: http://opensource.org/licenses/MIT
 
@@ -203,6 +203,10 @@ Yes! The plugin + web application version includes technical compliance features
 4. Cookie Compliance settings
 
 == Changelog ==
+
+= 3.1.6 =
+* Tweak: On sites managed from both the Admin Portal and the WordPress Protection screen, saving one consent mode setting now leaves the others exactly as you set them.
+* Tweak: On sites using Google, Facebook, or Microsoft consent modes, each signal is now matched to a purpose category — Content Personalization, Site Optimization, or Ad Personalization — so the setting you pick is what the banner sends, and the category names match the Admin Portal. The earlier "Always" option has been retired; if you used it, open Protection and choose a category.
 
 = 3.1.5 =
 * Fix: On sites using Gravity Forms with Google reCAPTCHA, forms can now be submitted as soon as a visitor accepts cookies — on the same page, with no reload. Previously the submit button could stay in a loading state indefinitely. Visitors who have not chosen yet are now asked to accept cookies, instead of seeing a button that appears to do nothing. Sites that have already moved Google Recaptcha to Basic Operations are unaffected.
