@@ -399,6 +399,13 @@ class Cookie_Notice_Frontend {
 		else
 			$blocking = get_option( 'cookie_notice_app_blocking' );
 
+		// NOTE on the three *ConsentDefault keys below: the widget declares them in its
+		// option schema (Web Channel src/index.js) and then never reads them — it derives
+		// every Consent Mode signal from the BannerConfigJSON it fetches itself, via
+		// buildGoogleConsentFlags( options.config, categories ). Verified against both
+		// src/ and the deployed dist/ bundles. They are kept for wire compatibility, but
+		// nothing here changes live banner behaviour: do NOT reintroduce plan or quota
+		// gating on them expecting a frontend effect.
 		if ( ! empty( $blocking ) && is_array( $blocking ) ) {
 			$options['customProviders'] = ! empty( $blocking['providers'] ) && is_array( $blocking['providers'] ) ? $blocking['providers'] : [];
 			$options['customPatterns'] = ! empty( $blocking['patterns'] ) && is_array( $blocking['patterns'] ) ? $blocking['patterns'] : [];
@@ -606,12 +613,12 @@ class Cookie_Notice_Frontend {
 			'see_more_opt'			=> $cn->options['general']['see_more_opt'],
 			'link_target'			=> $cn->options['general']['link_target'],
 			'link_position'			=> $cn->options['general']['link_position'],
-			'aria_label'			=> 'Compliance by Hu-manity.co'
+			'aria_label'			=> 'Cookie Compliance'
 		] );
 
 		// message output
 		$output = '
-		<!-- Compliance by Hu-manity.co plugin v' . esc_attr( $cn->defaults['version'] ) . ' https://hu-manity.co/ -->
+		<!-- Cookie Compliance for WordPress (formerly Compliance by Hu-manity.co) plugin v' . esc_attr( $cn->defaults['version'] ) . ' https://cookie-compliance.co/ -->
 		<div id="cookie-notice" role="dialog" class="cookie-notice-hidden cookie-revoke-hidden cn-position-' . esc_attr( $options['position'] ) . '" aria-label="' . esc_attr( $options['aria_label'] ) . '" style="background-color: __CN_BG_COLOR__">'
 			. '<div class="cookie-notice-container" style="color: ' . esc_attr( $options['colors']['text'] ) . '">'
 			. '<span id="cn-notice-text" class="cn-text-container">'. ( $options['see_more'] ? do_shortcode( $options['message_text'] ) : $options['message_text'] ) . '</span>'
@@ -626,7 +633,7 @@ class Cookie_Notice_Frontend {
 			. '<span id="cn-revoke-buttons" class="cn-buttons-container"><button id="cn-revoke-cookie" class="cn-revoke-cookie ' . esc_attr( $options['button_class'] ) . ( $options['css_class'] !== '' ? ' cn-button-custom ' . esc_attr( $options['css_class'] ) : '' ) . '" aria-label="' . esc_attr( $options['revoke_text'] ) . '"' . ( $options['css_class'] == '' ? ' style="background-color: ' . esc_attr( $options['colors']['button'] ) . '"' : '' ) . '>' . esc_html( $options['revoke_text'] ) . '</button></span>
 			</div>' : '' ) . '
 		</div>
-		<!-- / Compliance by Hu-manity.co plugin -->';
+		<!-- / Cookie Compliance for WordPress plugin -->';
 
 		add_filter( 'safe_style_css', [ $this, 'allow_style_attributes' ] );
 

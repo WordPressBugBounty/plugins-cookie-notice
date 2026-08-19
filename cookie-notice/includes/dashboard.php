@@ -61,6 +61,94 @@ class Cookie_Notice_Dashboard {
 
 		// site status
 		add_filter( 'site_status_tests', [ $this, 'add_tests' ] );
+		add_filter( 'debug_information', [ $this, 'add_debug_information' ] );
+	}
+
+	/**
+	 * Add a Compliance section to Site Health → Info.
+	 *
+	 * Exists for one question support keeps having to answer from guesswork: "is the
+	 * usage number this site is acting on actually current?" The visit counter is
+	 * materialised once a day server-side and then pulled on WP pseudo-cron, which
+	 * only fires when somebody loads the site — so on a quiet site the figure driving
+	 * the quota can be well over a day old. Nothing previously exposed that: the
+	 * plugin's own "last synced" records when WE pulled, never how old the number was
+	 * when we got it. cycleUsage.fetch_time is the producer's clock and is what these
+	 * rows report.
+	 *
+	 * Site Health rather than the dashboard widget on purpose — this is diagnostic
+	 * copy for a support conversation, not customer-facing UI, and it needs no design.
+	 *
+	 * @param array $info Site Health debug information.
+	 * @return array
+	 */
+	public function add_debug_information( $info ) {
+		// get main instance
+		$cn = Cookie_Notice();
+
+		// analytics scope (mirrors the widget's network-aware read)
+		if ( is_multisite() && $cn->is_network_admin() && $cn->is_plugin_network_active() && $cn->network_options['general']['global_override'] )
+			$analytics = get_site_option( 'cookie_notice_app_analytics', [] );
+		else
+			$analytics = get_option( 'cookie_notice_app_analytics', [] );
+
+		$cycle_usage = ! empty( $analytics['cycleUsage'] ) ? $analytics['cycleUsage'] : null;
+		$age_hours   = $cn->welcome_api->cycle_usage_age_hours( $cycle_usage );
+		$is_fresh    = $cn->welcome_api->cycle_usage_is_fresh( $cycle_usage );
+
+		if ( $age_hours === null )
+			$age_label = esc_html__( 'unknown — payload carried no fetch_time', 'cookie-notice' );
+		else
+			$age_label = sprintf(
+				/* translators: %s: number of hours */
+				esc_html__( '%s hours old', 'cookie-notice' ),
+				number_format_i18n( $age_hours, 1 )
+			);
+
+		$fields = [
+			'cn_status' => [
+				'label'	=> esc_html__( 'Compliance status', 'cookie-notice' ),
+				'value'	=> $cn->get_status()
+			],
+			'cn_app_id' => [
+				'label'		=> esc_html__( 'App ID', 'cookie-notice' ),
+				'value'		=> ! empty( $cn->options['general']['app_id'] ) ? $cn->options['general']['app_id'] : esc_html__( 'not connected', 'cookie-notice' ),
+				'private'	=> true
+			],
+			'cn_subscription' => [
+				'label'	=> esc_html__( 'Plan', 'cookie-notice' ),
+				'value'	=> $cn->get_subscription()
+			],
+			'cn_usage_visits' => [
+				'label'	=> esc_html__( 'Cycle visits / threshold', 'cookie-notice' ),
+				'value'	=> sprintf(
+					'%s / %s',
+					! empty( $cycle_usage->visits ) ? (int) $cycle_usage->visits : 0,
+					! empty( $cycle_usage->threshold ) ? (int) $cycle_usage->threshold : esc_html__( 'unlimited', 'cookie-notice' )
+				)
+			],
+			'cn_usage_age' => [
+				'label'			=> esc_html__( 'Usage data age', 'cookie-notice' ),
+				'value'			=> $age_label,
+				'description'	=> esc_html__( 'Measured from the reported computation time of the figures, not from when this site last pulled them.', 'cookie-notice' )
+			],
+			'cn_usage_fresh' => [
+				'label'			=> esc_html__( 'Usage data trusted for the limit', 'cookie-notice' ),
+				'value'			=> $is_fresh ? esc_html__( 'yes', 'cookie-notice' ) : esc_html__( 'no — limit not enforced from this data', 'cookie-notice' ),
+				'description'	=> esc_html__( 'Figures are only used to apply the plan limit while they can be shown to belong to the current cycle and to be recent. Otherwise the limit is left off.', 'cookie-notice' )
+			],
+			'cn_threshold_exceeded' => [
+				'label'	=> esc_html__( 'Plan limit currently applied', 'cookie-notice' ),
+				'value'	=> $cn->threshold_exceeded() ? esc_html__( 'yes', 'cookie-notice' ) : esc_html__( 'no', 'cookie-notice' )
+			]
+		];
+
+		$info['cookie-notice'] = [
+			'label'		=> esc_html__( 'Cookie Compliance', 'cookie-notice' ),
+			'fields'	=> $fields
+		];
+
+		return $info;
 	}
 
 	/**
@@ -106,7 +194,7 @@ class Cookie_Notice_Dashboard {
 		$widget_key = 'cn_dashboard_stats';
 
 		// add dashboard scorecard widget
-		wp_add_dashboard_widget( $widget_key, __( 'Compliance by Hu-manity.co', 'cookie-notice' ), [ $this, 'dashboard_widget' ] );
+		wp_add_dashboard_widget( $widget_key, __( 'Cookie Compliance', 'cookie-notice' ), [ $this, 'dashboard_widget' ] );
 
 		// get widgets
 		$normal_dashboard = $wp_meta_boxes[$dashboard_key]['normal']['core'];
@@ -854,7 +942,7 @@ class Cookie_Notice_Dashboard {
 	 */
 	public function add_tests( $tests ) {
 		$tests['direct']['cookie_compliance_status'] = [
-			'label'	=> esc_html__( 'Compliance by Hu-manity.co Status', 'cookie-notice' ),
+			'label'	=> esc_html__( 'Cookie Compliance Status', 'cookie-notice' ),
 			'test'	=> [ $this, 'test_cookie_compliance' ]
 		];
 
@@ -869,7 +957,7 @@ class Cookie_Notice_Dashboard {
 	public function test_cookie_compliance() {
 		if ( Cookie_Notice()->get_status() !== 'active' ) {
 			return [
-				'label'			=> esc_html__( 'Your site does not have Compliance by Hu-manity.co', 'cookie-notice' ),
+				'label'			=> esc_html__( 'Your site does not have Cookie Compliance', 'cookie-notice' ),
 				'status'		=> 'recommended',
 				'description'	=> esc_html__( "Run Compliance Check to determine your site's compliance with updated data processing and consent rules under GDPR, CCPA and other international data privacy laws.", 'cookie-notice' ),
 				'actions'		=> sprintf( '<p><a href="%s" target="_blank" rel="noopener noreferrer">%s</a></p>', admin_url( 'admin.php?page=cookie-notice&welcome=1' ), esc_html__( 'Run Compliance Check', 'cookie-notice' ) ),
@@ -881,9 +969,9 @@ class Cookie_Notice_Dashboard {
 			];
 		} else {
 			return [
-				'label'			=> esc_html__( 'Compliance by Hu-manity.co is active', 'cookie-notice' ),
+				'label'			=> esc_html__( 'Cookie Compliance is active', 'cookie-notice' ),
 				'status'		=> 'good',
-				'description'	=> esc_html__( 'Compliance by Hu-manity.co is configured with active Compliance by Hu-manity.co protection. Your site is collecting consent in accordance with GDPR, CCPA, and other applicable privacy laws.', 'cookie-notice' ),
+				'description'	=> esc_html__( 'Cookie Compliance is configured with active Cookie Compliance protection. Your site is collecting consent in accordance with GDPR, CCPA, and other applicable privacy laws.', 'cookie-notice' ),
 				'actions'		=> sprintf( '<p><a href="%s">%s</a></p>', admin_url( 'admin.php?page=cookie-notice' ), esc_html__( 'View compliance dashboard', 'cookie-notice' ) ),
 				'test'			=> 'cookie_compliance_status',
 				'badge'			=> [

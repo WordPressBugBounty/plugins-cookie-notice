@@ -1,8 +1,8 @@
 <?php
 /*
-Plugin Name: Compliance by Hu-manity.co
-Description: Compliance by Hu-manity.co (formerly Cookie Notice) — cookie consent banner and full Consent Management Platform for GDPR, CCPA, and global data privacy laws.
-Version: 3.1.6
+Plugin Name: Cookie Compliance for WordPress – Cookie Consent, GDPR & CCPA
+Description: Cookie Compliance for WordPress (formerly "Compliance by Hu-manity.co" / "Cookie Notice") — the WordPress component of Cookie Compliance, the consent management platform by Hu-manity.co. Cookie consent banner, pre-consent script blocking, Google Consent Mode v2 and consent records for GDPR, CCPA and global data privacy laws.
+Version: 3.1.7
 Author: Hu-manity.co
 Author URI: https://hu-manity.co/
 Plugin URI: https://cookie-compliance.co/
@@ -11,8 +11,14 @@ License URI: https://opensource.org/licenses/MIT
 Text Domain: cookie-notice
 Domain Path: /languages
 
-Compliance by Hu-manity.co
+Cookie Compliance for WordPress
 Copyright (C) 2026, Hu-manity.co - info@hu-manity.co
+
+NAMING NOTE (DEC-007, 2026-08-18): the product is "Cookie Compliance", by Hu-manity.co. The
+"cookie-notice" slug, text domain, option keys (cookie_notice_*), CSS classes and cn_/cookie_notice_
+hook prefixes are LOAD-BEARING and intentionally do NOT match the brand. Renaming the wordpress.org
+slug creates a new listing and forfeits 900K+ installs and 3,000+ reviews; changing the text domain
+orphans every translation. Do not "tidy" them for consistency.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -174,7 +180,7 @@ class Cookie_Notice {
 			'threshold_exceeded'	=> false,
 			'activation_datetime'	=> 0
 		],
-		'version'	=> '3.1.6'
+		'version'	=> '3.1.7'
 	];
 
 	/**
@@ -1013,7 +1019,7 @@ class Cookie_Notice {
 			$slots_text = '';
 		}
 
-		$message = esc_html__( 'Compliance by Hu-manity.co — Pro is now active on this site.', 'cookie-notice' ) . $slots_text;
+		$message = esc_html__( 'Cookie Compliance — Pro is now active on this site.', 'cookie-notice' ) . $slots_text;
 
 		$this->add_notice(
 			'<p>' . $message . '</p>',
@@ -1247,22 +1253,27 @@ class Cookie_Notice {
 				// cycle usage data
 				$cycle_usage = [
 					'threshold'		=> ! empty( $analytics['cycleUsage']->threshold ) ? (int) $analytics['cycleUsage']->threshold : 0,
-					'visits'		=> ! empty( $analytics['cycleUsage']->visits ) ? (int) $analytics['cycleUsage']->visits : 0,
-					'end_date'		=> ! empty( $analytics['cycleUsage']->endDate ) ? date_create_from_format( '!Y-m-d', $analytics['cycleUsage']->endDate ) : date_create_from_format( 'Y-m-d H:i:s', current_time( 'mysql', true ) ),
-					'last_updated'	=> ! empty( $analytics['lastUpdated'] ) ? date_create_from_format( 'Y-m-d H:i:s', $analytics['lastUpdated'] ) : date_create_from_format( 'Y-m-d H:i:s', current_time( 'mysql', true ) )
+					'end_date'		=> ! empty( $analytics['cycleUsage']->endDate ) ? date_create_from_format( '!Y-m-d', $analytics['cycleUsage']->endDate ) : date_create_from_format( 'Y-m-d H:i:s', current_time( 'mysql', true ) )
 				];
 
 				// if threshold in use
 				if ( $cycle_usage['threshold'] ) {
-					// if threshold exceeded and there was no notice before
-					if ( $cycle_usage['visits'] >= $cycle_usage['threshold'] && $cycle_usage['last_updated']->getTimestamp() < $cycle_usage['end_date']->getTimestamp() && $this->options['general']['update_threshold_date'] < $cycle_usage['end_date']->getTimestamp() ) {
+					// Gate on the single derived flag rather than re-deriving from raw
+					// visits here. This branch used to compare visits >= threshold with no
+					// plan check at all, so a Pro app whose cached blob still held a free
+					// app's counters was told its compliance services had been deactivated
+					// while everything was in fact running (HS#47302). threshold_exceeded()
+					// is plan-aware and refuses to fire on a snapshot it cannot prove is
+					// current. The remaining term keeps a dismissed notice dismissed for
+					// the rest of the cycle.
+					if ( $this->threshold_exceeded() && $this->options['general']['update_threshold_date'] < $cycle_usage['end_date']->getTimestamp() ) {
 						$date_format = get_option( 'date_format' );
 
 						$upgrade_link = $this->get_url( 'dashboard', '?app-id=' . $this->options['general']['app_id'] . '&open-modal=payment' );
 						$threshold = $cycle_usage['threshold'];
 						$cycle_date = date_i18n( $date_format, $cycle_usage['end_date']->getTimestamp() );
 
-						$this->add_notice( '<div class="cn-notice-text" data-delay="' . esc_attr( $cycle_usage['end_date']->getTimestamp() ) . '"><h2>' . esc_html__( 'Compliance by Hu-manity.co Warning', 'cookie-notice') . '</h2><p>' . sprintf( __( 'Your website has reached the <b>%1$s visits usage limit for the Compliance by Hu-manity.co Free Plan</b>. Compliance services such as Consent Record Storage, Autoblocking, and Consent Analytics have been deactivated until current usage cycle ends on %2$s.', 'cookie-notice' ), $threshold, $cycle_date ) . '<br>' . sprintf( __( 'To reactivate compliance services now, <a href="%s" target="_blank">upgrade your domain to a Pro plan.</a>', 'cookie-notice' ) . '</p></div>', $upgrade_link ), 'cn-threshold error is-dismissible', 'div' );
+						$this->add_notice( '<div class="cn-notice-text" data-delay="' . esc_attr( $cycle_usage['end_date']->getTimestamp() ) . '"><h2>' . esc_html__( 'Cookie Compliance Warning', 'cookie-notice') . '</h2><p>' . sprintf( __( 'Your website has reached the <b>%1$s visits usage limit for the Cookie Compliance Free Plan</b>. Compliance services such as Consent Record Storage, Autoblocking, and Consent Analytics have been deactivated until current usage cycle ends on %2$s.', 'cookie-notice' ), $threshold, $cycle_date ) . '<br>' . sprintf( __( 'To reactivate compliance services now, <a href="%s" target="_blank">upgrade your domain to a Pro plan.</a>', 'cookie-notice' ) . '</p></div>', $upgrade_link ), 'cn-threshold error is-dismissible', 'div' );
 					}
 				}
 			}
@@ -1286,7 +1297,7 @@ class Cookie_Notice {
 
 				// display notice?
 				if ( $compare_timestamp < $current_time )
-					$this->add_notice( '<div class="cn-notice-text cn-review"><h2>' . esc_html__( 'We Value Your Feedback', 'cookie-notice' ) . '</h2><p>' . sprintf( __( "Hi, you've been using <strong>Compliance by Hu-manity.co</strong> for more than %s. We hope it has been a valuable addition to your WordPress site. We would be grateful if you could take a few minutes to share your thoughts by leaving a review.", 'cookie-notice' ), human_time_diff( $activation_date, $current_time ) ) . '<br>' . esc_html__( 'Thank you for helping us improve and grow!', 'cookie-notice' ) . '</p><p class="cn-notice-actions"><a href="https://wordpress.org/support/plugin/cookie-notice/reviews/?filter=5#new-post" class="button-link cn-notice-review" target="_blank" rel="noopener">' . esc_html__( 'Review', 'cookie-notice' ) . '</a><a href="#" class="button-link cn-notice-delay">' . esc_html__( 'Delay', 'cookie-notice' ) . '</a><a href="#" class="button-link cn-notice-dismiss">' . esc_html__( 'Dismiss', 'cookie-notice' ) . '</a></p></div>', 'error', 'div' );
+					$this->add_notice( '<div class="cn-notice-text cn-review"><h2>' . esc_html__( 'We Value Your Feedback', 'cookie-notice' ) . '</h2><p>' . sprintf( __( "Hi, you've been using <strong>Cookie Compliance</strong> for more than %s. We hope it has been a valuable addition to your WordPress site. We would be grateful if you could take a few minutes to share your thoughts by leaving a review.", 'cookie-notice' ), human_time_diff( $activation_date, $current_time ) ) . '<br>' . esc_html__( 'Thank you for helping us improve and grow!', 'cookie-notice' ) . '</p><p class="cn-notice-actions"><a href="https://wordpress.org/support/plugin/cookie-notice/reviews/?filter=5#new-post" class="button-link cn-notice-review" target="_blank" rel="noopener">' . esc_html__( 'Review', 'cookie-notice' ) . '</a><a href="#" class="button-link cn-notice-delay">' . esc_html__( 'Delay', 'cookie-notice' ) . '</a><a href="#" class="button-link cn-notice-dismiss">' . esc_html__( 'Dismiss', 'cookie-notice' ) . '</a></p></div>', 'error', 'div' );
 			}
 		}
 	}
@@ -1652,7 +1663,7 @@ class Cookie_Notice {
 
 			// prepare script data
 			$script_data = [
-				'deactivate'	=> esc_html__( 'Compliance by Hu-manity.co - Deactivation survey', 'cookie-notice' ),
+				'deactivate'	=> esc_html__( 'Cookie Compliance - Deactivation survey', 'cookie-notice' ),
 				'nonce'			=> wp_create_nonce( 'cn-deactivate-plugin' )
 			];
 
@@ -1732,7 +1743,7 @@ class Cookie_Notice {
 			if ( $check_status ) {
 				$url = $this->is_network_admin() ? network_admin_url( 'admin.php?page=cookie-notice&welcome=1' ) : admin_url( 'admin.php?page=cookie-notice&welcome=1' );
 
-				$links[] = sprintf( '<a href="%s" style="color: #20C19E; font-weight: bold">%s</a>', esc_url( $url ), esc_html__( 'Try Compliance by Hu-manity.co free', 'cookie-notice' ) );
+				$links[] = sprintf( '<a href="%s" style="color: #20C19E; font-weight: bold">%s</a>', esc_url( $url ), esc_html__( 'Try Cookie Compliance free', 'cookie-notice' ) );
 			}
 		}
 
@@ -1764,9 +1775,9 @@ class Cookie_Notice {
 		foreach ( [
 				'1'	=> esc_html__( "I couldn't figure out how to make it work.", 'cookie-notice' ),
 				'2'	=> esc_html__( 'I found another plugin to use for the same task.', 'cookie-notice' ),
-				'3'	=> esc_html__( 'The Compliance by Hu-manity.co banner is too big.', 'cookie-notice' ),
-				'4'	=> esc_html__( 'The Compliance by Hu-manity.co consent choices (Silver, Gold, Platinum) are confusing.', 'cookie-notice' ),
-				'5'	=> esc_html__( 'The Compliance by Hu-manity.co default settings are too strict.', 'cookie-notice' ),
+				'3'	=> esc_html__( 'The Cookie Compliance banner is too big.', 'cookie-notice' ),
+				'4'	=> esc_html__( 'The Cookie Compliance consent choices (Silver, Gold, Platinum) are confusing.', 'cookie-notice' ),
+				'5'	=> esc_html__( 'The Cookie Compliance default settings are too strict.', 'cookie-notice' ),
 				'6'	=> esc_html__( 'The web application user interface is not clear to me.', 'cookie-notice' ),
 				'7'	=> esc_html__( "Support isn't timely.", 'cookie-notice' ),
 				'8'	=> esc_html__( 'Other', 'cookie-notice' )

@@ -1,27 +1,29 @@
-=== Compliance by Hu-manity.co ===
+=== Cookie Compliance for WordPress – Cookie Consent, GDPR & CCPA ===
 Contributors: humanityco
 Tags: gdpr, ccpa, cookies, consent, privacy, gpc, google-consent-mode
 Requires at least: 4.9.6
 Requires PHP: 7.4
 Tested up to: 7.0
-Stable tag: 3.1.6
+Stable tag: 3.1.7
 License: MIT License
 License URI: http://opensource.org/licenses/MIT
 
-Intentional Consent for WordPress — GDPR, CCPA, CPRA & ePrivacy compliance with consent records, autoblocking, Google Consent Mode v2 & GPC support.
+Consent management platform for WordPress — GDPR, CCPA & ePrivacy cookie consent, autoblocking, consent records, Google Consent Mode v2 & GPC.
 
 == Description ==
 
-<strong>Compliance by Hu-manity.co</strong> (formerly known as Cookie Notice) provides a simple, customizable website banner that can be used to help your website comply with cookie consent requirements under the EU GDPR, CCPA, and other data privacy laws — with <strong>seamless integration</strong> with Cookie Compliance to help your site comply with the latest updates to existing consent laws.
+This is <strong>Cookie Compliance for WordPress</strong> — the WordPress component of <strong>Cookie Compliance</strong>, the consent management platform by Hu-manity.co. (Previously published as "Compliance by Hu-manity.co", and before that "Cookie Notice".) One product: this plugin runs the consent banner on your WordPress site, and the Cookie Compliance dashboard is where you configure it, manage every domain you own, and keep your consent records.
 
 <strong>Cookie Compliance</strong> is a fully featured Consent Management Platform (CMP) that provides automated compliance features and enhanced design controls in a state-of-the-art web application. Cookie Compliance enables websites to <strong>take a proactive approach to data protection and consent laws</strong>. It is the first solution to offer Intentional Consent, a new consent framework that incorporates the latest guidelines from over 100+ countries, and emerging standards from leading international organizations like the IEEE and European Center for Digital Rights (noyb.eu). Cookie Compliance provides a beautiful, multi-level experience and includes new choices and controls for site visitors to better understand and engage in data privacy decisions.
+
+You can run this plugin two ways. In <strong>Banner Only mode</strong> it works on its own, with no account, and gives you the consent banner and its settings. In <strong>Connected mode</strong> — free or paid — you sign in to Cookie Compliance from inside WordPress and the plugin unlocks the platform features listed below: automatic script blocking, purpose categories, consent records, Google, Microsoft and Facebook consent modes, multilingual banners and multi-domain management. The two lists below say exactly which features belong to which mode.
 
 > Our Cookie Compliance web application introduces a more ethical, proactive way to capture and manage consent.  This early version of the emerging Intentional Consent framework is a result of Hu-manity.co’s ongoing work with top Fortune 500 companies, governments, and standards organizations, who believe that the imbalanced relationship between consumers and corporations is unsustainable when it comes to data privacy and consent online. We are making it available for all website owners and operators who share this belief and support our mission to eliminate the dark patterns in online consent.<br>
 > Matt Sinderbrand - Chief Platform Officer, Hu-manity.co
 
-## Compliance (plugin only)
+## Banner Only mode (this plugin on its own, no account)
 
-Compliance by Hu-manity.co provides a simple, customizable website banner to help your website comply with certain cookie consent requirements.
+Cookie Compliance for WordPress provides a simple, customizable website banner to help your website comply with certain cookie consent requirements.
 
 = Banner features: =
 
@@ -33,9 +35,9 @@ Compliance by Hu-manity.co provides a simple, customizable website banner to hel
 * WPML and Polylang compatible
 * SEO friendly
 
-## Cookie Compliance (plugin + web application)
+## Connected mode (this plugin + the Cookie Compliance dashboard)
 
-Cookie Compliance gives you access to the most up-to-date formatting guidelines and technical compliance requirements for over 100 countries and legal jurisdictions.
+Signed in to Cookie Compliance, on a free or paid plan, you get access to the most up-to-date formatting guidelines and technical compliance requirements for over 100 countries and legal jurisdictions.
 
 = Banner features: =
 
@@ -46,7 +48,7 @@ Cookie Compliance gives you access to the most up-to-date formatting guidelines 
 * <strong>Customizable Privacy Paper</strong> provides helpful information to improve visitor comprehension and understanding of the data sharing risks and benefits. Allows you to summarize core components of your sites privacy notice and <em>aligns with the informed principle prescribed by GDPR rules for valid consent capture. </em>
 * <strong>Configurable Privacy Contact</strong> allows you to provide contact information for a business’ data privacy admin, as well as helpful links to data subject request forms and other data privacy resources. <em>Aligns with the informed principle prescribed by GDPR rules for valid consent capture.</em>
 
-= Web Application features: =
+= Cookie Compliance dashboard features: =
 
 * <strong>Consent analytics dashboard</strong> shows event data for number of visits and provides a “trust score” to help you track how site visitors are setting their consent. Make adjustments to your banner to improve your cookie acceptance rate and monitor progress via the consent activity graph.
 * <strong>Default configurations</strong> for GDPR, CCPA and more help to remove dark patterns and allow for quick and easy deployment of the consent banner without any guesswork. Customize the design of any default configuration to match the look and feel of your site.
@@ -93,17 +95,17 @@ As a part of our proactive approach, Cookie Compliance is configured by default 
 
 == Installation ==
 
-1. Install Compliance by Hu-manity.co either via the WordPress.org plugin directory, or by uploading the files to your server.
+1. Install Cookie Compliance for WordPress either via the WordPress.org plugin directory, or by uploading the files to your server.
 2. Activate the plugin through the 'Plugins' menu in WordPress.
 3. Go to Settings > Compliance in your WordPress admin — the setup wizard will launch automatically on first activation.
-4. Choose your setup path in the welcome screen: connect to Cookie Compliance (Free or Professional) for full compliance features, or select Banner Only to use the plugin standalone.
-5. If connecting: create a Cookie Compliance account or log into an existing one directly from the wizard — no need to leave WordPress.
+4. Choose your setup path in the welcome screen: sign in to Cookie Compliance (Free or Professional) for the full compliance features, or select Banner Only to run the plugin on its own.
+5. If connecting: create a Cookie Compliance account or sign in to an existing one directly from the wizard — no need to leave WordPress.
 6. Select your plan, configure your banner using the guided checklist, and you're live.
 7. Return to Settings > Compliance any time to adjust your configuration, review consent logs in the Audit Trail, or manage your Cookie Compliance connection.
 
 == Privacy ==
 
-Compliance by Hu-manity.co is a Consent Management Platform client. Depending on how you use it, the plugin may send data to Hu-manity.co services on your behalf. This section describes what data leaves your WordPress server and when. It is kept up to date as the plugin evolves; material changes are noted in the changelog.
+Cookie Compliance for WordPress is a Consent Management Platform client. Depending on how you use it, the plugin may send data to Hu-manity.co services on your behalf. This section describes what data leaves your WordPress server and when. It is kept up to date as the plugin evolves; material changes are noted in the changelog.
 
 = Plugin-only mode (Banner Only / Basic) =
 
@@ -183,26 +185,35 @@ Account and consent data is processed in the European Union (AWS Ireland region)
 
 == Frequently Asked Questions ==
 
-= Is Compliance by Hu-manity.co free? =
-Yes! Compliance by Hu-manity.co is free software.
+= Is Cookie Compliance for WordPress free? =
+Yes! This plugin is free software, and Cookie Compliance has a free plan. There are paid plans too, depending on your needs and your website traffic.
 
-= Is Cookie Compliance free? =
-Yes, but with limits. Cookie Compliance includes both free and paid plans to choose from depending on your needs and your website traffic.
+= Is this the same thing as Cookie Compliance? =
+Yes. Cookie Compliance is one product, and this plugin is its WordPress component — it runs the consent banner on your site. The Cookie Compliance dashboard is the other half, where you configure the banner, manage every domain you own and keep your consent records. It was previously published as "Compliance by Hu-manity.co", and before that "Cookie Notice"; the plugin, your settings and your updates are unaffected by the name.
 
-= Does Compliance by Hu-manity.co make my site fully compliant with GDPR or US Privacy Laws? =
-No. The plugin-only version DOES NOT include technical compliance features such as automatic script blocking, consent purpose categories, or consent record storage. These features are only available through the Cookie Compliance integration.
+= Does Banner Only mode make my site fully compliant with GDPR or US Privacy Laws? =
+No. Banner Only mode DOES NOT include technical compliance features such as automatic script blocking, consent purpose categories, or consent record storage. Those need the plugin signed in to Cookie Compliance.
 
-= Does the Cookie Compliance integration make my site fully compliant with GDPR and US Privacy Laws? =
-Yes! The plugin + web application version includes technical compliance features to meet requirements for over 100 countries and legal jurisdictions.
+= Does Connected mode make my site fully compliant with GDPR and US Privacy Laws? =
+Yes! Signed in to Cookie Compliance, you get technical compliance features to meet requirements for over 100 countries and legal jurisdictions.
 
 == Screenshots ==
 
-1. Compliance by Hu-manity.co — Notice settings, Compliance integration inactive
-2. Compliance by Hu-manity.co — Notice settings, Compliance integration active
+1. Cookie Compliance for WordPress — Notice settings, Banner Only mode
+2. Cookie Compliance for WordPress — Notice settings, connected to Cookie Compliance
 3. Cookie Compliance dashboard overview
 4. Cookie Compliance settings
 
 == Changelog ==
+
+= 3.1.7 =
+* Rebrand: Plugin renamed from "Compliance by Hu-manity.co" to "Cookie Compliance for WordPress" — one product, of which this plugin is the WordPress half. The plugin's admin screens, and the name a screen reader announces for the banner, now read "Cookie Compliance" throughout. Your settings, connection, consent records and updates are unchanged; nothing to do. Renamed text may show in English until translations catch up.
+* Fix: On sites using Google Consent Mode, the Advertising, Analytics and Functional group controls are replaced by one control per signal, still grouped under those headings. Each changes only its own signal, so Security Storage is no longer reset by another control and no longer reports itself as not applied. It can also be set to Basic Operations, for storage that is strictly necessary on your site.
+* Fix: On sites connected to a Cookie Compliance account, opening Upgrade to Pro after being signed in a day or more now returns you to sign-in, instead of an error that refreshing could not clear.
+* Fix: On sites whose domain was moved to a different Cookie Compliance app or plan, the visit limit now follows the current plan. It is enforced only from recent visit figures, and Sync Config is no longer switched off when the limit is reached — it is what clears it. Google Consent Mode and your consent records no longer depend on your visit allowance.
+* Tweak: The Compliance settings screen now opens straight away and refreshes from the Admin Portal in the background, instead of showing nothing until that finished. If the refresh cannot complete, it says it is showing your last synced settings, and when they were synced.
+* Tweak: If your consent mode settings change elsewhere while you have the Consent Modes panel open, your unsaved edits are kept and the panel tells you the stored settings have moved on.
+* Tweak: Site Health now reports your plan, cycle visits against your limit, and how old the usage figures are — measured from when they were calculated, not from when this site last pulled them.
 
 = 3.1.6 =
 * Tweak: On sites managed from both the Admin Portal and the WordPress Protection screen, saving one consent mode setting now leaves the others exactly as you set them.

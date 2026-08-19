@@ -219,7 +219,7 @@ class Cookie_Notice_Modules_WP_Consent_API {
 		printf(
 			'<div class="notice notice-info"><p><strong>%1$s</strong> %2$s</p><p><a href="%3$s" target="_blank" rel="noopener noreferrer">%4$s</a> &nbsp;|&nbsp; <a href="%5$s" onclick="return confirm(\'%6$s\');">%7$s</a> &nbsp;|&nbsp; <a href="%8$s">%9$s</a></p></div>',
 			esc_html__( 'WP Consent API integration active.', 'cookie-notice' ),
-			esc_html__( 'Compliance by Hu-manity.co is now registered as the active Consent Management Platform for this site. Cooperative plugins that support WP Consent API (WooCommerce, Google Site Kit, Burst Statistics, WP Statistics, and others) will gate themselves on the consent state captured by the banner.', 'cookie-notice' ),
+			esc_html__( 'Cookie Compliance is now registered as the active Consent Management Platform for this site. Cooperative plugins that support WP Consent API (WooCommerce, Google Site Kit, Burst Statistics, WP Statistics, and others) will gate themselves on the consent state captured by the banner.', 'cookie-notice' ),
 			esc_url( $learn_more_url ),
 			esc_html__( 'Learn more about WP Consent API', 'cookie-notice' ),
 			esc_url( $disable_url ),
