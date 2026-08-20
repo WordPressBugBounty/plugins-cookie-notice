@@ -132,6 +132,10 @@ class Cookie_Notice_Frontend {
 				// gravity forms compatibility
 				if ( cn_is_plugin_active( 'gravityforms', 'captcha' ) )
 					include_once( COOKIE_NOTICE_PATH . 'includes/modules/gravity-forms/gravity-forms.php' );
+
+				// bestwebsoft recaptcha compatibility
+				if ( cn_is_plugin_active( 'bestwebsoftrecaptcha', 'captcha' ) )
+					include_once( COOKIE_NOTICE_PATH . 'includes/modules/bestwebsoft-recaptcha/bestwebsoft-recaptcha.php' );
 			}
 		}
 	}
@@ -399,55 +403,186 @@ class Cookie_Notice_Frontend {
 		else
 			$blocking = get_option( 'cookie_notice_app_blocking' );
 
-		// NOTE on the three *ConsentDefault keys below: the widget declares them in its
-		// option schema (Web Channel src/index.js) and then never reads them — it derives
-		// every Consent Mode signal from the BannerConfigJSON it fetches itself, via
-		// buildGoogleConsentFlags( options.config, categories ). Verified against both
-		// src/ and the deployed dist/ bundles. They are kept for wire compatibility, but
-		// nothing here changes live banner behaviour: do NOT reintroduce plan or quota
-		// gating on them expecting a frontend effect.
+		// Consent Mode signals live in $options['config'] (see the three seeding blocks
+		// below — Google, Facebook, Microsoft), because that is where the widget reads
+		// them: buildGoogleConsentFlags takes options.config, and the Facebook and
+		// Microsoft paths read options.config.*ConsentMap* directly.
+		// The former top-level googleConsentDefault / facebookConsentDefault
+		// / microsoftConsentDefault keys were declared in the widget's option schema and
+		// never read by it, so they had no effect on the banner at all; they are gone rather
+		// than left alongside a live sibling that differs from them by one nesting level.
+		// Do NOT reintroduce them: a plan or quota gate applied there changes nothing on the
+		// frontend, and the shape that does work is config.googleConsentMap*.
 		if ( ! empty( $blocking ) && is_array( $blocking ) ) {
 			$options['customProviders'] = ! empty( $blocking['providers'] ) && is_array( $blocking['providers'] ) ? $blocking['providers'] : [];
 			$options['customPatterns'] = ! empty( $blocking['patterns'] ) && is_array( $blocking['patterns'] ) ? $blocking['patterns'] : [];
 
-			// google consent mode default categories
+			// Seed the Google Consent Mode signals into huOptions.config so they are on the
+			// page at byte zero, instead of only after the widget's own config request lands.
+			//
+			// Why this is the ONLY place it can be fixed: the single code path that writes
+			// gtag('consent','default',...) is guarded on flags.configLoadedAfterObserver
+			// (Web Channel src/blocking.js:3421), i.e. it runs EXCLUSIVELY while the remote
+			// config has not arrived. It is structurally incapable of ever reading API
+			// values, so the map has to already be on the page or the first pageview of a
+			// session emits the widget's built-in fallbacks instead of the site's settings.
+			// Concretely: a site that mapped security_storage to 1 ("Basic Operations") got
+			// security_storage=denied on pageview 1 and granted thereafter.
+			//
+			// googleConsentMode travels with the map because it is what makes the map
+			// authoritative rather than provisional. blocking.js:1046 and :3566 stash a
+			// dataset.orgscript whenever !googleConsentMode — the comment there reads
+			// "consent mode is false or unknown" — so without the flag the widget cannot
+			// tell "this site has it switched off" from "we have not been told yet", and
+			// marks its own consent default as replaceable even for a site that has it on.
+			//
+			// No new sync is involved: welcome-api.php already stores these seven integers,
+			// pulled verbatim from BannerConfigJSON.googleConsentMap*, and populates
+			// google_consent_default ONLY when googleConsentMode is 1 — so a non-empty map
+			// IS the enabled flag. All eight keys are already declared in the widget's
+			// option schema (defaultParamTypes.config), so nothing changes widget-side.
+			//
+			// These are written AFTER the cn_cookie_compliance_args filter deliberately.
+			// The values mirror what the API is about to send, so letting them win keeps
+			// the cold pageview in agreement with every later one, and keeps consent
+			// signals out of reach of site-level overrides.
+			// ── Begin Google Consent Mode seeding (huOptions.config)
 			if ( ! empty( $blocking['google_consent_default'] ) && is_array( $blocking['google_consent_default'] ) ) {
-				$gcd = [];
+				// storage name as stored by welcome-api.php => widget config key
+				$gcm_signals = [
+					'ad_storage'				=> 'googleConsentMapAdStorage',
+					'analytics_storage'			=> 'googleConsentMapAnalytics',
+					'functionality_storage'		=> 'googleConsentMapFunctionality',
+					'personalization_storage'	=> 'googleConsentMapPersonalization',
+					'security_storage'			=> 'googleConsentMapSecurity',
+					'ad_personalization'		=> 'googleConsentMapAdPersonalization',
+					'ad_user_data'				=> 'googleConsentMapAdUserData'
+				];
 
-				foreach ( $blocking['google_consent_default'] as $storage => $category ) {
-					if ( in_array( $storage, ['ad_storage', 'analytics_storage', 'functionality_storage', 'personalization_storage', 'security_storage', 'ad_personalization', 'ad_user_data'], true ) )
-						$gcd[$storage] = (int) $category;
+				$seeded = [];
+
+				foreach ( $gcm_signals as $storage => $option_key ) {
+					if ( isset( $blocking['google_consent_default'][$storage] ) )
+						$seeded[$option_key] = (int) $blocking['google_consent_default'][$storage];
 				}
 
-				if ( ! empty( $gcd ) )
-					$options['googleConsentDefault'] = $gcd;
-			}
+				if ( ! empty( $seeded ) ) {
+					$seeded['googleConsentMode'] = true;
 
-			// facebook consent mode default categories
-			if ( ! empty( $blocking['facebook_consent_default'] ) && is_array( $blocking['facebook_consent_default'] ) ) {
-				$fcd = [];
-
-				foreach ( $blocking['facebook_consent_default'] as $storage => $category ) {
-					if ( in_array( $storage, ['consent'], true ) )
-						$fcd[$storage] = (int) $category;
+					$options['config'] = ! empty( $options['config'] ) && is_array( $options['config'] ) ? array_merge( $options['config'], $seeded ) : $seeded;
 				}
-
-				if ( ! empty( $fcd ) )
-					$options['facebookConsentDefault'] = $fcd;
 			}
+			// ── End Google Consent Mode seeding (huOptions.config)
 
-			// microsoft consent mode default categories
+			// Facebook and Microsoft are seeded for the same reason and on the same
+			// evidence as Google above — read that comment first; only the differences are
+			// repeated here.
+			//
+			// Same as Google: welcome-api.php already stores these integers and populates
+			// facebook_consent_default / microsoft_consent_default ONLY when the API says
+			// the mode is on, so a non-empty map IS the enabled flag. No plan gate belongs
+			// here either — both are Pro-only, but Designer API logic.service.ts::
+			// downgradeLiveDefaults has already reset them for a Basic app before the
+			// response we stored was built. Every key is already declared in the widget's
+			// option schema, so nothing changes widget-side.
+			//
+			// WHAT THESE FLAGS DO NOT DO — measured, because reading the source suggests
+			// otherwise. Unlike Google, whose re-block gate gets no input from
+			// googleConsentMode, both of these mode flags appear in a block decision:
+			// `if ( facebookConsentMode ) doNotBlock = true; else { …re-block… }`
+			// (Web Channel src/blocking.js:744) and `!flags.msDelayExecution &&
+			// !microsoftConsentMode` (:824, and :1041 for the main inline uet script).
+			// Read alone, those say seeding makes fbevents.js and bat.js load on the first
+			// pageview of a session where they were blocked before.
+			//
+			// They do not, in either install shape. Both branches are additionally gated on
+			// consentModeData.facebook.pixel / .microsoft.uet, which ONLY the inline snippet
+			// handler sets — and that handler's own re-block reads
+			// flags.configLoadedAfterObserver, not the mode flag, so the snippet stays
+			// blocked whether or not we seed. A blocked snippet never injects the vendor
+			// file. Measured 2026-08-20 across install shape x seeding, each arm a fresh
+			// session with the config response held past the observer
+			// (Web Channel tests/e2e/cold-window-vendor-consent.spec.js):
+			//
+			//   snippet-injected  unseeded -> no vendor request   seeded -> no vendor request
+			//   hard-coded <src>  unseeded -> request fires       seeded -> request fires
+			//
+			// The vendor-request columns are identical. The hard-coded row fires with
+			// seeding OFF, so that request is pre-existing and NOT caused by this — but it
+			// is a real pre-consent vendor call on the first pageview of every session for
+			// sites installed that way, cause not yet established (preload-scanner race, or
+			// blocking patterns not yet loaded). Worth its own investigation; do not read
+			// this block as having cleared it.
+			//
+			// The MAP values likewise cannot loosen anything for a visitor who has not
+			// consented: both vendors route through mapConsentSignal WITHOUT the `exempt`
+			// argument (blocking.js:3110, :3179), so index 1 returns 'denied' and indices
+			// 2/3/4 are all false pre-consent. They change only what a returning,
+			// already-consented visitor gets on their cold pageview — toward the site's own
+			// mapping.
+			//
+			// So the whole observable effect of this block is: correct map values for a
+			// returning consented visitor, and the authored consent value surviving instead
+			// of being replaced. Nothing gets looser.
+			//
+			// Seeding the maps WITHOUT the flags was rejected as inert: while the flag is
+			// falsy the widget stashes the untouched script in data-orgscript
+			// (blocking.js:1002, :1093, :1160) and events.js:969 puts it back once the config
+			// lands, discarding whatever we authored.
+			// ── Begin Facebook Consent Mode seeding (huOptions.config)
+			if ( ! empty( $blocking['facebook_consent_default'] ) && is_array( $blocking['facebook_consent_default'] ) && isset( $blocking['facebook_consent_default']['consent'] ) ) {
+				// one signal, so no table: 'consent' as stored by welcome-api.php =>
+				// facebookConsentMapConsent as read by the widget
+				$seeded = [
+					'facebookConsentMapConsent'	=> (int) $blocking['facebook_consent_default']['consent'],
+					'facebookConsentMode'		=> true
+				];
+
+				$options['config'] = ! empty( $options['config'] ) && is_array( $options['config'] ) ? array_merge( $options['config'], $seeded ) : $seeded;
+			}
+			// ── End Facebook Consent Mode seeding (huOptions.config)
+
+			// ── Begin Microsoft Consent Mode seeding (huOptions.config)
 			if ( ! empty( $blocking['microsoft_consent_default'] ) && is_array( $blocking['microsoft_consent_default'] ) ) {
-				$mcd = [];
+				// storage name as stored by welcome-api.php => widget config key. Note the
+				// analytics key is microsoftConsentMapAnalyticsStorage — Google's is
+				// googleConsentMapAnalytics, with no suffix. A wrong name is dropped by the
+				// widget's schema filter in silence.
+				$mcm_signals = [
+					'ad_storage'		=> 'microsoftConsentMapAdStorage',
+					'analytics_storage'	=> 'microsoftConsentMapAnalyticsStorage'
+				];
 
-				foreach ( $blocking['microsoft_consent_default'] as $storage => $category ) {
-					if ( in_array( $storage, ['ad_storage', 'analytics_storage'], true ) )
-						$mcd[$storage] = (int) $category;
+				$seeded = [];
+
+				foreach ( $mcm_signals as $storage => $option_key ) {
+					if ( isset( $blocking['microsoft_consent_default'][$storage] ) )
+						$seeded[$option_key] = (int) $blocking['microsoft_consent_default'][$storage];
 				}
 
-				if ( ! empty( $mcd ) )
-					$options['microsoftConsentDefault'] = $mcd;
+				if ( ! empty( $seeded ) ) {
+					$seeded['microsoftConsentMode'] = true;
+
+					// Pixie and Clarity are per-script switches under the same mode, and each
+					// gates its own data-orgscript stash (blocking.js:1056, :1160) — left unseeded
+					// they keep, for those two scripts, exactly the bug this block removes for
+					// uet. The only plugin-side copy of them is the raw BannerConfigJSON:
+					// welcome-api.php never cherry-picks them into microsoft_consent_default.
+					// (That is also why ConsentModesPanel.jsx:221-222 reads mscm.pixie /
+					// mscm.clarity and always gets undefined — a separate bug, not fixed here.)
+					// On an install whose stored blocking data predates banner_config they stay
+					// absent and the widget keeps its own false defaults, i.e. today's behaviour.
+					$banner_config = ! empty( $blocking['banner_config'] ) && is_array( $blocking['banner_config'] ) ? $blocking['banner_config'] : [];
+
+					foreach ( ['microsoftConsentModePixie', 'microsoftConsentModeClarity'] as $mode_key ) {
+						if ( isset( $banner_config[$mode_key] ) )
+							$seeded[$mode_key] = (bool) $banner_config[$mode_key];
+					}
+
+					$options['config'] = ! empty( $options['config'] ) && is_array( $options['config'] ) ? array_merge( $options['config'], $seeded ) : $seeded;
+				}
 			}
+			// ── End Microsoft Consent Mode seeding (huOptions.config)
 		}
 
 		if ( isset( $_GET['cn_preview'] ) && $_GET['cn_preview'] === '1' && current_user_can( 'manage_options' ) ) {

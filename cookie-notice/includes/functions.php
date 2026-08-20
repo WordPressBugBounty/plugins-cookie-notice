@@ -137,6 +137,7 @@ function cn_is_plugin_active( $plugin = '', $module = 'caching' ) {
 	if ( ! in_array( $plugin, [
 		'amp',
 		'autoptimize',
+		'bestwebsoftrecaptcha',
 		'breeze',
 		'contactform7',
 		'divi',
@@ -171,6 +172,19 @@ function cn_is_plugin_active( $plugin = '', $module = 'caching' ) {
 		// autoptimize
 		case 'autoptimize':
 			if ( $module === 'caching' && function_exists( 'autoptimize' ) && defined( 'AUTOPTIMIZE_PLUGIN_VERSION' ) && version_compare( AUTOPTIMIZE_PLUGIN_VERSION, '2.4', '>=' ) )
+				$is_plugin_active = true;
+			break;
+
+		// bestwebsoft recaptcha
+		case 'bestwebsoftrecaptcha':
+			// "reCaptcha by BestWebSoft" (google-captcha) and its paid Pro build define
+			// no class and no version constant — only prefixed functions — so there is
+			// nothing stabler to key on and no version to compare. That is tolerable
+			// here because the module never rewrites their markup or holds their
+			// scripts: it calls one public global, gglcptch.prepare(), and only when it
+			// can see a reCAPTCHA the widget has actually blocked. A build that renamed
+			// that global would make the module inert, not harmful.
+			if ( $module === 'captcha' && function_exists( 'gglcptch_display' ) && function_exists( 'gglcptch_add_scripts' ) )
 				$is_plugin_active = true;
 			break;
 

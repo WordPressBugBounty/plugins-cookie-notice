@@ -2,7 +2,7 @@
 /*
 Plugin Name: Cookie Compliance for WordPress – Cookie Consent, GDPR & CCPA
 Description: Cookie Compliance for WordPress (formerly "Compliance by Hu-manity.co" / "Cookie Notice") — the WordPress component of Cookie Compliance, the consent management platform by Hu-manity.co. Cookie consent banner, pre-consent script blocking, Google Consent Mode v2 and consent records for GDPR, CCPA and global data privacy laws.
-Version: 3.1.7
+Version: 3.1.8
 Author: Hu-manity.co
 Author URI: https://hu-manity.co/
 Plugin URI: https://cookie-compliance.co/
@@ -180,7 +180,7 @@ class Cookie_Notice {
 			'threshold_exceeded'	=> false,
 			'activation_datetime'	=> 0
 		],
-		'version'	=> '3.1.7'
+		'version'	=> '3.1.8'
 	];
 
 	/**

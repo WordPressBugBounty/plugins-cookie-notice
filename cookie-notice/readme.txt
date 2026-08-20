@@ -4,7 +4,7 @@ Tags: gdpr, ccpa, cookies, consent, privacy, gpc, google-consent-mode
 Requires at least: 4.9.6
 Requires PHP: 7.4
 Tested up to: 7.0
-Stable tag: 3.1.7
+Stable tag: 3.1.8
 License: MIT License
 License URI: http://opensource.org/licenses/MIT
 
@@ -205,6 +205,11 @@ Yes! Signed in to Cookie Compliance, you get technical compliance features to me
 4. Cookie Compliance settings
 
 == Changelog ==
+
+= 3.1.8 =
+* Improvement: On sites running WordPress in a language other than English, the Compliance settings screens can now be translated. Their text was previously fixed in English no matter which language your site used. Translations are supplied by the translation community, so screens stay in English until a translation for your language is available.
+* Fix: On sites using reCaptcha by BestWebSoft, the captcha now appears as soon as a visitor accepts cookies, rather than only when they accept within the first few seconds of the page loading. Until they accept, the form says that the captcha needs their consent, instead of reporting a connection problem.
+* Tweak: On sites using Google, Facebook or Microsoft Consent Mode, your signal settings now travel with the page, so those platforms receive them from the first pageview of a visit.
 
 = 3.1.7 =
 * Rebrand: Plugin renamed from "Compliance by Hu-manity.co" to "Cookie Compliance for WordPress" — one product, of which this plugin is the WordPress half. The plugin's admin screens, and the name a screen reader announces for the banner, now read "Cookie Compliance" throughout. Your settings, connection, consent records and updates are unchanged; nothing to do. Renamed text may show in English until translations catch up.

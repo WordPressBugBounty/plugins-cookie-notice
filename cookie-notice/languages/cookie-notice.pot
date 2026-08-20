@@ -2,14 +2,14 @@
 # This file is distributed under the MIT License.
 msgid ""
 msgstr ""
-"Project-Id-Version: Cookie Compliance for WordPress – Cookie Consent, GDPR & CCPA 3.1.7\n"
-"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/cookie-notice-trunk\n"
+"Project-Id-Version: Cookie Compliance for WordPress – Cookie Consent, GDPR & CCPA 3.1.8\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/cookie-notice\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-08-18T18:43:33+00:00\n"
+"POT-Creation-Date: 2026-08-20T10:49:18+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: cookie-notice\n"
@@ -91,6 +91,8 @@ msgstr ""
 
 #: cookie-notice.php:1300
 #: includes/modules/wp-consent-api/wp-consent-api.php:229
+#: src/admin-react/components/Protection.jsx:261
+#: src/admin-react/components/shared/NotificationBar.jsx:60
 msgid "Dismiss"
 msgstr ""
 
@@ -99,6 +101,8 @@ msgid "Cookie Compliance - Deactivation survey"
 msgstr ""
 
 #: cookie-notice.php:1731
+#: src/admin-react/App.jsx:24
+#: src/admin-react/components/Settings.jsx:145
 msgid "Settings"
 msgstr ""
 
@@ -149,6 +153,8 @@ msgid "Other"
 msgstr ""
 
 #: cookie-notice.php:1797
+#: src/admin-react/components/modals/BannerWizardModal.jsx:45
+#: src/admin-react/components/modals/LawSelectorModal.jsx:72
 msgid "Cancel"
 msgstr ""
 
@@ -201,38 +207,52 @@ msgid "No cookie consent logs found."
 msgstr ""
 
 #: includes/consent-logs-list-table.php:42
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:138
+#: src/admin-react/components/protection/ScriptProtectionPanel.jsx:14
 msgid "Basic Operations"
 msgstr ""
 
 #: includes/consent-logs-list-table.php:45
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:104
+#: src/admin-react/components/protection/ScriptProtectionPanel.jsx:15
 msgid "Content Personalization"
 msgstr ""
 
 #: includes/consent-logs-list-table.php:48
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:105
+#: src/admin-react/components/protection/ScriptProtectionPanel.jsx:16
 msgid "Site Optimization"
 msgstr ""
 
 #: includes/consent-logs-list-table.php:51
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:106
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:149
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:448
+#: src/admin-react/components/protection/ScriptProtectionPanel.jsx:17
 msgid "Ad Personalization"
 msgstr ""
 
 #: includes/consent-logs-list-table.php:60
 #: includes/settings.php:244
+#: src/admin-react/components/settings/PluginSettings.jsx:17
 msgid "1 month"
 msgstr ""
 
 #: includes/consent-logs-list-table.php:62
 #: includes/settings.php:245
+#: src/admin-react/components/settings/PluginSettings.jsx:18
 msgid "3 months"
 msgstr ""
 
 #: includes/consent-logs-list-table.php:64
 #: includes/settings.php:246
+#: src/admin-react/components/settings/PluginSettings.jsx:19
 msgid "6 months"
 msgstr ""
 
 #: includes/consent-logs-list-table.php:66
 #: includes/settings.php:247
+#: src/admin-react/components/settings/PluginSettings.jsx:20
 msgid "1 year"
 msgstr ""
 
@@ -251,14 +271,19 @@ msgid "GMT"
 msgstr ""
 
 #: includes/consent-logs-list-table.php:106
+#: src/admin-react/components/audit/ConsentLogTable.jsx:21
+#: src/admin-react/components/AuditTrail.jsx:55
 msgid "Consent ID"
 msgstr ""
 
 #: includes/consent-logs-list-table.php:107
+#: src/admin-react/components/audit/ConsentLogTable.jsx:22
+#: src/admin-react/components/AuditTrail.jsx:56
 msgid "Consent Level"
 msgstr ""
 
 #: includes/consent-logs-list-table.php:108
+#: src/admin-react/components/audit/ConsentLogTable.jsx:23
 msgid "Categories"
 msgstr ""
 
@@ -298,6 +323,8 @@ msgstr ""
 #: includes/dashboard.php:114
 #: includes/settings.php:876
 #: includes/settings.php:898
+#: src/admin-react/components/Protection.jsx:126
+#: src/admin-react/components/shared/DomainInfoCard.jsx:105
 msgid "App ID"
 msgstr ""
 
@@ -306,6 +333,7 @@ msgid "not connected"
 msgstr ""
 
 #: includes/dashboard.php:119
+#: src/admin-react/components/shared/DomainInfoCard.jsx:97
 msgid "Plan"
 msgstr ""
 
@@ -377,6 +405,8 @@ msgstr ""
 
 #: includes/dashboard.php:578
 #: includes/settings.php:228
+#: src/admin-react/components/AuditTrail.jsx:40
+#: src/admin-react/components/settings/PluginSettings.jsx:324
 msgid "Banner"
 msgstr ""
 
@@ -396,6 +426,8 @@ msgstr ""
 #: includes/settings.php:1057
 #: includes/settings.php:1091
 #: includes/settings.php:1092
+#: src/admin-react/components/settings/BannerStyleSelector.jsx:173
+#: src/admin-react/components/shared/DomainInfoCard.jsx:91
 msgid "Active"
 msgstr ""
 
@@ -415,6 +447,8 @@ msgstr ""
 #: includes/dashboard.php:682
 #: includes/dashboard.php:684
 #: includes/dashboard.php:697
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:280
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:284
 msgid "Off"
 msgstr ""
 
@@ -441,6 +475,8 @@ msgstr ""
 
 #: includes/dashboard.php:606
 #: includes/dashboard.php:649
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:280
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:284
 msgid "On"
 msgstr ""
 
@@ -522,6 +558,7 @@ msgstr ""
 
 #: includes/dashboard.php:699
 #: includes/welcome.php:355
+#: src/admin-react/components/modals/welcome/ProtectionChooser.jsx:91
 msgid "Recommended"
 msgstr ""
 
@@ -575,6 +612,9 @@ msgstr ""
 #: includes/dashboard.php:966
 #: includes/dashboard.php:978
 #: includes/settings.php:352
+#: src/admin-react/data/portalSettings.js:24
+#: src/admin-react/data/portalSettings.js:31
+#: src/admin-react/data/portalSettings.js:38
 msgid "Compliance"
 msgstr ""
 
@@ -592,6 +632,18 @@ msgstr ""
 
 #: includes/modules/amp/amp.php:161
 msgid "Cookie Compliance AMP Consent"
+msgstr ""
+
+#: includes/modules/bestwebsoft-recaptcha/bestwebsoft-recaptcha.php:107
+msgid "Please accept cookies to use this form. It is protected by Google reCAPTCHA, which cannot load until you do."
+msgstr ""
+
+#: includes/modules/bestwebsoft-recaptcha/bestwebsoft-recaptcha.php:110
+msgid "Google reCAPTCHA has not loaded because it needs your consent. Please accept cookies to use this form."
+msgstr ""
+
+#: includes/modules/bestwebsoft-recaptcha/bestwebsoft-recaptcha.php:112
+msgid "Accept cookies to load Google reCAPTCHA."
 msgstr ""
 
 #: includes/modules/contact-form-7/privacy-consent.php:28
@@ -687,6 +739,8 @@ msgid "Fields"
 msgstr ""
 
 #: includes/privacy-consent-list-table.php:254
+#: src/admin-react/components/Protection.jsx:119
+#: src/admin-react/components/Settings.jsx:33
 msgid "Status"
 msgstr ""
 
@@ -839,22 +893,22 @@ msgid "Could not save: the settings payload could not be decoded. Please retry."
 msgstr ""
 
 #: includes/react-admin-ajax.php:1373
-#: includes/settings.php:3170
+#: includes/settings.php:3183
 msgid "Front Page"
 msgstr ""
 
 #: includes/react-admin-ajax.php:1374
-#: includes/settings.php:3171
+#: includes/settings.php:3184
 msgid "Home Page"
 msgstr ""
 
 #: includes/react-admin-ajax.php:1409
-#: includes/settings.php:3182
+#: includes/settings.php:3195
 msgid "Logged in"
 msgstr ""
 
 #: includes/react-admin-ajax.php:1410
-#: includes/settings.php:3183
+#: includes/settings.php:3196
 msgid "Guest"
 msgstr ""
 
@@ -918,25 +972,34 @@ msgid "is not equal to"
 msgstr ""
 
 #: includes/settings.php:200
+#: src/admin-react/components/settings/PluginSettings.jsx:486
 msgid "Hide the banner"
 msgstr ""
 
 #: includes/settings.php:201
+#: src/admin-react/components/settings/PluginSettings.jsx:487
 msgid "Show the banner"
 msgstr ""
 
 #: includes/settings.php:205
 #: includes/welcome.php:529
+#: src/admin-react/components/settings/BannerDesignForm.jsx:10
+#: src/admin-react/components/settings/BannerStyleSelector.jsx:9
+#: src/admin-react/components/settings/BannerStyleSelector.jsx:14
 msgid "Top"
 msgstr ""
 
 #: includes/settings.php:206
 #: includes/welcome.php:528
+#: src/admin-react/components/settings/BannerDesignForm.jsx:9
+#: src/admin-react/components/settings/BannerStyleSelector.jsx:10
+#: src/admin-react/components/settings/BannerStyleSelector.jsx:15
 msgid "Bottom"
 msgstr ""
 
 #: includes/settings.php:210
 #: includes/settings.php:253
+#: src/admin-react/components/settings/BannerDesignForm.jsx:16
 msgid "None"
 msgstr ""
 
@@ -949,23 +1012,28 @@ msgid "Dark"
 msgstr ""
 
 #: includes/settings.php:216
+#: src/admin-react/components/settings/PluginSettings.jsx:189
 msgid "Automatic"
 msgstr ""
 
 #: includes/settings.php:217
+#: src/admin-react/components/settings/PluginSettings.jsx:190
 msgid "Manual"
 msgstr ""
 
 #: includes/settings.php:221
+#: src/admin-react/components/settings/PluginSettings.jsx:279
 msgid "Page link"
 msgstr ""
 
 #: includes/settings.php:222
+#: src/admin-react/components/settings/PluginSettings.jsx:280
 msgid "Custom link"
 msgstr ""
 
 #: includes/settings.php:229
 #: includes/settings.php:903
+#: src/admin-react/components/settings/PluginSettings.jsx:325
 msgid "Message"
 msgstr ""
 
@@ -982,14 +1050,17 @@ msgid "Bar color"
 msgstr ""
 
 #: includes/settings.php:241
+#: src/admin-react/components/settings/PluginSettings.jsx:14
 msgid "An hour"
 msgstr ""
 
 #: includes/settings.php:242
+#: src/admin-react/components/settings/PluginSettings.jsx:15
 msgid "1 day"
 msgstr ""
 
 #: includes/settings.php:243
+#: src/admin-react/components/settings/PluginSettings.jsx:16
 msgid "1 week"
 msgstr ""
 
@@ -998,30 +1069,39 @@ msgid "infinity"
 msgstr ""
 
 #: includes/settings.php:254
+#: src/admin-react/components/settings/BannerDesignForm.jsx:14
 msgid "Fade"
 msgstr ""
 
 #: includes/settings.php:255
+#: src/admin-react/components/settings/BannerDesignForm.jsx:15
 msgid "Slide"
 msgstr ""
 
 #: includes/settings.php:259
+#: src/admin-react/components/settings/PluginSettings.jsx:466
 msgid "Header"
 msgstr ""
 
 #: includes/settings.php:260
+#: src/admin-react/components/settings/PluginSettings.jsx:467
 msgid "Footer"
 msgstr ""
 
 #: includes/settings.php:265
+#: src/admin-react/components/AuditTrail.jsx:26
 msgid "Private"
 msgstr ""
 
 #: includes/settings.php:266
+#: src/admin-react/components/AuditTrail.jsx:25
+#: src/admin-react/components/AuditTrail.jsx:28
 msgid "Balanced"
 msgstr ""
 
 #: includes/settings.php:267
+#: src/admin-react/components/AuditTrail.jsx:24
+#: src/admin-react/components/AuditTrail.jsx:27
 msgid "Personalized"
 msgstr ""
 
@@ -1038,6 +1118,7 @@ msgid "Platinum"
 msgstr ""
 
 #: includes/settings.php:275
+#: src/admin-react/components/settings/BannerDesignForm.jsx:80
 msgid "Reject All"
 msgstr ""
 
@@ -1046,6 +1127,7 @@ msgid "Accept Some"
 msgstr ""
 
 #: includes/settings.php:277
+#: src/admin-react/components/settings/BannerDesignForm.jsx:70
 msgid "Accept All"
 msgstr ""
 
@@ -1056,6 +1138,7 @@ msgstr ""
 #: includes/settings.php:283
 #: includes/settings.php:307
 #: includes/settings.php:905
+#: src/admin-react/components/settings/PluginSettings.jsx:272
 msgid "Privacy policy"
 msgstr ""
 
@@ -1100,6 +1183,7 @@ msgid "Ok"
 msgstr ""
 
 #: includes/settings.php:304
+#: src/admin-react/components/settings/PluginSettings.jsx:172
 msgid "No"
 msgstr ""
 
@@ -1109,6 +1193,8 @@ msgstr ""
 
 #: includes/settings.php:306
 #: includes/settings.php:907
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:98
+#: src/admin-react/components/settings/PluginSettings.jsx:198
 msgid "Revoke consent"
 msgstr ""
 
@@ -1285,6 +1371,7 @@ msgid "%sPriority%s Support"
 msgstr ""
 
 #: includes/settings.php:745
+#: src/admin-react/components/shared/SidebarUpsell.jsx:13
 msgid "Upgrade to Pro"
 msgstr ""
 
@@ -1359,6 +1446,7 @@ msgstr ""
 
 #: includes/settings.php:877
 #: includes/settings.php:899
+#: src/admin-react/components/shared/DomainInfoCard.jsx:112
 msgid "App Key"
 msgstr ""
 
@@ -1372,15 +1460,19 @@ msgstr ""
 #: includes/settings.php:1039
 #: includes/settings.php:1058
 #: includes/welcome.php:443
+#: src/admin-react/components/modals/PricingModal.jsx:11
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:51
 msgid "Autoblocking"
 msgstr ""
 
 #: includes/settings.php:882
+#: src/admin-react/components/settings/AdvancedSettings.jsx:23
 msgid "Excluded Script Handles"
 msgstr ""
 
 #: includes/settings.php:883
 #: includes/settings.php:1221
+#: src/admin-react/components/shared/DomainInfoCard.jsx:131
 msgid "Pull Configuration"
 msgstr ""
 
@@ -1394,6 +1486,7 @@ msgstr ""
 
 #: includes/settings.php:886
 #: includes/settings.php:1240
+#: src/admin-react/components/settings/PluginSettings.jsx:519
 msgid "Purge Cache"
 msgstr ""
 
@@ -1410,6 +1503,7 @@ msgid "AMP Support"
 msgstr ""
 
 #: includes/settings.php:890
+#: src/admin-react/components/settings/PluginSettings.jsx:432
 msgid "WP Consent API"
 msgstr ""
 
@@ -1451,18 +1545,22 @@ msgid "On click"
 msgstr ""
 
 #: includes/settings.php:914
+#: src/admin-react/components/settings/PluginSettings.jsx:242
 msgid "Accepted expiry"
 msgstr ""
 
 #: includes/settings.php:915
+#: src/admin-react/components/settings/PluginSettings.jsx:249
 msgid "Rejected expiry"
 msgstr ""
 
 #: includes/settings.php:916
+#: src/admin-react/components/settings/PluginSettings.jsx:473
 msgid "Conditional display"
 msgstr ""
 
 #: includes/settings.php:917
+#: src/admin-react/components/settings/PluginSettings.jsx:462
 msgid "Script placement"
 msgstr ""
 
@@ -1553,15 +1651,19 @@ msgid "This option has been temporarily disabled because your website has reache
 msgstr ""
 
 #: includes/settings.php:1188
+#: src/admin-react/components/settings/AdvancedSettings.jsx:34
 msgid "Enter WordPress script handles to exclude from autoblocking, one per line. These scripts will be marked as Essential (Category 1) so they are never blocked."
 msgstr ""
 
+#. translators: %s: UTC timestamp of the last successful sync.
 #: includes/settings.php:1210
-#, php-format
+#: src/admin-react/components/shared/DomainInfoCard.jsx:137
+#, php-format,js-format
 msgid "Last synced (UTC): %s"
 msgstr ""
 
 #: includes/settings.php:1210
+#: src/admin-react/components/shared/DomainInfoCard.jsx:140
 msgid "Not synced yet"
 msgstr ""
 
@@ -1642,10 +1744,12 @@ msgid "The text of the button to refuse the consent."
 msgstr ""
 
 #: includes/settings.php:1446
+#: src/admin-react/components/settings/PluginSettings.jsx:341
 msgid "Head"
 msgstr ""
 
 #: includes/settings.php:1447
+#: src/admin-react/components/settings/PluginSettings.jsx:348
 msgid "Body"
 msgstr ""
 
@@ -1663,6 +1767,7 @@ msgstr ""
 
 #: includes/settings.php:1483
 #: includes/settings.php:1487
+#: src/admin-react/components/shared/DomainInfoCard.jsx:99
 msgid "Pro"
 msgstr ""
 
@@ -1792,27 +1897,27 @@ msgstr ""
 msgid "Are you sure you want to reset these settings to defaults?"
 msgstr ""
 
-#: includes/settings.php:2849
+#: includes/settings.php:2862
 msgid "or"
 msgstr ""
 
-#: includes/settings.php:2916
+#: includes/settings.php:2929
 msgid "+ Add rule"
 msgstr ""
 
-#: includes/settings.php:2917
+#: includes/settings.php:2930
 msgid "Create a set of rules to define the exact conditions for displaying or hiding the banner."
 msgstr ""
 
-#: includes/settings.php:3023
+#: includes/settings.php:3036
 msgid "-- no public archives --"
 msgstr ""
 
-#: includes/settings.php:3042
+#: includes/settings.php:3055
 msgid "-- no public terms --"
 msgstr ""
 
-#: includes/settings.php:3156
+#: includes/settings.php:3169
 #, php-format
 msgid "Untitled Page %d"
 msgstr ""
@@ -1884,6 +1989,7 @@ msgid "The password contains illegal characters or does not meet the conditions.
 msgstr ""
 
 #: includes/welcome-api.php:412
+#: src/admin-react/components/modals/welcome/AccountSetup.jsx:40
 msgid "Passwords do not match."
 msgstr ""
 
@@ -1974,6 +2080,7 @@ msgid "Monthly"
 msgstr ""
 
 #: includes/welcome.php:322
+#: src/admin-react/components/modals/welcome/ProPricingDetail.jsx:59
 msgid "Yearly"
 msgstr ""
 
@@ -2123,6 +2230,8 @@ msgid "Select the laws that apply to your business"
 msgstr ""
 
 #: includes/welcome.php:491
+#: src/admin-react/components/audit/ComplianceEvidence.jsx:167
+#: src/admin-react/data/laws.js:16
 msgid "GDPR"
 msgstr ""
 
@@ -2131,6 +2240,7 @@ msgid "European Union and Switzerland"
 msgstr ""
 
 #: includes/welcome.php:492
+#: src/admin-react/components/audit/ComplianceEvidence.jsx:168
 msgid "CCPA"
 msgstr ""
 
@@ -2151,34 +2261,42 @@ msgid "Virginia, Colorado, Connecticut, Utah, etc."
 msgstr ""
 
 #: includes/welcome.php:494
+#: src/admin-react/data/laws.js:79
 msgid "UK PECR"
 msgstr ""
 
 #: includes/welcome.php:494
+#: src/admin-react/data/laws.js:80
 msgid "United Kingdom"
 msgstr ""
 
 #: includes/welcome.php:495
+#: src/admin-react/data/laws.js:99
 msgid "LGPD"
 msgstr ""
 
 #: includes/welcome.php:495
+#: src/admin-react/data/laws.js:100
 msgid "Brazil"
 msgstr ""
 
 #: includes/welcome.php:496
+#: src/admin-react/data/laws.js:119
 msgid "PIPEDA"
 msgstr ""
 
 #: includes/welcome.php:496
+#: src/admin-react/data/laws.js:120
 msgid "Canada"
 msgstr ""
 
 #: includes/welcome.php:497
+#: src/admin-react/data/laws.js:139
 msgid "POPIA"
 msgstr ""
 
 #: includes/welcome.php:497
+#: src/admin-react/data/laws.js:140
 msgid "South Africa"
 msgstr ""
 
@@ -2219,6 +2337,7 @@ msgid "Revoke Consent"
 msgstr ""
 
 #: includes/welcome.php:522
+#: src/admin-react/components/settings/BannerDesignForm.jsx:47
 msgid "Banner Design"
 msgstr ""
 
@@ -2227,10 +2346,12 @@ msgid "Select your preferred display position"
 msgstr ""
 
 #: includes/welcome.php:530
+#: src/admin-react/components/settings/BannerStyleSelector.jsx:16
 msgid "Left"
 msgstr ""
 
 #: includes/welcome.php:531
+#: src/admin-react/components/settings/BannerStyleSelector.jsx:17
 msgid "Right"
 msgstr ""
 
@@ -2279,20 +2400,27 @@ msgid "Create a Cookie Compliance account and select your preferred plan."
 msgstr ""
 
 #: includes/welcome.php:575
+#: src/admin-react/components/modals/welcome/AccountSetup.jsx:199
+#: src/admin-react/components/modals/WelcomeModal.jsx:15
 msgid "Create Account"
 msgstr ""
 
 #: includes/welcome.php:580
 #: includes/welcome.php:689
+#: src/admin-react/components/modals/welcome/AccountSetup.jsx:152
+#: src/admin-react/components/modals/welcome/AccountSetup.jsx:229
 msgid "Email address"
 msgstr ""
 
 #: includes/welcome.php:583
 #: includes/welcome.php:692
+#: src/admin-react/components/modals/welcome/AccountSetup.jsx:160
+#: src/admin-react/components/modals/welcome/AccountSetup.jsx:241
 msgid "Password"
 msgstr ""
 
 #: includes/welcome.php:587
+#: src/admin-react/components/modals/welcome/AccountSetup.jsx:173
 msgid "Confirm Password"
 msgstr ""
 
@@ -2306,6 +2434,8 @@ msgid "Sign Up"
 msgstr ""
 
 #: includes/welcome.php:609
+#: src/admin-react/components/modals/welcome/AccountSetup.jsx:207
+#: src/admin-react/components/Protection.jsx:141
 msgid "Already have an account?"
 msgstr ""
 
@@ -2316,6 +2446,8 @@ msgstr ""
 
 #: includes/welcome.php:616
 #: includes/welcome.php:714
+#: src/admin-react/components/modals/PricingModal.jsx:190
+#: src/admin-react/components/modals/welcome/ProPricingDetail.jsx:98
 msgid "Select Plan"
 msgstr ""
 
@@ -2328,6 +2460,7 @@ msgstr ""
 #: includes/welcome.php:627
 #: includes/welcome.php:728
 #: includes/welcome.php:767
+#: src/admin-react/components/modals/WelcomeModal.jsx:14
 msgid "Confirm"
 msgstr ""
 
@@ -2348,6 +2481,7 @@ msgstr ""
 
 #: includes/welcome.php:641
 #: includes/welcome.php:742
+#: src/admin-react/components/modals/welcome/PaymentStep.jsx:270
 msgid "Card Number"
 msgstr ""
 
@@ -2409,4 +2543,2562 @@ msgstr ""
 #: includes/welcome.php:788
 #, php-format
 msgid "Go to Cookie Compliance now. Or access it anytime from your %sCompliance settings page%s."
+msgstr ""
+
+#: src/admin-react/App.jsx:23
+#: src/admin-react/components/shared/DomainInfoCard.jsx:88
+msgid "Protection"
+msgstr ""
+
+#: src/admin-react/App.jsx:25
+#: src/admin-react/components/AuditTrail.jsx:170
+#: src/admin-react/components/AuditTrail.jsx:205
+#: src/admin-react/components/AuditTrail.jsx:220
+msgid "Audit Trail"
+msgstr ""
+
+#: src/admin-react/components/audit/ComplianceEvidence.jsx:85
+msgid "Consent banner active on all pages"
+msgstr ""
+
+#: src/admin-react/components/audit/ComplianceEvidence.jsx:90
+msgid "Cookie categories clearly defined"
+msgstr ""
+
+#: src/admin-react/components/audit/ComplianceEvidence.jsx:92
+msgid "Cookie categories — some trackers still uncategorized"
+msgstr ""
+
+#: src/admin-react/components/audit/ComplianceEvidence.jsx:93
+msgid "Cookie categories — run a script scan to assess"
+msgstr ""
+
+#: src/admin-react/components/audit/ComplianceEvidence.jsx:97
+msgid "Data retention policy — verify in Admin Portal"
+msgstr ""
+
+#: src/admin-react/components/audit/ComplianceEvidence.jsx:101
+msgid "DPO contact details — verify in Admin Portal"
+msgstr ""
+
+#: src/admin-react/components/audit/ComplianceEvidence.jsx:120
+msgid "Opt-out mechanism functional"
+msgstr ""
+
+#: src/admin-react/components/audit/ComplianceEvidence.jsx:124
+msgid "Privacy policy link in banner — verify in Admin Portal"
+msgstr ""
+
+#: src/admin-react/components/audit/ComplianceEvidence.jsx:128
+msgid "Consumer rights request handling — verify in Admin Portal"
+msgstr ""
+
+#: src/admin-react/components/audit/ComplianceEvidence.jsx:157
+msgid "Cookie lifetime disclosure — verify in Admin Portal"
+msgstr ""
+
+#: src/admin-react/components/audit/ComplianceEvidence.jsx:161
+msgid "Legitimate interest assessment — verify in Admin Portal"
+msgstr ""
+
+#: src/admin-react/components/audit/ComplianceEvidence.jsx:169
+msgid "ePrivacy"
+msgstr ""
+
+#: src/admin-react/components/audit/ConsentLogTable.jsx:24
+#: src/admin-react/components/AuditTrail.jsx:57
+msgid "Date / Time"
+msgstr ""
+
+#: src/admin-react/components/audit/ConsentLogTable.jsx:25
+#: src/admin-react/components/AuditTrail.jsx:58
+msgid "IP Address"
+msgstr ""
+
+#: src/admin-react/components/audit/ConsentLogTable.jsx:89
+msgid "Failed to load consent logs."
+msgstr ""
+
+#: src/admin-react/components/audit/ConsentLogTable.jsx:146
+msgid "No consent records found for selected date range."
+msgstr ""
+
+#: src/admin-react/components/audit/ConsentStats.jsx:5
+msgid "Accept"
+msgstr ""
+
+#: src/admin-react/components/audit/ConsentStats.jsx:6
+msgid "Custom"
+msgstr ""
+
+#: src/admin-react/components/audit/ConsentStats.jsx:7
+msgid "Reject"
+msgstr ""
+
+#: src/admin-react/components/audit/ConsentStats.jsx:11
+#: src/admin-react/components/audit/ConsentStats.jsx:17
+msgid "Total Consents"
+msgstr ""
+
+#: src/admin-react/components/audit/EmptyStateHero.jsx:18
+msgid "No Compliance Records"
+msgstr ""
+
+#: src/admin-react/components/audit/EmptyStateHero.jsx:20
+msgid "Connect to Cookie Compliance to start collecting consent proofs, audit logs, and compliance evidence."
+msgstr ""
+
+#: src/admin-react/components/audit/EmptyStateHero.jsx:22
+#: src/admin-react/components/AuditTrail.jsx:185
+msgid "Activate Protection"
+msgstr ""
+
+#: src/admin-react/components/audit/EmptyStateHero.jsx:23
+msgid "Connect your site · Free · Takes 60 seconds"
+msgstr ""
+
+#: src/admin-react/components/audit/ExportSection.jsx:24
+msgid "Upgrade to Pro to export consent logs as CSV."
+msgstr ""
+
+#: src/admin-react/components/audit/ExportSection.jsx:26
+#: src/admin-react/components/audit/ExportSection.jsx:35
+msgid "Export Consent Log"
+msgstr ""
+
+#: src/admin-react/components/audit/ExportSection.jsx:27
+msgid "Export CSV"
+msgstr ""
+
+#: src/admin-react/components/AuditTrail.jsx:32
+msgid "Position changed to Bottom"
+msgstr ""
+
+#: src/admin-react/components/AuditTrail.jsx:33
+msgid "GDPR regulation enabled"
+msgstr ""
+
+#: src/admin-react/components/AuditTrail.jsx:34
+msgid "3 new scripts detected & categorized"
+msgstr ""
+
+#: src/admin-react/components/AuditTrail.jsx:35
+msgid "Google Consent Mode v2 activated"
+msgstr ""
+
+#: src/admin-react/components/AuditTrail.jsx:41
+msgid "Setting"
+msgstr ""
+
+#: src/admin-react/components/AuditTrail.jsx:42
+msgid "Scan"
+msgstr ""
+
+#: src/admin-react/components/AuditTrail.jsx:49
+msgid "Cookie Consent Log"
+msgstr ""
+
+#: src/admin-react/components/AuditTrail.jsx:50
+msgid "3,241 total records — showing 1–5"
+msgstr ""
+
+#: src/admin-react/components/AuditTrail.jsx:80
+msgid "Config Change History"
+msgstr ""
+
+#: src/admin-react/components/AuditTrail.jsx:81
+msgid "Last 30 days"
+msgstr ""
+
+#: src/admin-react/components/AuditTrail.jsx:110
+#: src/admin-react/components/Settings.jsx:41
+msgid "Why Connect?"
+msgstr ""
+
+#: src/admin-react/components/AuditTrail.jsx:113
+msgid "Timestamped consent proofs for every visitor interaction"
+msgstr ""
+
+#: src/admin-react/components/AuditTrail.jsx:114
+msgid "Searchable audit log for GDPR and CCPA regulators"
+msgstr ""
+
+#: src/admin-react/components/AuditTrail.jsx:115
+msgid "Config change history — who changed what and when"
+msgstr ""
+
+#: src/admin-react/components/AuditTrail.jsx:116
+msgid "Exportable compliance evidence in one click"
+msgstr ""
+
+#: src/admin-react/components/AuditTrail.jsx:117
+msgid "Prove compliance if you ever face a regulatory inquiry"
+msgstr ""
+
+#: src/admin-react/components/AuditTrail.jsx:137
+msgid "Data Retention"
+msgstr ""
+
+#: src/admin-react/components/AuditTrail.jsx:140
+msgid "Unlimited retention"
+msgstr ""
+
+#: src/admin-react/components/AuditTrail.jsx:140
+msgid "7-day retention"
+msgstr ""
+
+#: src/admin-react/components/AuditTrail.jsx:143
+msgid "Pro plan"
+msgstr ""
+
+#: src/admin-react/components/AuditTrail.jsx:143
+msgid "Free plan"
+msgstr ""
+
+#: src/admin-react/components/AuditTrail.jsx:148
+msgid "Upgrade to Pro for unlimited history."
+msgstr ""
+
+#: src/admin-react/components/AuditTrail.jsx:153
+msgid "Export"
+msgstr ""
+
+#: src/admin-react/components/AuditTrail.jsx:171
+msgid "Consent logs, compliance evidence, and configuration history."
+msgstr ""
+
+#: src/admin-react/components/AuditTrail.jsx:181
+msgid "Full Compliance Audit Trail"
+msgstr ""
+
+#: src/admin-react/components/AuditTrail.jsx:183
+msgid "Consent logs, config timeline, compliance evidence & more"
+msgstr ""
+
+#: src/admin-react/components/AuditTrail.jsx:206
+msgid "Consent logs and compliance evidence for your site."
+msgstr ""
+
+#: src/admin-react/components/AuditTrail.jsx:210
+#: src/admin-react/components/AuditTrail.jsx:225
+msgid "Compliance Evidence"
+msgstr ""
+
+#: src/admin-react/components/AuditTrail.jsx:221
+msgid "Full consent log history, compliance evidence, and configuration timeline."
+msgstr ""
+
+#: src/admin-react/components/modals/BannerWizardModal.jsx:37
+msgid "Banner Template"
+msgstr ""
+
+#: src/admin-react/components/modals/BannerWizardModal.jsx:41
+msgid "Your banner is currently configured in the Admin Portal."
+msgstr ""
+
+#: src/admin-react/components/modals/BannerWizardModal.jsx:42
+msgid "Applying this template will override your custom design."
+msgstr ""
+
+#: src/admin-react/components/modals/BannerWizardModal.jsx:46
+msgid "Apply Template"
+msgstr ""
+
+#: src/admin-react/components/modals/BannerWizardModal.jsx:54
+msgid "Template applied — your banner is live."
+msgstr ""
+
+#: src/admin-react/components/modals/BannerWizardModal.jsx:55
+msgid "Customize text, colors, and advanced design in the Admin Portal."
+msgstr ""
+
+#: src/admin-react/components/modals/BannerWizardModal.jsx:56
+#: src/admin-react/components/modals/LawSelectorModal.jsx:60
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:1001
+msgid "Done"
+msgstr ""
+
+#: src/admin-react/components/modals/LawSelectorModal.jsx:56
+#: src/admin-react/components/modals/LawSelectorModal.jsx:81
+msgid "Privacy Laws"
+msgstr ""
+
+#: src/admin-react/components/modals/LawSelectorModal.jsx:59
+msgid "Laws updated"
+msgstr ""
+
+#: src/admin-react/components/modals/LawSelectorModal.jsx:89
+msgid "Selecting laws here sets your baseline. To see how the banner behaves for visitors in each region — and to review the full per-region rules — open the Admin Portal."
+msgstr ""
+
+#. translators: %s: name of the setting being configured.
+#: src/admin-react/components/modals/PortalBridgeModal.jsx:61
+#, js-format
+msgid "Configure %s in Admin Portal"
+msgstr ""
+
+#: src/admin-react/components/modals/PortalBridgeModal.jsx:72
+msgid "Takes about 60 seconds"
+msgstr ""
+
+#: src/admin-react/components/modals/PortalBridgeModal.jsx:96
+msgid "Open the Admin Portal"
+msgstr ""
+
+#: src/admin-react/components/modals/PortalBridgeModal.jsx:97
+msgid "Opens in a new tab."
+msgstr ""
+
+#: src/admin-react/components/modals/PortalBridgeModal.jsx:103
+msgid "Navigate to the setting"
+msgstr ""
+
+#: src/admin-react/components/modals/PortalBridgeModal.jsx:112
+msgid "Make the change"
+msgstr ""
+
+#: src/admin-react/components/modals/PortalBridgeModal.jsx:146
+msgid "Not now"
+msgstr ""
+
+#: src/admin-react/components/modals/PricingModal.jsx:11
+msgid "Scripts wait for visitor consent before firing."
+msgstr ""
+
+#: src/admin-react/components/modals/PricingModal.jsx:12
+msgid "Geographic Enforcement"
+msgstr ""
+
+#: src/admin-react/components/modals/PricingModal.jsx:12
+msgid "Apply different rules by visitor location."
+msgstr ""
+
+#: src/admin-react/components/modals/PricingModal.jsx:13
+msgid "Consent Proofs"
+msgstr ""
+
+#: src/admin-react/components/modals/PricingModal.jsx:13
+msgid "Exportable audit trail for every consent event."
+msgstr ""
+
+#: src/admin-react/components/modals/PricingModal.jsx:14
+#: src/admin-react/components/modals/welcome/ProtectionChooser.jsx:185
+msgid "Priority Support"
+msgstr ""
+
+#: src/admin-react/components/modals/PricingModal.jsx:14
+msgid "Fast, expert help when you need it."
+msgstr ""
+
+#: src/admin-react/components/modals/PricingModal.jsx:15
+msgid "Advanced Analytics"
+msgstr ""
+
+#: src/admin-react/components/modals/PricingModal.jsx:15
+msgid "Consent rates, geography, and trend data."
+msgstr ""
+
+#: src/admin-react/components/modals/PricingModal.jsx:16
+msgid "Script Wizard"
+msgstr ""
+
+#: src/admin-react/components/modals/PricingModal.jsx:16
+msgid "Register and manage third-party scripts easily."
+msgstr ""
+
+#: src/admin-react/components/modals/PricingModal.jsx:22
+msgid "Best for dev + staging + production"
+msgstr ""
+
+#: src/admin-react/components/modals/PricingModal.jsx:23
+msgid "For agencies & multi-site networks"
+msgstr ""
+
+#: src/admin-react/components/modals/PricingModal.jsx:139
+#: src/admin-react/components/modals/welcome/ProPricingDetail.jsx:59
+msgid "Save 17%"
+msgstr ""
+
+#: src/admin-react/components/modals/PricingModal.jsx:155
+#: src/admin-react/components/modals/welcome/ProPricingDetail.jsx:70
+msgid "Most Popular"
+msgstr ""
+
+#: src/admin-react/components/modals/PricingModal.jsx:190
+msgid "Get Started"
+msgstr ""
+
+#: src/admin-react/components/modals/PricingModal.jsx:198
+msgid "Prefer more options?"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/AccountSetup.jsx:33
+msgid "Email is required."
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/AccountSetup.jsx:35
+msgid "Please enter a valid email address."
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/AccountSetup.jsx:37
+#: src/admin-react/components/modals/welcome/AccountSetup.jsx:43
+msgid "Password is required."
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/AccountSetup.jsx:41
+msgid "Please accept the Terms of Service to continue."
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/AccountSetup.jsx:93
+msgid "Something went wrong. Please try again."
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/AccountSetup.jsx:103
+msgid "Create your account"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/AccountSetup.jsx:103
+msgid "Welcome back"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/AccountSetup.jsx:107
+msgid "Takes 30 seconds. No credit card required."
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/AccountSetup.jsx:108
+msgid "Log in to connect your existing Cookie Compliance account."
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/AccountSetup.jsx:131
+msgid "An account with this email already exists."
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/AccountSetup.jsx:141
+msgid "Sign in instead"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/AccountSetup.jsx:156
+#: src/admin-react/components/modals/welcome/AccountSetup.jsx:234
+msgid "you@company.com"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/AccountSetup.jsx:164
+msgid "Min. 8 characters, 1 capital, 1 number"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/AccountSetup.jsx:177
+msgid "Confirm password"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/AccountSetup.jsx:199
+msgid "Creating account…"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/AccountSetup.jsx:204
+msgid "OR"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/AccountSetup.jsx:213
+#: src/admin-react/components/modals/welcome/AccountSetup.jsx:260
+msgid "Sign In"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/AccountSetup.jsx:246
+msgid "Your password"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/AccountSetup.jsx:251
+msgid "Forgot password?"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/AccountSetup.jsx:260
+msgid "Logging in…"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/LiabilityWarning.jsx:12
+msgid "Consent records — no proof if a regulator asks"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/LiabilityWarning.jsx:13
+msgid "Cookie autoblocking — scripts fire before consent"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/LiabilityWarning.jsx:14
+msgid "Audit trail — no evidence if investigated"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/LiabilityWarning.jsx:15
+msgid "Google Consent Mode — EU ads may be flagged"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/LiabilityWarning.jsx:25
+msgid "Are you sure?"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/LiabilityWarning.jsx:27
+msgid "Without Cookie Compliance, all liability falls on you."
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/LiabilityWarning.jsx:31
+msgid "You won’t have:"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/LiabilityWarning.jsx:49
+msgid "I understand all liability falls on me and my business."
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/LiabilityWarning.jsx:60
+msgid "Don’t protect my business"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/LiabilityWarning.jsx:67
+msgid "Protect my business"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/LicenseSelectStep.jsx:86
+msgid "Good news — your account already has a Pro plan with available slots. Activate it here, free."
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/LicenseSelectStep.jsx:89
+msgid "You have unused Pro license slots available. Connect this site to your existing plan at no extra cost — or continue with the free version."
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/LicenseSelectStep.jsx:116
+#: src/admin-react/components/modals/welcome/LicenseSelectStep.jsx:168
+#: src/admin-react/components/modals/welcome/LicenseSelectStep.jsx:202
+msgid "Compliance Pro"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/LicenseSelectStep.jsx:150
+msgid "Continue with free version instead"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/LicenseSelectStep.jsx:160
+msgid "You have unused Pro licenses — do you want to use one for this domain?"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/LicenseSelectStep.jsx:163
+msgid "Your existing plan covers this site. We’ll connect it now — no payment needed."
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/LicenseSelectStep.jsx:177
+msgid "You have multiple plans with available sites. Choose one to connect this site to:"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/LicenseSelectStep.jsx:242
+msgid "Need a different plan? Purchase a new subscription instead"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/PaymentStep.jsx:54
+msgid "Secure payment requires HTTPS. Please contact your host."
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/PaymentStep.jsx:65
+#: src/admin-react/components/modals/welcome/PaymentStep.jsx:77
+msgid "Payment currently unavailable. Please try again later."
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/PaymentStep.jsx:106
+#: src/admin-react/components/modals/welcome/PaymentStep.jsx:118
+#: src/admin-react/components/modals/welcome/PaymentStep.jsx:170
+msgid "Unable to initialize payment. Please refresh and try again."
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/PaymentStep.jsx:211
+msgid "Payment failed. Please try again."
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/PaymentStep.jsx:217
+msgid "Card error. Please check your details and try again."
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/PaymentStep.jsx:230
+msgid "Complete Your Order"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/PaymentStep.jsx:245
+msgid "Initializing secure payment form…"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/PaymentStep.jsx:264
+msgid "Name on card"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/PaymentStep.jsx:276
+msgid "Expiry"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/PaymentStep.jsx:294
+msgid "Processing…"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/PaymentStep.jsx:294
+msgid "Complete Purchase"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/ProPricingDetail.jsx:30
+msgid "Cookie Compliance — Professional"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/ProPricingDetail.jsx:37
+msgid "Everything in Free, plus:"
+msgstr ""
+
+#. translators: %s: price per domain, already formatted, e.g. $4.00.
+#: src/admin-react/components/modals/welcome/ProPricingDetail.jsx:88
+#, js-format
+msgid "%s per domain"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/ProPricingDetail.jsx:104
+msgid "30-day money-back guarantee on all plans"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/ProPricingDetail.jsx:106
+msgid "Billed annually. Cancel anytime."
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/ProPricingDetail.jsx:109
+msgid "Terms of Service"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/ProPricingDetail.jsx:111
+#: src/admin-react/components/settings/PluginSettings.jsx:260
+#: src/admin-react/components/shared/Footer.jsx:107
+msgid "Privacy Policy"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/ProPricingDetail.jsx:119
+msgid "Maybe later — stay on free"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/ProtectionChooser.jsx:22
+msgid "Choose your protection level"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/ProtectionChooser.jsx:27
+#: src/admin-react/components/Protection.jsx:278
+msgid "Google tools detected."
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/ProtectionChooser.jsx:28
+msgid "Make sure Google Consent Mode is configured during setup."
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/ProtectionChooser.jsx:37
+#: src/admin-react/components/modals/welcome/ProtectionChooser.jsx:49
+msgid "Banner Only"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/ProtectionChooser.jsx:42
+msgid "I just want a banner"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/ProtectionChooser.jsx:44
+msgid "Display-only notice, no compliance features"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/ProtectionChooser.jsx:51
+msgid "Does not meet GDPR requirements"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/ProtectionChooser.jsx:57
+msgid "Cookie notice banner"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/ProtectionChooser.jsx:61
+msgid "Accept / Reject buttons"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/ProtectionChooser.jsx:65
+msgid "Custom colors & text"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/ProtectionChooser.jsx:69
+msgid "No consent records"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/ProtectionChooser.jsx:73
+msgid "No script blocking"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/ProtectionChooser.jsx:83
+msgid "Just the Banner"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/ProtectionChooser.jsx:96
+msgid "For small sites"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/ProtectionChooser.jsx:98
+msgid "Essential compliance, no credit card required"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/ProtectionChooser.jsx:103
+msgid "Sign Up Free"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/ProtectionChooser.jsx:105
+msgid "Up to 1,000 visits / month"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/ProtectionChooser.jsx:111
+msgid "Best for sites without ads"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/ProtectionChooser.jsx:119
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:44
+msgid "Global Privacy Control"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/ProtectionChooser.jsx:123
+msgid "Tracker blocking"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/ProtectionChooser.jsx:127
+msgid "Standard Support"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/ProtectionChooser.jsx:137
+msgid "Protect My Business"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/ProtectionChooser.jsx:145
+msgid "Full Compliance"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/ProtectionChooser.jsx:150
+msgid "Ensure full compliance"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/ProtectionChooser.jsx:152
+msgid "Full coverage for EU, US & growing businesses"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/ProtectionChooser.jsx:159
+msgid "Unlimited visitors protected"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/ProtectionChooser.jsx:165
+msgid "Best for sites with analytics"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/ProtectionChooser.jsx:169
+msgid "Google, Facebook & Microsoft Consent Modes"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/ProtectionChooser.jsx:173
+msgid "Geolocation rules — show right banner by country"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/ProtectionChooser.jsx:177
+msgid "Lifetime audit trail & consent records"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/ProtectionChooser.jsx:181
+msgid "Advanced autoblocking + script categorization"
+msgstr ""
+
+#: src/admin-react/components/modals/welcome/ProtectionChooser.jsx:195
+msgid "Ensure Full Compliance"
+msgstr ""
+
+#: src/admin-react/components/modals/WelcomeModal.jsx:13
+msgid "Choose Protection"
+msgstr ""
+
+#: src/admin-react/components/Protection.jsx:77
+#: src/admin-react/components/shared/DomainInfoCard.jsx:75
+msgid "Save failed"
+msgstr ""
+
+#: src/admin-react/components/Protection.jsx:112
+#: src/admin-react/components/Settings.jsx:26
+#: src/admin-react/components/shared/DomainInfoCard.jsx:81
+msgid "Domain Info"
+msgstr ""
+
+#: src/admin-react/components/Protection.jsx:115
+#: src/admin-react/components/Settings.jsx:29
+#: src/admin-react/components/shared/DomainInfoCard.jsx:84
+msgid "Domain"
+msgstr ""
+
+#: src/admin-react/components/Protection.jsx:121
+#: src/admin-react/components/Settings.jsx:35
+#: src/admin-react/components/shared/DomainInfoCard.jsx:92
+msgid "Not Connected"
+msgstr ""
+
+#: src/admin-react/components/Protection.jsx:129
+#: src/admin-react/components/shared/DomainInfoCard.jsx:108
+msgid "Your application ID"
+msgstr ""
+
+#: src/admin-react/components/Protection.jsx:133
+msgid "Secret Key"
+msgstr ""
+
+#: src/admin-react/components/Protection.jsx:137
+#: src/admin-react/components/shared/DomainInfoCard.jsx:116
+msgid "Your application key"
+msgstr ""
+
+#: src/admin-react/components/Protection.jsx:143
+msgid "Find your App ID and Secret Key at app.hu-manity.co"
+msgstr ""
+
+#: src/admin-react/components/Protection.jsx:148
+#: src/admin-react/components/settings/PluginSettings.jsx:531
+#: src/admin-react/components/shared/DomainInfoCard.jsx:121
+msgid "Saving…"
+msgstr ""
+
+#: src/admin-react/components/Protection.jsx:148
+#: src/admin-react/components/Settings.jsx:70
+msgid "Connect Your Site"
+msgstr ""
+
+#: src/admin-react/components/Protection.jsx:151
+msgid "What you get with compliance"
+msgstr ""
+
+#: src/admin-react/components/Protection.jsx:155
+msgid "Stop tracking scripts from firing before visitors agree"
+msgstr ""
+
+#: src/admin-react/components/Protection.jsx:159
+msgid "Build a legal evidence trail regulators can verify"
+msgstr ""
+
+#: src/admin-react/components/Protection.jsx:163
+msgid "Cover GDPR, CCPA, and 40+ global regulations automatically"
+msgstr ""
+
+#: src/admin-react/components/Protection.jsx:167
+msgid "Real compliance in under 60 seconds — free to start"
+msgstr ""
+
+#: src/admin-react/components/Protection.jsx:176
+msgid "Set up compliance"
+msgstr ""
+
+#: src/admin-react/components/Protection.jsx:178
+msgid "No credit card required"
+msgstr ""
+
+#: src/admin-react/components/Protection.jsx:186
+msgid "Script blocking, consent records, regulatory alerts & more"
+msgstr ""
+
+#: src/admin-react/components/Protection.jsx:217
+msgid "banner template"
+msgstr ""
+
+#: src/admin-react/components/Protection.jsx:218
+msgid "laws"
+msgstr ""
+
+#. translators: %d: number of trackers that have not been categorised yet.
+#: src/admin-react/components/Protection.jsx:222
+#, js-format
+msgid "%d uncategorized tracker"
+msgid_plural "%d uncategorized trackers"
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/admin-react/components/Protection.jsx:227
+msgid "Google Consent Mode review"
+msgstr ""
+
+#: src/admin-react/components/Protection.jsx:251
+msgid "Your banner is live."
+msgstr ""
+
+#: src/admin-react/components/Protection.jsx:252
+msgid "Visitors will now see your selected template and your chosen laws/languages are active."
+msgstr ""
+
+#: src/admin-react/components/Protection.jsx:257
+msgid "Preview your live banner"
+msgstr ""
+
+#: src/admin-react/components/Protection.jsx:270
+msgid "Still missing:"
+msgstr ""
+
+#: src/admin-react/components/Protection.jsx:279
+msgid "Review Google Consent Mode before you consider setup complete."
+msgstr ""
+
+#: src/admin-react/components/Protection.jsx:282
+msgid "Review consent modes"
+msgstr ""
+
+#: src/admin-react/components/protection/ComplianceGradeHero.jsx:19
+msgid "You have a banner. Not compliance."
+msgstr ""
+
+#: src/admin-react/components/protection/ComplianceGradeHero.jsx:20
+msgid "A banner tells visitors about cookies. Compliance actually enforces the law."
+msgstr ""
+
+#: src/admin-react/components/protection/ComplianceGradeHero.jsx:21
+msgid "Free · Takes 60 seconds · No credit card"
+msgstr ""
+
+#: src/admin-react/components/protection/ComplianceGradeHero.jsx:29
+msgid "Activate Compliance"
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:20
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:472
+msgid "Google Consent Mode v2"
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:24
+msgid "Required for GDPR compliance if you use Google Analytics, Google Ads, or Tag Manager"
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:28
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:29
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:543
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:552
+msgid "Facebook"
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:32
+msgid "Required if you run Facebook Ads — stops Meta Pixel from firing before visitors agree"
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:36
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:37
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:591
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:600
+msgid "Microsoft"
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:40
+msgid "Required if you use Microsoft Ads or Clarity — keeps Bing and analytics trackers compliant"
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:48
+msgid "Honors visitors who’ve told their browser they don’t want to be tracked — required in California"
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:52
+msgid "Do Not Track"
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:56
+msgid "Honors the legacy ‘Do Not Track’ browser setting — good practice, not legally required"
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:64
+msgid "Show passive notice"
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:64
+msgid "Brief auto-dismiss confirmation that GPC was honored."
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:65
+msgid "Silent"
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:65
+msgid "No on-screen indication. GPC is honored without notifying the visitor."
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:66
+msgid "Show full banner"
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:66
+msgid "The standard consent banner is still shown, even when GPC fires."
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:82
+msgid "Always — not applied (change this)"
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:148
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:161
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:447
+msgid "Ad Storage"
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:150
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:449
+msgid "Ad User Data"
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:151
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:162
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:456
+msgid "Analytics Storage"
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:152
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:463
+msgid "Functionality Storage"
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:153
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:464
+msgid "Personalization Storage"
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:159
+msgid "Meta Pixel consent"
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:334
+msgid "Security Storage"
+msgstr ""
+
+#. translators: %s: comma-separated list of consent signal names.
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:365
+#, js-format
+msgid "%s is set to “Always” and is not being applied."
+msgid_plural "%s are set to “Always” and are not being applied."
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:373
+msgid "Signals set this way are sent as denied for every visitor, whatever they choose on your banner — so this tool receives no consent. Choose when it should be granted below, then select Apply."
+msgid_plural "Signals set this way are sent as denied for every visitor, whatever they choose on your banner — so this tool receives no consent. Choose when they should be granted below, then select Apply."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: platform name, e.g. Google.
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:410
+#, js-format
+msgid "Upgrade to Pro to enable %s Consent Mode."
+msgstr ""
+
+#. translators: %s: platform name, e.g. Google.
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:415
+#, js-format
+msgid "Monthly visit limit reached — %s Consent Mode is paused until your visit count resets. Upgrade for unlimited visits."
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:418
+msgid "Upgrade"
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:427
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:725
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:752
+msgid "Applying…"
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:427
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:725
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:752
+msgid "Saved ✓"
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:427
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:725
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:752
+msgid "Apply"
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:444
+msgid "Advertising"
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:445
+msgid "ad_storage, ad_personalization, ad_user_data — default: Ad Personalization. Most conservative: granted only when the visitor allows advertising."
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:453
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:625
+msgid "Analytics"
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:454
+msgid "analytics_storage — default: Site Optimization, so it is granted when the visitor allows measurement."
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:460
+msgid "Functional"
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:461
+msgid "functionality_storage, personalization_storage — default: Content Personalization."
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:477
+msgid "If you use Google Analytics, Google Ads, or Tag Manager, this tells Google how to handle your visitors’ data based on whether they consented. Required for GDPR compliance with Google tools."
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:481
+msgid "Google"
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:485
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:556
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:604
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:685
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:743
+msgid "Enabled"
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:485
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:556
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:604
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:685
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:743
+msgid "Disabled"
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:492
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:563
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:611
+msgid "Signal mapping"
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:518
+msgid "Security"
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:520
+msgid "security_storage — default: Content Personalization. Choose Basic Operations only if this storage really is strictly necessary on your site (for example authentication or fraud prevention): it is then granted for every visitor without consent, including visitors who refuse or send Global Privacy Control."
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:548
+msgid "Stops the Meta Pixel from tracking your visitors until they agree. Without this, Facebook can receive data about visitors who never consented — a GDPR violation if you serve EU visitors."
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:565
+msgid "Grant Pixel at"
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:576
+msgid "Default: Ad Personalization."
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:596
+msgid "Keeps Microsoft Advertising (Bing) and Clarity analytics compliant with consent rules. Trackers only fire after visitors agree."
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:613
+msgid "Advertising (UET)"
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:638
+msgid "Sub-products"
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:645
+msgid "Pixie"
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:653
+msgid "Clarity"
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:671
+msgid "Global Privacy Control (GPC)"
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:691
+msgid "GPC is now a Pro feature. Your site keeps it because it was already enabled. If you turn it off, you’ll need Pro to re-enable it."
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:697
+msgid "When GPC fires, what should visitors see?"
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:721
+msgid "Some visitors set their browser to automatically opt out of tracking. This setting respects that choice — and it’s legally required in California (CPRA). When a visitor sends this signal, tracking is blocked automatically."
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:737
+msgid "Do Not Track (DNT)"
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:740
+msgid "Do Not Track is an older browser setting that most sites ignore. Enabling this is a good-faith gesture but isn’t required by any law. When a visitor has DNT enabled, tracking is blocked automatically."
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:748
+msgid "When enabled, visitors with DNT set receive Private (level 1) consent automatically."
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:864
+msgid "Could not save — please try again."
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:905
+msgid "These settings were updated elsewhere while this panel was open — in the Admin Portal, or by another user. Your unsaved edits have been kept. Reload the page to see the newer values."
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:912
+msgid "Platform Integrations"
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:952
+msgid "Browser Signals"
+msgstr ""
+
+#: src/admin-react/components/protection/ConsentModesPanel.jsx:1011
+msgid "Consent Protection Settings"
+msgstr ""
+
+#: src/admin-react/components/protection/FirstRunSetup.jsx:10
+msgid "Template"
+msgstr ""
+
+#: src/admin-react/components/protection/FirstRunSetup.jsx:11
+msgid "Laws"
+msgstr ""
+
+#: src/admin-react/components/protection/FirstRunSetup.jsx:12
+msgid "Languages"
+msgstr ""
+
+#: src/admin-react/components/protection/FirstRunSetup.jsx:69
+msgid "Failed to save laws. Please try again."
+msgstr ""
+
+#: src/admin-react/components/protection/FirstRunSetup.jsx:120
+msgid "Your account is connected."
+msgstr ""
+
+#: src/admin-react/components/protection/FirstRunSetup.jsx:121
+msgid "Select your template, laws, and languages to finalize your setup."
+msgstr ""
+
+#: src/admin-react/components/protection/FirstRunSetup.jsx:125
+msgid "Checking site for trackers…"
+msgstr ""
+
+#. translators: %d: number of trackers found on the site.
+#: src/admin-react/components/protection/FirstRunSetup.jsx:131
+#, js-format
+msgid "We found %d tracker on your site. "
+msgid_plural "We found %d trackers on your site. "
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %d: number of trackers not yet categorised.
+#: src/admin-react/components/protection/FirstRunSetup.jsx:139
+#, js-format
+msgid "When done, you will be guided to select your consent modes and review %d uncategorized tracker."
+msgid_plural "When done, you will be guided to select your consent modes and review %d uncategorized trackers."
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/admin-react/components/protection/FirstRunSetup.jsx:145
+msgid "When done, you will be guided to select your consent modes and review your trackers."
+msgstr ""
+
+#: src/admin-react/components/protection/FirstRunSetup.jsx:146
+msgid "When done, you will be guided to select your consent modes and set up your tracker protection."
+msgstr ""
+
+#: src/admin-react/components/protection/FirstRunSetup.jsx:155
+msgid "Complete Your Setup"
+msgstr ""
+
+#: src/admin-react/components/protection/FirstRunSetup.jsx:184
+msgid "Pick a Template"
+msgstr ""
+
+#: src/admin-react/components/protection/FirstRunSetup.jsx:185
+msgid "Choose a banner style. You can customize colors later."
+msgstr ""
+
+#: src/admin-react/components/protection/FirstRunSetup.jsx:193
+msgid "Template applied"
+msgstr ""
+
+#: src/admin-react/components/protection/FirstRunSetup.jsx:200
+msgid "Select Your Laws"
+msgstr ""
+
+#: src/admin-react/components/protection/FirstRunSetup.jsx:201
+msgid "Choose which privacy regulations apply to your site."
+msgstr ""
+
+#: src/admin-react/components/protection/FirstRunSetup.jsx:216
+msgid "Add Languages"
+msgstr ""
+
+#: src/admin-react/components/protection/FirstRunSetup.jsx:217
+msgid "Select additional languages for your consent banner."
+msgstr ""
+
+#: src/admin-react/components/protection/FirstRunSetup.jsx:252
+msgid "Finishing…"
+msgstr ""
+
+#: src/admin-react/components/protection/FirstRunSetup.jsx:252
+msgid "Apply & Finish"
+msgstr ""
+
+#: src/admin-react/components/protection/LanguagePicker.jsx:8
+msgid "French"
+msgstr ""
+
+#: src/admin-react/components/protection/LanguagePicker.jsx:9
+msgid "Spanish"
+msgstr ""
+
+#: src/admin-react/components/protection/LanguagePicker.jsx:10
+msgid "German"
+msgstr ""
+
+#: src/admin-react/components/protection/LanguagePicker.jsx:11
+msgid "Italian"
+msgstr ""
+
+#: src/admin-react/components/protection/LanguagePicker.jsx:12
+msgid "Greek"
+msgstr ""
+
+#: src/admin-react/components/protection/LanguagePicker.jsx:13
+msgid "Dutch"
+msgstr ""
+
+#: src/admin-react/components/protection/LanguagePicker.jsx:14
+msgid "Portuguese"
+msgstr ""
+
+#: src/admin-react/components/protection/LanguagePicker.jsx:15
+msgid "Polish"
+msgstr ""
+
+#: src/admin-react/components/protection/LanguagePicker.jsx:16
+msgid "Swedish"
+msgstr ""
+
+#: src/admin-react/components/protection/LanguagePicker.jsx:74
+msgid "Free plan: 1 language included"
+msgstr ""
+
+#: src/admin-react/components/protection/LanguagePicker.jsx:80
+msgid "Upgrade to Pro for all 9"
+msgstr ""
+
+#: src/admin-react/components/protection/LanguagePicker.jsx:85
+msgid "Pro plan — all languages available"
+msgstr ""
+
+#: src/admin-react/components/protection/LanguagePicker.jsx:89
+msgid "Without a configured language, non-English visitors see browser-automated translations — unreviewed and potentially inaccurate. Selecting a language gives you full control over what they read."
+msgstr ""
+
+#: src/admin-react/components/protection/ProtectionHeader.jsx:38
+msgid "Your Compliance Dashboard"
+msgstr ""
+
+#: src/admin-react/components/protection/ScriptProtectionPanel.jsx:14
+msgid "Essential for your site to function"
+msgstr ""
+
+#: src/admin-react/components/protection/ScriptProtectionPanel.jsx:15
+msgid "Personalize content for visitors"
+msgstr ""
+
+#: src/admin-react/components/protection/ScriptProtectionPanel.jsx:16
+msgid "Measure traffic and performance"
+msgstr ""
+
+#: src/admin-react/components/protection/ScriptProtectionPanel.jsx:17
+msgid "Show targeted advertising"
+msgstr ""
+
+#: src/admin-react/components/protection/ScriptProtectionPanel.jsx:20
+msgid "Uncategorized"
+msgstr ""
+
+#: src/admin-react/components/protection/ScriptProtectionPanel.jsx:20
+msgid "These trackers run before visitors agree — highest compliance risk"
+msgstr ""
+
+#: src/admin-react/components/protection/ScriptProtectionPanel.jsx:46
+msgid "Categorized"
+msgstr ""
+
+#: src/admin-react/components/protection/ScriptProtectionPanel.jsx:47
+msgid "Fires without consent"
+msgstr ""
+
+#: src/admin-react/components/protection/ScriptProtectionPanel.jsx:79
+msgid "Firing without consent"
+msgstr ""
+
+#: src/admin-react/components/protection/ScriptProtectionPanel.jsx:109
+msgid "Your banner shows — but trackers run before visitors agree"
+msgstr ""
+
+#: src/admin-react/components/protection/ScriptProtectionPanel.jsx:159
+msgid "Sync complete."
+msgstr ""
+
+#: src/admin-react/components/protection/ScriptProtectionPanel.jsx:161
+#: src/admin-react/components/shared/DomainInfoCard.jsx:49
+#: src/admin-react/components/shared/DomainInfoCard.jsx:144
+msgid "Sync failed. Please try again."
+msgstr ""
+
+#: src/admin-react/components/protection/ScriptProtectionPanel.jsx:170
+#: src/admin-react/components/protection/ScriptProtectionPanel.jsx:188
+msgid "Your Trackers"
+msgstr ""
+
+#: src/admin-react/components/protection/ScriptProtectionPanel.jsx:179
+msgid "Manage trackers in Admin Portal"
+msgstr ""
+
+#: src/admin-react/components/protection/ScriptProtectionPanel.jsx:182
+msgid "Refreshing…"
+msgstr ""
+
+#: src/admin-react/components/protection/ScriptProtectionPanel.jsx:182
+msgid "Refresh"
+msgstr ""
+
+#: src/admin-react/components/protection/ScriptProtectionPanel.jsx:189
+msgid "Loading script data…"
+msgstr ""
+
+#: src/admin-react/components/protection/ScriptProtectionPanel.jsx:201
+msgid "No known trackers found in the provider database for your site. Your banner is active and blocking is configured."
+msgstr ""
+
+#: src/admin-react/components/protection/ScriptProtectionPanel.jsx:202
+msgid "Your domain was recently added. Tracker data typically populates within 24–48 hours as your configuration syncs. Click Refresh to check now."
+msgstr ""
+
+#. translators: %d: number of trackers detected on the site.
+#: src/admin-react/components/protection/ScriptProtectionPanel.jsx:212
+#, js-format
+msgid "%d tracker detected"
+msgid_plural "%d trackers detected"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %d: number of trackers that have been categorised.
+#: src/admin-react/components/protection/ScriptProtectionPanel.jsx:218
+#, js-format
+msgid "%d categorized"
+msgstr ""
+
+#. translators: %d: number of trackers not yet categorised.
+#: src/admin-react/components/protection/ScriptProtectionPanel.jsx:227
+#, js-format
+msgid "%d uncategorized"
+msgstr ""
+
+#. translators: %s: timestamp of the last tracker refresh.
+#: src/admin-react/components/protection/ScriptProtectionPanel.jsx:239
+#, js-format
+msgid "Last refreshed: %s"
+msgstr ""
+
+#: src/admin-react/components/protection/ScriptProtectionPanel.jsx:242
+msgid "Not yet synced"
+msgstr ""
+
+#. translators: %d: number of trackers firing before consent.
+#: src/admin-react/components/protection/ScriptProtectionPanel.jsx:249
+#, js-format
+msgid "%d tracker firing without consent —"
+msgid_plural "%d trackers firing without consent —"
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/admin-react/components/protection/ScriptProtectionPanel.jsx:253
+msgid "manage in Admin Portal"
+msgstr ""
+
+#: src/admin-react/components/protection/ThreatIntelligence.jsx:24
+msgid "You’re covered — your banner applies to US visitors"
+msgstr ""
+
+#: src/admin-react/components/protection/ThreatIntelligence.jsx:25
+msgid "No US law configured — add CCPA or US States in your regulation settings"
+msgstr ""
+
+#: src/admin-react/components/protection/ThreatIntelligence.jsx:31
+msgid "Enforcement"
+msgstr ""
+
+#: src/admin-react/components/protection/ThreatIntelligence.jsx:32
+msgid "France fined a bakery chain €150,000 for cookie violations"
+msgstr ""
+
+#: src/admin-react/components/protection/ThreatIntelligence.jsx:33
+msgid "The bakery’s website used Google Analytics without asking visitors first. The fine was 3× their monthly revenue."
+msgstr ""
+
+#: src/admin-react/components/protection/ThreatIntelligence.jsx:35
+msgid "You’re protected — Google Analytics is blocked until visitors consent"
+msgstr ""
+
+#: src/admin-react/components/protection/ThreatIntelligence.jsx:41
+msgid "Update"
+msgstr ""
+
+#: src/admin-react/components/protection/ThreatIntelligence.jsx:42
+msgid "Google ending third-party cookies delayed again"
+msgstr ""
+
+#: src/admin-react/components/protection/ThreatIntelligence.jsx:43
+msgid "Google pushed back their timeline to late 2026. Sites that already have consent management won’t need to change anything."
+msgstr ""
+
+#: src/admin-react/components/protection/ThreatIntelligence.jsx:44
+msgid "No action needed — your consent banner already handles this"
+msgstr ""
+
+#: src/admin-react/components/protection/ThreatIntelligence.jsx:49
+msgid "Regulation"
+msgstr ""
+
+#: src/admin-react/components/protection/ThreatIntelligence.jsx:50
+msgid "New US state privacy laws take effect July 2026"
+msgstr ""
+
+#: src/admin-react/components/protection/ThreatIntelligence.jsx:51
+msgid "Four more states are adding GDPR-like requirements. Sites serving US visitors will need consent mechanisms."
+msgstr ""
+
+#: src/admin-react/components/protection/ThreatIntelligence.jsx:60
+msgid "Threat Intelligence"
+msgstr ""
+
+#: src/admin-react/components/Settings.jsx:45
+msgid "Automated script blocking before visitor consent"
+msgstr ""
+
+#: src/admin-react/components/Settings.jsx:49
+msgid "Cookie categorization across your entire site"
+msgstr ""
+
+#: src/admin-react/components/Settings.jsx:53
+msgid "Consent proof collection for legal audit trails"
+msgstr ""
+
+#: src/admin-react/components/Settings.jsx:57
+msgid "Visitor analytics and consent rate reporting"
+msgstr ""
+
+#: src/admin-react/components/Settings.jsx:61
+msgid "Google Consent Mode v2, Facebook & Microsoft signals"
+msgstr ""
+
+#: src/admin-react/components/Settings.jsx:111
+msgid "Plugin Settings"
+msgstr ""
+
+#: src/admin-react/components/Settings.jsx:112
+msgid "Connect your site to enable consent management features."
+msgstr ""
+
+#: src/admin-react/components/Settings.jsx:146
+msgid "Manage your banner template, laws, consent modes, and languages."
+msgstr ""
+
+#: src/admin-react/components/settings/AdvancedSettings.jsx:15
+msgid "Advanced Settings"
+msgstr ""
+
+#: src/admin-react/components/settings/AdvancedSettings.jsx:16
+msgid "Excluded scripts, script blocking"
+msgstr ""
+
+#: src/admin-react/components/settings/AdvancedSettings.jsx:41
+msgid "Script Blocking"
+msgstr ""
+
+#: src/admin-react/components/settings/AdvancedSettings.jsx:43
+msgid "Scripts categorized"
+msgstr ""
+
+#: src/admin-react/components/settings/AdvancedSettings.jsx:47
+msgid "Unblocked"
+msgstr ""
+
+#: src/admin-react/components/settings/BannerDesignForm.jsx:27
+msgid "(default)"
+msgstr ""
+
+#: src/admin-react/components/settings/BannerDesignForm.jsx:28
+msgid "Edit text in Admin Portal"
+msgstr ""
+
+#: src/admin-react/components/settings/BannerDesignForm.jsx:48
+msgid "Texts, colors, position, and animation"
+msgstr ""
+
+#: src/admin-react/components/settings/BannerDesignForm.jsx:54
+#: src/admin-react/components/settings/BannerDesignForm.jsx:57
+msgid "Banner Message"
+msgstr ""
+
+#: src/admin-react/components/settings/BannerDesignForm.jsx:64
+#: src/admin-react/components/settings/BannerDesignForm.jsx:67
+msgid "Accept Button"
+msgstr ""
+
+#: src/admin-react/components/settings/BannerDesignForm.jsx:74
+#: src/admin-react/components/settings/BannerDesignForm.jsx:77
+msgid "Reject Button"
+msgstr ""
+
+#: src/admin-react/components/settings/BannerDesignForm.jsx:85
+#: src/admin-react/components/settings/BannerDesignForm.jsx:88
+msgid "Preferences Button"
+msgstr ""
+
+#: src/admin-react/components/settings/BannerDesignForm.jsx:91
+msgid "Manage Preferences"
+msgstr ""
+
+#: src/admin-react/components/settings/BannerDesignForm.jsx:96
+#: src/admin-react/components/settings/BannerStyleSelector.jsx:117
+msgid "Banner Position"
+msgstr ""
+
+#: src/admin-react/components/settings/BannerDesignForm.jsx:103
+msgid "Dismiss Animation"
+msgstr ""
+
+#: src/admin-react/components/settings/BannerDesignForm.jsx:113
+msgid "Background Color"
+msgstr ""
+
+#: src/admin-react/components/settings/BannerDesignForm.jsx:118
+msgid "Text Color"
+msgstr ""
+
+#: src/admin-react/components/settings/BannerDesignForm.jsx:123
+msgid "Button Color"
+msgstr ""
+
+#: src/admin-react/components/settings/BannerStyleSelector.jsx:20
+#: src/admin-react/data/templatePresets.js:33
+msgid "Popup"
+msgstr ""
+
+#: src/admin-react/components/settings/BannerStyleSelector.jsx:125
+msgid "Banner Size"
+msgstr ""
+
+#: src/admin-react/components/settings/BannerStyleSelector.jsx:130
+msgid "Floating"
+msgstr ""
+
+#: src/admin-react/components/settings/BannerStyleSelector.jsx:134
+msgid "Fixed"
+msgstr ""
+
+#: src/admin-react/components/settings/BannerStyleSelector.jsx:176
+msgid "Pro only"
+msgstr ""
+
+#: src/admin-react/components/settings/BannerSummaryCard.jsx:26
+msgid "Your Banner"
+msgstr ""
+
+#: src/admin-react/components/settings/BannerSummaryCard.jsx:46
+msgid "No template selected"
+msgstr ""
+
+#: src/admin-react/components/settings/BannerSummaryCard.jsx:58
+msgid "Edit in Admin Portal →"
+msgstr ""
+
+#: src/admin-react/components/settings/BannerSummaryCard.jsx:75
+msgid "Edit colors & text"
+msgstr ""
+
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:52
+msgid "Scripts wait for visitor consent before firing"
+msgstr ""
+
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:60
+#: src/admin-react/components/settings/PluginSettings.jsx:210
+msgid "Accept on scroll"
+msgstr ""
+
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:61
+msgid "Consent granted automatically if visitor scrolls"
+msgstr ""
+
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:69
+#: src/admin-react/components/settings/PluginSettings.jsx:225
+msgid "Accept on click"
+msgstr ""
+
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:70
+msgid "Consent granted automatically on any page click"
+msgstr ""
+
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:78
+#: src/admin-react/data/portalSettings.js:29
+msgid "Accept on close"
+msgstr ""
+
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:79
+msgid "Consent granted automatically if banner is closed"
+msgstr ""
+
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:89
+msgid "Refuse button"
+msgstr ""
+
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:90
+msgid "Display a button allowing visitors to decline tracking"
+msgstr ""
+
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:99
+msgid "Floating widget allowing visitors to change preferences"
+msgstr ""
+
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:107
+#: src/admin-react/data/portalSettings.js:22
+msgid "GPC support"
+msgstr ""
+
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:108
+msgid "Honor browser-level opt-out signals automatically"
+msgstr ""
+
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:115
+msgid "Required for all connected sites (CCPA/CPRA mandate)"
+msgstr ""
+
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:119
+msgid "Consent expiry"
+msgstr ""
+
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:120
+msgid "How long before visitors are prompted again"
+msgstr ""
+
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:127
+msgid "Cookie wall"
+msgstr ""
+
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:128
+msgid "Block access to site content until consent is given"
+msgstr ""
+
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:289
+msgid "Paused"
+msgstr ""
+
+#: src/admin-react/components/settings/ConditionalRuleBuilder.jsx:97
+msgid "Remove rule"
+msgstr ""
+
+#: src/admin-react/components/settings/ConditionalRuleBuilder.jsx:132
+msgid "AND"
+msgstr ""
+
+#: src/admin-react/components/settings/ConditionalRuleBuilder.jsx:215
+msgid "No rules configured. Add a rule group to control where the banner appears."
+msgstr ""
+
+#: src/admin-react/components/settings/LawSelector.jsx:1241
+msgid "Auto-detected"
+msgstr ""
+
+#. translators: %s: name of a privacy law, e.g. GDPR.
+#: src/admin-react/components/settings/LawSelector.jsx:1255
+#, js-format
+msgid "Select %s"
+msgstr ""
+
+#: src/admin-react/components/settings/LawSelector.jsx:1281
+msgid "Close detail panel"
+msgstr ""
+
+#: src/admin-react/components/settings/LawSelector.jsx:1288
+msgid "What it covers"
+msgstr ""
+
+#: src/admin-react/components/settings/LawSelector.jsx:1293
+msgid "Key requirements"
+msgstr ""
+
+#: src/admin-react/components/settings/LawSelector.jsx:1302
+msgid "What Cookie Compliance does"
+msgstr ""
+
+#: src/admin-react/components/settings/LawSelector.jsx:1316
+msgid "Do Not Sell URL"
+msgstr ""
+
+#: src/admin-react/components/settings/LawSelector.jsx:1326
+msgid "https://example.com/do-not-sell"
+msgstr ""
+
+#: src/admin-react/components/settings/LockedFeaturesGrid.jsx:10
+msgid "Advanced features require a connection"
+msgstr ""
+
+#: src/admin-react/components/settings/LockedFeaturesGrid.jsx:12
+msgid "Connect your site to unlock Autoblocking, Cookie Categories, Consent Records, and Analytics."
+msgstr ""
+
+#: src/admin-react/components/settings/LockedFeaturesGrid.jsx:16
+msgid "Connect Your Site — It’s Free"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:21
+msgid "Infinity"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:83
+msgid "Managed in Admin Portal"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:85
+msgid "Edit in Admin Portal"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:140
+msgid "Settings saved and published to your live site."
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:144
+msgid "Settings saved locally. Live banner sync failed—your live site was not updated. Please try again."
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:152
+msgid "Settings saved successfully."
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:160
+msgid "Consent Behavior"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:162
+msgid "Enable refuse button"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:165
+msgid "Allow visitors to refuse cookie consent"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:169
+msgid "Refuse button text"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:177
+msgid "Enable revoke consent"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:180
+msgid "Allow visitors to revoke their consent after accepting"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:185
+msgid "Revoke method"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:195
+msgid "Revoke button text"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:201
+msgid "Revoke message"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:213
+msgid "Automatically accept consent when the user scrolls"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:217
+msgid "Scroll distance (px)"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:228
+msgid "Automatically accept consent on any page click"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:232
+msgid "Reload page on accept"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:235
+msgid "Reload the page after the visitor accepts consent"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:240
+msgid "Cookie Expiry"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:262
+msgid "Enable privacy policy link"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:269
+msgid "Link text"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:275
+msgid "Link type"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:286
+msgid "Select page"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:291
+msgid "— Select a page —"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:298
+msgid "Custom URL"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:305
+msgid "Sync with WordPress Privacy Page"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:310
+msgid "Open link in"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:314
+msgid "New tab"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:315
+msgid "Same tab"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:320
+msgid "Link position"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:334
+msgid "Custom Scripts"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:354
+msgid "Code to be added in your site header, before the closing head tag."
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:360
+msgid "<!-- e.g. Google Analytics -->"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:367
+msgid "Code to be added in your site footer, before the closing body tag."
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:373
+msgid "<!-- e.g. tracking scripts -->"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:379
+msgid "Enter non-functional cookies JavaScript code (e.g. Google Analytics) to be used after the visitor consent is given."
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:387
+msgid "Display & Animation"
+msgstr ""
+
+#. translators: %d: opacity percentage, 50 to 100.
+#: src/admin-react/components/settings/PluginSettings.jsx:392
+#, js-format
+msgid "Bar opacity: %d%%"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:407
+msgid "Custom button CSS class"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:410
+msgid "e.g. my-custom-btn"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:411
+msgid "Add custom CSS classes to the accept button"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:416
+msgid "Technical Settings"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:420
+msgid "Bot detection"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:423
+msgid "Automatically detect and handle bots/crawlers"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:426
+msgid "AMP support"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:429
+msgid "Enable AMP-compatible consent notice"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:435
+msgid "Register as the active CMP for cooperative plugins (WooCommerce, Site Kit, Burst Statistics, etc.). Requires the WP Consent API plugin to be active."
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:438
+msgid "Caching compatibility"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:441
+msgid "Improve compatibility with caching plugins"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:444
+msgid "Debug mode"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:447
+msgid "Enable debug logging for troubleshooting"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:450
+msgid "Excluded script handles"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:456
+msgid "Enter WordPress script handles to exclude from autoblocking, one per line. These scripts will be marked as Essential (Category 1) and never blocked."
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:476
+msgid "Show or hide the banner on specific pages"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:481
+msgid "Display rule"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:497
+msgid "Delete data on deactivation"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:500
+msgid "Remove all plugin data when the plugin is deactivated"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:510
+msgid "Cache purged successfully."
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:512
+msgid "Purge failed. Please try again."
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:519
+msgid "Purging…"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:522
+msgid "Click to refresh the app configuration cache."
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:531
+msgid "Save WordPress Settings"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:531
+msgid "Save Settings"
+msgstr ""
+
+#: src/admin-react/components/settings/PluginSettings.jsx:533
+msgid "Saved"
+msgstr ""
+
+#: src/admin-react/components/settings/TemplatePresets.jsx:47
+msgid "Choose a Template"
+msgstr ""
+
+#: src/admin-react/components/settings/TemplatePresets.jsx:79
+#: src/admin-react/components/shared/DataTable.jsx:117
+msgid "Previous page"
+msgstr ""
+
+#: src/admin-react/components/settings/TemplatePresets.jsx:88
+#: src/admin-react/components/shared/DataTable.jsx:129
+msgid "Next page"
+msgstr ""
+
+#: src/admin-react/components/shared/DataTable.jsx:17
+msgid "No data available"
+msgstr ""
+
+#: src/admin-react/components/shared/DomainInfoCard.jsx:45
+msgid "Configuration synced. Reloading…"
+msgstr ""
+
+#: src/admin-react/components/shared/DomainInfoCard.jsx:99
+#: src/admin-react/components/shared/Footer.jsx:10
+msgid "Free Plan"
+msgstr ""
+
+#: src/admin-react/components/shared/DomainInfoCard.jsx:121
+msgid "Save and Connect"
+msgstr ""
+
+#: src/admin-react/components/shared/DomainInfoCard.jsx:131
+msgid "Syncing…"
+msgstr ""
+
+#: src/admin-react/components/shared/DomainInfoCard.jsx:147
+msgid "Manually pull the latest configuration including autoblocking. Syncs automatically every 24 hours."
+msgstr ""
+
+#: src/admin-react/components/shared/DomainInfoCard.jsx:152
+msgid "Advanced Configuration"
+msgstr ""
+
+#: src/admin-react/components/shared/Footer.jsx:9
+msgid "Basic (Not Connected)"
+msgstr ""
+
+#: src/admin-react/components/shared/Footer.jsx:11
+msgid "Pro Plan"
+msgstr ""
+
+#: src/admin-react/components/shared/Footer.jsx:46
+msgid "Refreshing settings…"
+msgstr ""
+
+#. translators: %s: local time the settings were last synced, e.g. 14:32.
+#: src/admin-react/components/shared/Footer.jsx:57
+#, js-format
+msgid "Couldn't reach Hu-manity — showing settings from %s."
+msgstr ""
+
+#: src/admin-react/components/shared/Footer.jsx:60
+msgid "Couldn't reach Hu-manity — showing cached settings."
+msgstr ""
+
+#: src/admin-react/components/shared/Footer.jsx:63
+msgid "Retry"
+msgstr ""
+
+#. translators: %s: local time the settings were last synced, e.g. 14:32.
+#: src/admin-react/components/shared/Footer.jsx:75
+#, js-format
+msgid "Settings synced %s"
+msgstr ""
+
+#. translators: 1: plugin version number, 2: plan name, e.g. Pro Plan. "Cookie Compliance" is the product name and is not translated.
+#: src/admin-react/components/shared/Footer.jsx:90
+#, js-format
+msgid "Cookie Compliance v%1$s — %2$s"
+msgstr ""
+
+#: src/admin-react/components/shared/Footer.jsx:99
+msgid "Documentation"
+msgstr ""
+
+#: src/admin-react/components/shared/Footer.jsx:103
+msgid "Support"
+msgstr ""
+
+#: src/admin-react/components/shared/InlinePanel.jsx:21
+#: src/admin-react/components/shared/Modal.jsx:127
+msgid "Close"
+msgstr ""
+
+#: src/admin-react/components/shared/StepIndicator.jsx:12
+msgid "Progress"
+msgstr ""
+
+#. translators: %s: name of a completed wizard step.
+#: src/admin-react/components/shared/StepIndicator.jsx:31
+#, js-format
+msgid "%s (completed)"
+msgstr ""
+
+#: src/admin-react/components/shared/WizardShell.jsx:34
+msgid "Next"
+msgstr ""
+
+#: src/admin-react/components/shared/WPNotice.jsx:19
+msgid "Dismiss this notice."
+msgstr ""
+
+#: src/admin-react/data/laws.js:17
+msgid "European Union"
+msgstr ""
+
+#: src/admin-react/data/laws.js:18
+msgid "General Data Protection Regulation"
+msgstr ""
+
+#: src/admin-react/data/laws.js:23
+msgid "The EU’s gold standard for data privacy. Applies to any site with visitors from the 27 EU member states — regardless of where your business is based."
+msgstr ""
+
+#: src/admin-react/data/laws.js:25
+msgid "Prior, informed consent before any non-essential cookies"
+msgstr ""
+
+#: src/admin-react/data/laws.js:26
+msgid "Clear opt-out that’s as easy as opting in"
+msgstr ""
+
+#: src/admin-react/data/laws.js:27
+msgid "Right to erasure (‘be forgotten’) on request"
+msgstr ""
+
+#: src/admin-react/data/laws.js:28
+msgid "Data processing records & DPO for large processors"
+msgstr ""
+
+#: src/admin-react/data/laws.js:31
+msgid "Consent banner with granular category controls"
+msgstr ""
+
+#: src/admin-react/data/laws.js:32
+msgid "Consent proof stored per visitor"
+msgstr ""
+
+#: src/admin-react/data/laws.js:33
+msgid "GDPR-mode autoblocking holds scripts until consent"
+msgstr ""
+
+#: src/admin-react/data/laws.js:35
+msgid "Fines up to €20M or 4% of global annual revenue. Enforced by national DPAs."
+msgstr ""
+
+#: src/admin-react/data/laws.js:39
+msgid "CCPA / CPRA"
+msgstr ""
+
+#: src/admin-react/data/laws.js:40
+msgid "California, USA"
+msgstr ""
+
+#: src/admin-react/data/laws.js:41
+msgid "California Consumer Privacy Act"
+msgstr ""
+
+#: src/admin-react/data/laws.js:43
+msgid "California’s comprehensive privacy law, upgraded by CPRA in 2023. If you serve California residents, it applies — even if you’re outside the US."
+msgstr ""
+
+#: src/admin-react/data/laws.js:45
+msgid "Opt-out of sale or sharing of personal data"
+msgstr ""
+
+#: src/admin-react/data/laws.js:46
+msgid "Honor Global Privacy Control (GPC) signals automatically"
+msgstr ""
+
+#: src/admin-react/data/laws.js:47
+msgid "Annual privacy policy updates"
+msgstr ""
+
+#: src/admin-react/data/laws.js:48
+msgid "Right to know, delete, and correct personal data"
+msgstr ""
+
+#: src/admin-react/data/laws.js:51
+msgid "GPC signal detection and automatic opt-out"
+msgstr ""
+
+#: src/admin-react/data/laws.js:52
+msgid "Do Not Sell link insertion"
+msgstr ""
+
+#: src/admin-react/data/laws.js:53
+msgid "Consent-mode compatible analytics opt-out"
+msgstr ""
+
+#: src/admin-react/data/laws.js:55
+msgid "Fines up to $7,500 per intentional violation. Enforced by the California Privacy Protection Agency."
+msgstr ""
+
+#: src/admin-react/data/laws.js:59
+msgid "US State Laws"
+msgstr ""
+
+#: src/admin-react/data/laws.js:60
+msgid "United States"
+msgstr ""
+
+#: src/admin-react/data/laws.js:61
+msgid "Virginia, Colorado, Connecticut, and more"
+msgstr ""
+
+#: src/admin-react/data/laws.js:63
+msgid "Virginia, Colorado, Connecticut, Utah, Montana, Texas, Oregon, and more have passed comprehensive privacy laws. The landscape is evolving fast."
+msgstr ""
+
+#: src/admin-react/data/laws.js:65
+msgid "Consent for sensitive data processing"
+msgstr ""
+
+#: src/admin-react/data/laws.js:66
+msgid "Universal opt-out mechanism support (like GPC)"
+msgstr ""
+
+#: src/admin-react/data/laws.js:67
+msgid "Right to access, correct, delete, and opt out of targeted advertising"
+msgstr ""
+
+#: src/admin-react/data/laws.js:68
+msgid "Data protection assessments for high-risk processing"
+msgstr ""
+
+#: src/admin-react/data/laws.js:71
+msgid "Automatic US-state privacy-law consent banner"
+msgstr ""
+
+#: src/admin-react/data/laws.js:72
+msgid "Opt-out of targeted advertising and Do-Not-Sell signaling"
+msgstr ""
+
+#: src/admin-react/data/laws.js:73
+msgid "Universal Opt-Out (GPC) honoring on Pro plans"
+msgstr ""
+
+#: src/admin-react/data/laws.js:75
+msgid "Fines from $7,500–$20,000 per violation depending on state. Enforced by state attorneys general."
+msgstr ""
+
+#: src/admin-react/data/laws.js:81
+msgid "Privacy and Electronic Communications Regulations"
+msgstr ""
+
+#: src/admin-react/data/laws.js:83
+msgid "The UK’s post-Brexit equivalent to GDPR’s cookie rules. Applies to any site with UK visitors. Enforced by the ICO, which has been increasingly active."
+msgstr ""
+
+#: src/admin-react/data/laws.js:85
+msgid "Prior consent for analytics and marketing cookies"
+msgstr ""
+
+#: src/admin-react/data/laws.js:86
+msgid "Clear information about what cookies do"
+msgstr ""
+
+#: src/admin-react/data/laws.js:87
+msgid "Easy withdrawal of consent"
+msgstr ""
+
+#: src/admin-react/data/laws.js:88
+msgid "Legitimate interest cannot be used for tracking cookies"
+msgstr ""
+
+#: src/admin-react/data/laws.js:91
+msgid "UK-specific consent banner variant"
+msgstr ""
+
+#: src/admin-react/data/laws.js:92
+msgid "ICO-compliant consent language"
+msgstr ""
+
+#: src/admin-react/data/laws.js:93
+msgid "Consent proof storage"
+msgstr ""
+
+#: src/admin-react/data/laws.js:95
+msgid "Fines up to £17.5M or 4% of global turnover. Enforced by the ICO."
+msgstr ""
+
+#: src/admin-react/data/laws.js:101
+msgid "Lei Geral de Proteção de Dados"
+msgstr ""
+
+#: src/admin-react/data/laws.js:103
+msgid "Brazil’s General Data Protection Law covers 214 million people. Modeled on GDPR, it requires a lawful basis for processing and strong user rights."
+msgstr ""
+
+#: src/admin-react/data/laws.js:105
+msgid "Valid lawful basis for each data processing activity"
+msgstr ""
+
+#: src/admin-react/data/laws.js:106
+msgid "Clear, granular consent for non-essential cookies"
+msgstr ""
+
+#: src/admin-react/data/laws.js:107
+msgid "Right to access, correct, delete, and revoke consent"
+msgstr ""
+
+#: src/admin-react/data/laws.js:108
+msgid "Report breaches within 2 business days"
+msgstr ""
+
+#: src/admin-react/data/laws.js:111
+msgid "LGPD-mode consent banner with Portuguese language support"
+msgstr ""
+
+#: src/admin-react/data/laws.js:112
+msgid "Consent revocation flow"
+msgstr ""
+
+#: src/admin-react/data/laws.js:113
+msgid "Breach-ready consent audit trail"
+msgstr ""
+
+#: src/admin-react/data/laws.js:115
+msgid "Fines up to 2% of Brazil revenue, capped at R$50M per violation. Enforced by the ANPD."
+msgstr ""
+
+#: src/admin-react/data/laws.js:121
+msgid "Personal Information Protection and Electronic Documents Act"
+msgstr ""
+
+#: src/admin-react/data/laws.js:123
+msgid "Canada’s federal privacy law. Bill C-27 (CPPA) reform is underway and will bring requirements closer to GDPR. Applies to commercial activity across Canada."
+msgstr ""
+
+#: src/admin-react/data/laws.js:125
+msgid "Express consent for collection, use, and disclosure of personal data"
+msgstr ""
+
+#: src/admin-react/data/laws.js:126
+msgid "Privacy policy clearly explaining data use"
+msgstr ""
+
+#: src/admin-react/data/laws.js:127
+msgid "Individual access and correction rights"
+msgstr ""
+
+#: src/admin-react/data/laws.js:128
+msgid "Breach reporting to the Privacy Commissioner"
+msgstr ""
+
+#: src/admin-react/data/laws.js:131
+msgid "PIPEDA-compliant consent banner"
+msgstr ""
+
+#: src/admin-react/data/laws.js:132
+msgid "English + French bilingual support"
+msgstr ""
+
+#: src/admin-react/data/laws.js:133
+msgid "Consent records with timestamps"
+msgstr ""
+
+#: src/admin-react/data/laws.js:135
+msgid "Fines up to CAD $100,000. Enforced by the Office of the Privacy Commissioner of Canada."
+msgstr ""
+
+#: src/admin-react/data/laws.js:141
+msgid "Protection of Personal Information Act"
+msgstr ""
+
+#: src/admin-react/data/laws.js:143
+msgid "South Africa’s Protection of Personal Information Act took full effect in 2021. Applies to any business processing data about South African residents."
+msgstr ""
+
+#: src/admin-react/data/laws.js:145
+msgid "Lawful basis for all personal information processing"
+msgstr ""
+
+#: src/admin-react/data/laws.js:146
+msgid "Consent for direct marketing and cookie use"
+msgstr ""
+
+#: src/admin-react/data/laws.js:147
+msgid "Data subject rights: access, correction, deletion"
+msgstr ""
+
+#: src/admin-react/data/laws.js:148
+msgid "Appoint an Information Officer"
+msgstr ""
+
+#: src/admin-react/data/laws.js:151
+msgid "POPIA-compliant consent banner"
+msgstr ""
+
+#: src/admin-react/data/laws.js:152
+msgid "Afrikaans language support"
+msgstr ""
+
+#: src/admin-react/data/laws.js:153
+msgid "Consent audit trail"
+msgstr ""
+
+#: src/admin-react/data/laws.js:155
+msgid "Fines up to ZAR 10M or 10 years imprisonment. Enforced by the Information Regulator."
+msgstr ""
+
+#: src/admin-react/data/portalSettings.js:23
+msgid "GPC (Global Privacy Control) tells browsers to signal opt-out of data sale automatically. Required for CCPA compliance."
+msgstr ""
+
+#: src/admin-react/data/portalSettings.js:24
+msgid "Privacy Settings"
+msgstr ""
+
+#: src/admin-react/data/portalSettings.js:24
+msgid "GPC Support"
+msgstr ""
+
+#: src/admin-react/data/portalSettings.js:25
+msgid "Toggle GPC Support on, then save."
+msgstr ""
+
+#: src/admin-react/data/portalSettings.js:30
+msgid "Accepting consent when users dismiss the banner is not allowed under GDPR and UK PECR."
+msgstr ""
+
+#: src/admin-react/data/portalSettings.js:31
+msgid "Consent Settings"
+msgstr ""
+
+#: src/admin-react/data/portalSettings.js:31
+msgid "Accept on Close"
+msgstr ""
+
+#: src/admin-react/data/portalSettings.js:32
+msgid "Ensure Accept on Close is set to Off."
+msgstr ""
+
+#: src/admin-react/data/portalSettings.js:36
+msgid "Cookie wall (UI blocking)"
+msgstr ""
+
+#: src/admin-react/data/portalSettings.js:37
+msgid "Blocking site access until consent is given (a \"cookie wall\") violates GDPR — consent must be freely given."
+msgstr ""
+
+#: src/admin-react/data/portalSettings.js:38
+msgid "Blocking Settings"
+msgstr ""
+
+#: src/admin-react/data/portalSettings.js:38
+msgid "Cookie Wall"
+msgstr ""
+
+#: src/admin-react/data/portalSettings.js:39
+msgid "Ensure Cookie Wall is set to Off."
+msgstr ""
+
+#: src/admin-react/data/templatePresets.js:8
+msgid "Minimal"
+msgstr ""
+
+#: src/admin-react/data/templatePresets.js:16
+msgid "Standard"
+msgstr ""
+
+#: src/admin-react/data/templatePresets.js:24
+msgid "Bold"
+msgstr ""
+
+#: src/admin-react/data/templatePresets.js:41
+msgid "Side Panel"
+msgstr ""
+
+#: src/admin-react/data/templatePresets.js:49
+msgid "Compact"
 msgstr ""
