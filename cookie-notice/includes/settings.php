@@ -725,7 +725,7 @@ class Cookie_Notice_Settings {
 						<div class="cn-pricing-info">
 							<div class="cn-pricing-head">
 								<p>' . esc_html__( 'Your Cookie Compliance plan:', 'cookie-notice' ) . '</p>
-								<h2>' . esc_html( $subscription === 'pro' ? __( 'Professional', 'cookie-notice' ) : __( 'Basic', 'cookie-notice' ) ) . '</h2>
+								<h2>' . esc_html( $subscription === 'pro' ? __( 'Professional', 'cookie-notice' ) : __( 'Free', 'cookie-notice' ) ) . '</h2>
 							</div>
 							<div class="cn-pricing-body">
 								<p class="cn-active"><span class="cn-icon"></span>' . esc_html__( 'GDPR, CCPA, LGPD, PECR requirements', 'cookie-notice' ) . '</p>

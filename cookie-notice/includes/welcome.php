@@ -312,7 +312,7 @@ class Cookie_Notice_Welcome {
 							<h1><b>Cookie Compliance</b></h1>
 							<h2>' . esc_html__( 'Consent Management Platform with simple, transparent pricing.', 'cookie-notice' ) . '</h2>
 							<div class="cn-lead">
-								<p>' . esc_html__( 'Choose monthly or yearly payment and number of domains for the fully featured, Professional plan. Or start with limited, Basic plan for free.', 'cookie-notice' ) . '</p>
+								<p>' . esc_html__( 'Choose monthly or yearly payment and number of domains for the fully featured, Professional plan. Or start with the limited Free plan.', 'cookie-notice' ) . '</p>
 							</div>';
 
 				$html .= '
@@ -326,8 +326,8 @@ class Cookie_Notice_Welcome {
 									<input id="cn-pricing-plan-free" type="radio" name="cn_pricing" value="free">
 									<div class="cn-pricing-info">
 										<div class="cn-pricing-head">
-											<h4>' . esc_html__( 'Basic', 'cookie-notice' ) . '</h4>
-											<span class="cn-plan-pricing"><span class="cn-plan-price">' . esc_html__( 'Free', 'cookie-notice' ) . '</span></span>
+											<h4>' . esc_html__( 'Free', 'cookie-notice' ) . '</h4>
+											<span class="cn-plan-pricing"><span class="cn-plan-price">$0</span></span>
 										</div>
 										<div class="cn-pricing-body">
 											<p class="cn-included"><span class="cn-icon"></span>' . esc_html__( 'GDPR, CCPA, LGPD, PECR requirements', 'cookie-notice' ) . '</p>
@@ -338,10 +338,10 @@ class Cookie_Notice_Welcome {
 											<p class="cn-excluded"><span class="cn-icon"></span>' . sprintf( esc_html__( '%sGoogle & Facebook%s consent modes', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
 											<p class="cn-excluded"><span class="cn-icon"></span>' . sprintf( esc_html__( '%sGeolocation%s support', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
 											<p class="cn-excluded"><span class="cn-icon"></span>' . sprintf( esc_html__( '%s1 additional%s language', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
-											<p class="cn-excluded"><span class="cn-icon"></span>' . sprintf( esc_html__( '%sBasic%s Support', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
+											<p class="cn-excluded"><span class="cn-icon"></span>' . sprintf( esc_html__( '%sStandard%s Support', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
 										</div>
 										<div class="cn-pricing-footer">
-											<button type="button" class="cn-btn cn-btn-outline">' . esc_html__( 'Start Basic', 'cookie-notice' ) . '</button>
+											<button type="button" class="cn-btn cn-btn-outline">' . esc_html__( 'Start Free', 'cookie-notice' ) . '</button>
 											<span class="cn-trust-badge">' . esc_html__( 'No credit card · Free to start', 'cookie-notice' ) . '</span>
 										</div>
 									</div>
@@ -619,7 +619,7 @@ class Cookie_Notice_Welcome {
 										<div class="cn-form-feedback cn-hidden"></div>
 										<div class="cn-field cn-field-radio">
 											<div class="cn-radio-wrapper cn-plan-wrapper">
-												<label for="cn-field-plan-free" class="cn-pricing-plan-free"><input id="cn-field-plan-free" type="radio" name="plan" value="free" checked><span><span class="cn-plan-description">' . esc_html__( 'Basic', 'cookie-notice' ) . '</span><span class="cn-plan-pricing"><span class="cn-plan-price">Free</span></span><span class="cn-plan-overlay"></span></span></label>
+												<label for="cn-field-plan-free" class="cn-pricing-plan-free"><input id="cn-field-plan-free" type="radio" name="plan" value="free" checked><span><span class="cn-plan-description">' . esc_html__( 'Free', 'cookie-notice' ) . '</span><span class="cn-plan-pricing"><span class="cn-plan-price">$0</span></span><span class="cn-plan-overlay"></span></span></label>
 												<label for="cn-field-plan-pro" class="cn-pricing-plan-pro"><input id="cn-field-plan-pro" type="radio" name="plan" value="compliance_monthly_notrial"><span><span class="cn-plan-description">' . sprintf( esc_html__( '%sProfessional%s', 'cookie-notice' ), '<b>', '</b>' ) . ' - <span class="cn-plan-period">' . esc_html__( 'monthly', 'cookie-notice' ) . '</span></span><span class="cn-plan-pricing"><span class="cn-plan-price">$<span class="cn-plan-amount">' . esc_attr( $this->pricing_monthly['compliance_monthly_notrial'] ) . '</span></span></span><span class="cn-plan-overlay"></span></span></label>
 											</div>
 										</div>
@@ -717,7 +717,7 @@ class Cookie_Notice_Welcome {
 										<div class="cn-form-feedback cn-hidden"></div>
 										<div class="cn-field cn-field-radio">
 											<div class="cn-radio-wrapper cn-plan-wrapper">
-												<label for="cn-field-plan-free" class="cn-pricing-plan-free"><input id="cn-field-plan-free" type="radio" name="plan" value="free" checked><span><span class="cn-plan-description">' . esc_html__( 'Basic', 'cookie-notice' ) . '</span><span class="cn-plan-pricing"><span class="cn-plan-price">Free</span></span><span class="cn-plan-overlay"></span></span></label>
+												<label for="cn-field-plan-free" class="cn-pricing-plan-free"><input id="cn-field-plan-free" type="radio" name="plan" value="free" checked><span><span class="cn-plan-description">' . esc_html__( 'Free', 'cookie-notice' ) . '</span><span class="cn-plan-pricing"><span class="cn-plan-price">$0</span></span><span class="cn-plan-overlay"></span></span></label>
 												<label for="cn-field-plan-pro" class="cn-pricing-plan-pro"><input id="cn-field-plan-pro" type="radio" name="plan" value="compliance_monthly_notrial"><span><span class="cn-plan-description">' . sprintf( esc_html__( '%sProfessional%s', 'cookie-notice' ), '<b>', '</b>' ) . ' - <span class="cn-plan-period">' . esc_html__( 'monthly', 'cookie-notice' ) . '</span></span><span class="cn-plan-pricing"><span class="cn-plan-price">$<span class="cn-plan-amount">' . esc_attr( $this->pricing_monthly['compliance_monthly_notrial'] ) . '</span></span></span><span class="cn-plan-overlay"></span></span></label>
 												<label for="cn-field-plan-license" class="cn-pricing-plan-license cn-disabled">
 													<input id="cn-field-plan-license" type="radio" name="plan" value="license"><span><span class="cn-plan-description">' . esc_html__( 'Use License', 'cookie-notice' ) . '</span><span class="cn-plan-pricing"><span class="cn-plan-price"><span class="cn-plan-amount">0</span> ' . esc_html__( 'available', 'cookie-notice' ) . '</span></span><span class="cn-plan-overlay"></span></span>

@@ -2,14 +2,14 @@
 # This file is distributed under the MIT License.
 msgid ""
 msgstr ""
-"Project-Id-Version: Cookie Compliance for WordPress – Cookie Consent, GDPR & CCPA 3.1.8\n"
+"Project-Id-Version: Cookie Compliance for WordPress – Cookie Consent, GDPR & CCPA 3.1.9\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/cookie-notice\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-08-20T10:49:18+00:00\n"
+"POT-Creation-Date: 2026-08-26T11:13:04+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: cookie-notice\n"
@@ -39,74 +39,74 @@ msgstr ""
 msgid "https://hu-manity.co/"
 msgstr ""
 
-#: cookie-notice.php:1013
+#: cookie-notice.php:1019
 #, php-format
 msgid "%d domain remaining on your plan."
 msgid_plural "%d domains remaining on your plan."
 msgstr[0] ""
 msgstr[1] ""
 
-#: cookie-notice.php:1017
+#: cookie-notice.php:1023
 msgid "No domains remaining on this plan."
 msgstr ""
 
-#: cookie-notice.php:1022
+#: cookie-notice.php:1028
 msgid "Cookie Compliance — Pro is now active on this site."
 msgstr ""
 
-#: cookie-notice.php:1276
+#: cookie-notice.php:1282
 msgid "Cookie Compliance Warning"
 msgstr ""
 
-#: cookie-notice.php:1276
+#: cookie-notice.php:1282
 #, php-format
 msgid "Your website has reached the <b>%1$s visits usage limit for the Cookie Compliance Free Plan</b>. Compliance services such as Consent Record Storage, Autoblocking, and Consent Analytics have been deactivated until current usage cycle ends on %2$s."
 msgstr ""
 
-#: cookie-notice.php:1276
+#: cookie-notice.php:1282
 #, php-format
 msgid "To reactivate compliance services now, <a href=\"%s\" target=\"_blank\">upgrade your domain to a Pro plan.</a>"
 msgstr ""
 
-#: cookie-notice.php:1300
+#: cookie-notice.php:1306
 msgid "We Value Your Feedback"
 msgstr ""
 
-#: cookie-notice.php:1300
+#: cookie-notice.php:1306
 #, php-format
 msgid "Hi, you've been using <strong>Cookie Compliance</strong> for more than %s. We hope it has been a valuable addition to your WordPress site. We would be grateful if you could take a few minutes to share your thoughts by leaving a review."
 msgstr ""
 
-#: cookie-notice.php:1300
+#: cookie-notice.php:1306
 msgid "Thank you for helping us improve and grow!"
 msgstr ""
 
-#: cookie-notice.php:1300
+#: cookie-notice.php:1306
 msgid "Review"
 msgstr ""
 
-#: cookie-notice.php:1300
+#: cookie-notice.php:1306
 msgid "Delay"
 msgstr ""
 
-#: cookie-notice.php:1300
+#: cookie-notice.php:1306
 #: includes/modules/wp-consent-api/wp-consent-api.php:229
 #: src/admin-react/components/Protection.jsx:261
 #: src/admin-react/components/shared/NotificationBar.jsx:60
 msgid "Dismiss"
 msgstr ""
 
-#: cookie-notice.php:1666
+#: cookie-notice.php:1672
 msgid "Cookie Compliance - Deactivation survey"
 msgstr ""
 
-#: cookie-notice.php:1731
+#: cookie-notice.php:1737
 #: src/admin-react/App.jsx:24
 #: src/admin-react/components/Settings.jsx:145
 msgid "Settings"
 msgstr ""
 
-#: cookie-notice.php:1746
+#: cookie-notice.php:1752
 #: includes/privacy-consent.php:331
 #: includes/settings.php:551
 #: includes/settings.php:597
@@ -115,54 +115,54 @@ msgstr ""
 msgid "Try Cookie Compliance free"
 msgstr ""
 
-#: cookie-notice.php:1772
+#: cookie-notice.php:1778
 msgid "We're sorry to see you go. Could you please tell us what happened?"
 msgstr ""
 
-#: cookie-notice.php:1776
+#: cookie-notice.php:1782
 msgid "I couldn't figure out how to make it work."
 msgstr ""
 
-#: cookie-notice.php:1777
+#: cookie-notice.php:1783
 msgid "I found another plugin to use for the same task."
 msgstr ""
 
-#: cookie-notice.php:1778
+#: cookie-notice.php:1784
 msgid "The Cookie Compliance banner is too big."
 msgstr ""
 
-#: cookie-notice.php:1779
+#: cookie-notice.php:1785
 msgid "The Cookie Compliance consent choices (Silver, Gold, Platinum) are confusing."
 msgstr ""
 
-#: cookie-notice.php:1780
+#: cookie-notice.php:1786
 msgid "The Cookie Compliance default settings are too strict."
 msgstr ""
 
-#: cookie-notice.php:1781
+#: cookie-notice.php:1787
 msgid "The web application user interface is not clear to me."
 msgstr ""
 
-#: cookie-notice.php:1782
+#: cookie-notice.php:1788
 msgid "Support isn't timely."
 msgstr ""
 
-#: cookie-notice.php:1783
+#: cookie-notice.php:1789
 #: includes/welcome.php:498
 msgid "Other"
 msgstr ""
 
-#: cookie-notice.php:1797
+#: cookie-notice.php:1803
 #: src/admin-react/components/modals/BannerWizardModal.jsx:45
 #: src/admin-react/components/modals/LawSelectorModal.jsx:72
 msgid "Cancel"
 msgstr ""
 
-#: cookie-notice.php:1798
+#: cookie-notice.php:1804
 msgid "Deactivate"
 msgstr ""
 
-#: cookie-notice.php:1799
+#: cookie-notice.php:1805
 msgid "Deactivate & Submit"
 msgstr ""
 
@@ -669,12 +669,16 @@ msgstr ""
 msgid "Formidable Forms"
 msgstr ""
 
-#: includes/modules/gravity-forms/gravity-forms.php:268
+#: includes/modules/gravity-forms/gravity-forms.php:376
 msgid "Please accept cookies to submit this form. This form is protected by Google reCAPTCHA, which needs your consent before it can run."
 msgstr ""
 
-#: includes/modules/gravity-forms/gravity-forms.php:269
+#: includes/modules/gravity-forms/gravity-forms.php:377
 msgid "This form could not be submitted because Google reCAPTCHA did not load. Please reload the page and try again."
+msgstr ""
+
+#: includes/modules/gravity-forms/gravity-forms.php:378
+msgid "This form is still loading. Please try again in a moment."
 msgstr ""
 
 #: includes/modules/mailchimp/privacy-consent.php:28
@@ -1313,7 +1317,7 @@ msgstr ""
 #: includes/welcome.php:329
 #: includes/welcome.php:622
 #: includes/welcome.php:720
-msgid "Basic"
+msgid "Free"
 msgstr ""
 
 #: includes/settings.php:731
@@ -1949,7 +1953,7 @@ msgstr ""
 #: includes/welcome-api.php:526
 #: includes/welcome-api.php:689
 #: includes/welcome-api.php:769
-#: includes/welcome-api.php:1724
+#: includes/welcome-api.php:1740
 #: includes/welcome.php:133
 msgid "Unexpected error occurred. Please try again later."
 msgstr ""
@@ -2005,7 +2009,7 @@ msgstr ""
 msgid "Failed to sync configuration. Please check your app ID and try again."
 msgstr ""
 
-#: includes/welcome-api.php:1691
+#: includes/welcome-api.php:1707
 msgid "\"AppID\" is not allowed to be empty."
 msgstr ""
 
@@ -2068,7 +2072,7 @@ msgid "Consent Management Platform with simple, transparent pricing."
 msgstr ""
 
 #: includes/welcome.php:315
-msgid "Choose monthly or yearly payment and number of domains for the fully featured, Professional plan. Or start with limited, Basic plan for free."
+msgid "Choose monthly or yearly payment and number of domains for the fully featured, Professional plan. Or start with the limited Free plan."
 msgstr ""
 
 #: includes/welcome.php:319
@@ -2086,10 +2090,6 @@ msgstr ""
 
 #: includes/welcome.php:322
 msgid "Save 12%"
-msgstr ""
-
-#: includes/welcome.php:330
-msgid "Free"
 msgstr ""
 
 #: includes/welcome.php:335
@@ -2120,11 +2120,11 @@ msgstr ""
 
 #: includes/welcome.php:341
 #, php-format
-msgid "%sBasic%s Support"
+msgid "%sStandard%s Support"
 msgstr ""
 
 #: includes/welcome.php:344
-msgid "Start Basic"
+msgid "Start Free"
 msgstr ""
 
 #: includes/welcome.php:345
@@ -4663,7 +4663,7 @@ msgid "Advanced Configuration"
 msgstr ""
 
 #: src/admin-react/components/shared/Footer.jsx:9
-msgid "Basic (Not Connected)"
+msgid "Banner Only (Not Connected)"
 msgstr ""
 
 #: src/admin-react/components/shared/Footer.jsx:11

@@ -2,7 +2,7 @@
 /*
 Plugin Name: Cookie Compliance for WordPress – Cookie Consent, GDPR & CCPA
 Description: Cookie Compliance for WordPress (formerly "Compliance by Hu-manity.co" / "Cookie Notice") — the WordPress component of Cookie Compliance, the consent management platform by Hu-manity.co. Cookie consent banner, pre-consent script blocking, Google Consent Mode v2 and consent records for GDPR, CCPA and global data privacy laws.
-Version: 3.1.8
+Version: 3.1.9
 Author: Hu-manity.co
 Author URI: https://hu-manity.co/
 Plugin URI: https://cookie-compliance.co/
@@ -180,7 +180,7 @@ class Cookie_Notice {
 			'threshold_exceeded'	=> false,
 			'activation_datetime'	=> 0
 		],
-		'version'	=> '3.1.8'
+		'version'	=> '3.1.9'
 	];
 
 	/**
@@ -622,7 +622,13 @@ class Cookie_Notice {
 
 		$cn_tier = isset( $_GET['cn_tier'] ) ? sanitize_key( $_GET['cn_tier'] ) : '';
 
-		if ( $cn_tier === 'basic' ) {
+		// 'basic' still accepted as a legacy alias for the Banner Only state, so an
+		// old dev bookmark keeps working. Note the VALUE written below stays
+		// 'basic': that is the platform's wire label for the Free plan (minted from
+		// the DB's 'free' by Designer API userDesignLive.controller.ts:78), so it
+		// must match what a real response would store. The disconnected state is
+		// expressed by clearing app_id, never by the subscription value.
+		if ( $cn_tier === 'banner_only' || $cn_tier === 'basic' ) {
 			$this->status_data['subscription'] = 'basic';
 			$this->options['general']['app_id'] = '';
 		} elseif ( $cn_tier === 'free' ) {

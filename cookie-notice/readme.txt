@@ -4,7 +4,7 @@ Tags: gdpr, ccpa, cookies, consent, privacy, gpc, google-consent-mode
 Requires at least: 4.9.6
 Requires PHP: 7.4
 Tested up to: 7.0
-Stable tag: 3.1.8
+Stable tag: 3.1.9
 License: MIT License
 License URI: http://opensource.org/licenses/MIT
 
@@ -107,7 +107,7 @@ As a part of our proactive approach, Cookie Compliance is configured by default 
 
 Cookie Compliance for WordPress is a Consent Management Platform client. Depending on how you use it, the plugin may send data to Hu-manity.co services on your behalf. This section describes what data leaves your WordPress server and when. It is kept up to date as the plugin evolves; material changes are noted in the changelog.
 
-= Plugin-only mode (Banner Only / Basic) =
+= Plugin-only mode (Banner Only) =
 
 If you install the plugin and choose "Banner Only" in the Welcome screen — or never open the Welcome screen at all — the plugin operates entirely on your WordPress site. No account is created and the plugin does not initiate calls to Hu-manity.co services.
 
@@ -126,7 +126,7 @@ The data sent depends on the feature you are using and typically includes:
 * **Site-identifying data** such as your site's URL, title, description, and language.
 * **Application credentials** (App ID and Secret Key) issued to your site at registration, included with subsequent platform requests.
 * **Subscription and billing data** for Professional plans, such as the selected plan identifier and a one-time payment token described below.
-* **Integration telemetry** such as the plugin version and which admin interface (React or Legacy) you are using, sent as HTTP headers so we can understand integration adoption and support the plugin.
+* **Integration telemetry** such as the plugin version, the admin interface and language you use, which of the plugin's own options are switched on, basic diagnostics about how it is running, and which of the caching or JavaScript-optimisation plugins it needs to stay compatible with are active on your site, and whether a Google, Meta or Microsoft tracking plugin is active, sent as HTTP headers so we can understand integration adoption and support the plugin.
 * **Operational metadata** such as the timestamp and locale of a request, as is normal for HTTPS API calls.
 
 As the plugin evolves, additional non-personal fields of the same categories listed above may be sent to support new features. Material changes are noted in the changelog.
@@ -164,7 +164,7 @@ As the plugin evolves, additional keys may be stored in any of these locations. 
 * Hu-manity.co / Cookie Compliance — primary service provider.
     * Terms of Service: https://cookie-compliance.co/terms-of-service/
     * Privacy contact: https://cookie-compliance.co/documentation/privacy-contact/
-* Braintree (a PayPal service) — processes Professional plan signups initiated from the plugin (not invoked for Basic or Free).
+* Braintree (a PayPal service) — processes Professional plan signups initiated from the plugin (not invoked for Banner Only or Free).
 * When you manage your subscription from the Cookie Compliance web application, additional payment gateway providers may process your billing information.
 * Hu-manity.co's email subscription service — receives your account email address and name to manage newsletter and operational email preferences. You can unsubscribe at any time via the email footer or by deleting your account.
 
@@ -205,6 +205,15 @@ Yes! Signed in to Cookie Compliance, you get technical compliance features to me
 4. Cookie Compliance settings
 
 == Changelog ==
+
+= 3.1.9 =
+* Fix: On sites that honour Global Privacy Control or Do Not Track, a visitor's opt-out is now applied as soon as the banner can act on it, instead of waiting for your settings to load.
+* Fix: On sites using Gravity Forms with Google reCAPTCHA, visitors can page through a multi-page form before choosing cookies — only the final submit waits for consent. Since 3.1.5 Next and Previous waited too. Worth retesting if you run a multi-page form.
+* Fix: On those same sites, a visitor who has already accepted cookies is no longer asked to accept again when submitting. They are now told that the form is still loading, or that reCAPTCHA did not load, whichever is the case.
+* Tweak: On those same sites, a developer can switch this compatibility off site-wide with the `cookie_notice_gravity_forms_recaptcha_enabled` filter. Google reCAPTCHA is still held until a visitor accepts, either way.
+* Fix: On sites with page caching, your caching plugin is now told not to store pages viewed by anyone who can manage the banner. Script blocking is off on those pages, so a cached copy served to a visitor left them unprotected. Most caching plugins honour this; a CDN that ignores your site's caching rules needs its own exclusion for logged-in users. Purge your cache once after updating — copies already stored are not cleared automatically.
+* Tweak: On sites connected to a Cookie Compliance account, the requests the plugin already makes now carry a little more about your setup — its version and which features are on, your site's language, basic diagnostics, which caching or optimisation plugins you use, and whether a Google, Meta or Microsoft tracking plugin is active. Nothing about your visitors, your content or your users is sent; the Privacy section lists it all.
+* Tweak: On those same sites, publishing usually pushes your changes out within seconds; the scheduled check behind that now runs twice a day instead of once, halving the wait when a push cannot get through.
 
 = 3.1.8 =
 * Improvement: On sites running WordPress in a language other than English, the Compliance settings screens can now be translated. Their text was previously fixed in English no matter which language your site used. Translations are supplied by the translation community, so screens stay in English until a translation for your language is available.

@@ -353,3 +353,172 @@ function cn_detect_active_plugins() {
 
 	return array_values( array_unique( $detected ) );
 }
+
+/**
+ * Feature flags reported in integration telemetry, as option key => short name.
+ *
+ * A function rather than an inlined literal so the builder and its test read
+ * one list. Short names travel in an HTTP header, hence the length.
+ *
+ * @return array
+ */
+function cn_get_telemetry_flag_map() {
+	return [
+		'app_blocking'			=> 'blocking',
+		'caching_compatibility'	=> 'caching',
+		'wp_consent_api'		=> 'consentapi',
+		'amp_support'			=> 'amp',
+		'bot_detection'			=> 'botdetect',
+		'conditional_active'	=> 'conditional',
+		'debug_mode'			=> 'debug',
+		'global_override'		=> 'globaloverride'
+	];
+}
+
+/**
+ * Integration telemetry for connected-site platform requests.
+ *
+ * Every value here is either something the plugin ALREADY computes for the
+ * service to work (which optimizer is active, which tracker plugins are
+ * present) or a scalar describing this integration's own state. Nothing here
+ * describes the site's content, its visitors, or its plugin inventory at
+ * large: readme.txt's "Data the plugin does not send" is the boundary, and its
+ * disclosed "Integration telemetry" category is the licence for what is here.
+ *
+ * CONNECTED MODE ONLY, and this function must never be the reason a request
+ * happens. readme.txt states without qualification that a plugin-only install
+ * "does not initiate calls to Hu-manity.co services"; that promise is stricter
+ * than wordpress.org Guideline 7 and it is the binding one. This only ever
+ * rides a request the plugin was already making — see
+ * Cookie_Notice_Welcome_API::request(), which is reached only from connected
+ * paths.
+ *
+ * @return array Flat map of scalars. Callers encode via cn_encode_integration_telemetry().
+ */
+function cn_get_integration_telemetry() {
+	$cn = Cookie_Notice();
+
+	$options = isset( $cn->options['general'] ) && is_array( $cn->options['general'] ) ? $cn->options['general'] : [];
+
+	// cn_is_plugin_active()'s wpsupercache branch and cn_detect_active_plugins()
+	// both call is_plugin_active(), which lives in an admin-only include. The
+	// constructor's set_network_data() already loads it on every boot, but that
+	// is a distant side effect to depend on — mirror its guard rather than
+	// inherit a fatal if it ever moves.
+	if ( ! function_exists( 'is_plugin_active' ) && defined( 'ABSPATH' ) )
+		require_once( ABSPATH . '/wp-admin/includes/plugin.php' );
+
+	$telemetry = [];
+
+	// The version of the code that is RUNNING. Deliberately NOT $cn->db_version:
+	// that is the cookie_notice_version option, i.e. the version at the last
+	// COMPLETED upgrade routine, which lags the running code on any site whose
+	// upgrade path has not fired. Reporting db_version is why the platform
+	// records 2.5.x for sites demonstrably running current code, and it makes
+	// the only patch-level adoption signal we have wrong rather than merely
+	// partial.
+	$telemetry['version'] = isset( $cn->defaults['version'] ) ? (string) $cn->defaults['version'] : '';
+
+	// A lagging db_version is itself worth knowing: it means the upgrade routine
+	// has not completed here, which is a support answer rather than a version.
+	if ( ! empty( $cn->db_version ) && $telemetry['version'] !== '' && version_compare( (string) $cn->db_version, $telemetry['version'], '<' ) )
+		$telemetry['dbversion'] = (string) $cn->db_version;
+
+	// Admin language. Tells us which translations are worth funding now that the
+	// admin is translatable; disclosed as operational metadata already.
+	if ( function_exists( 'get_locale' ) )
+		$telemetry['locale'] = (string) get_locale();
+
+	// Which JS-exclusion-capable optimizer is in play. This is the single
+	// largest cause of a banner that "disappeared": an optimizer that combines
+	// or defers our script arms pre-consent blocking too late, or not at all.
+	// Detection is cn_is_plugin_active()'s, which the plugin already runs on
+	// every load to register those exclusion filters (see DEC-006) — no new
+	// detection, and nothing here the service was not already looking at.
+	if ( function_exists( 'is_plugin_active' ) ) {
+		$optimizers = [];
+
+		foreach ( [ 'autoptimize', 'breeze', 'hummingbird', 'litespeed', 'speedoptimizer', 'speedycache', 'wpfastestcache', 'wpoptimize', 'wprocket', 'wpsupercache' ] as $optimizer ) {
+			if ( cn_is_plugin_active( $optimizer ) )
+				$optimizers[] = $optimizer;
+		}
+
+		if ( ! empty( $optimizers ) )
+			$telemetry['optimizers'] = implode( ',', $optimizers );
+
+		// Tracker plugins, as already resolved for Consent Mode seeding.
+		$trackers = cn_detect_active_plugins();
+
+		if ( ! empty( $trackers ) )
+			$telemetry['trackers'] = implode( ',', $trackers );
+	}
+
+	// Which of our own features are switched on. Always emitted — "none" rather
+	// than an absent key — so a reader can tell "every flag off" from "a plugin
+	// version that does not report flags".
+	$flags = [];
+
+	foreach ( cn_get_telemetry_flag_map() as $option => $flag ) {
+		if ( ! empty( $options[ $option ] ) )
+			$flags[] = $flag;
+	}
+
+	if ( function_exists( 'is_multisite' ) && is_multisite() )
+		$flags[] = 'multisite';
+
+	$telemetry['flags'] = ! empty( $flags ) ? implode( ',', $flags ) : 'none';
+
+	// COUNT, never the handles themselves: a handle names something the site
+	// runs, which is site detail we have no reason to hold.
+	if ( ! empty( $options['excluded_handles'] ) )
+		$telemetry['handles'] = (string) count( (array) $options['excluded_handles'] );
+
+	// Cron health, reported only when UNHEALTHY — absence means fine. Between
+	// them these explain a whole class of "I bought Pro but still see the Free
+	// limit" tickets: config never refreshes, so the local cache stays stale.
+	$cron = [];
+
+	if ( defined( 'DISABLE_WP_CRON' ) && DISABLE_WP_CRON )
+		$cron[] = 'disabled';
+
+	if ( function_exists( 'wp_next_scheduled' ) && ! wp_next_scheduled( 'cookie_notice_get_app_config' ) )
+		$cron[] = 'unscheduled';
+
+	if ( ! empty( $cron ) )
+		$telemetry['cron'] = implode( ',', $cron );
+
+	return $telemetry;
+}
+
+/**
+ * Encode integration telemetry for transport in a single HTTP header.
+ *
+ * `key=value;key=value`. Values are restricted to a conservative charset so a
+ * stray character in a locale or option value can never break the header or
+ * smuggle anything into it — anything else is dropped, and an empty value
+ * drops its key entirely. Length is capped for the same reason.
+ *
+ * @param array $telemetry
+ * @return string Empty string when there is nothing safe to send.
+ */
+function cn_encode_integration_telemetry( $telemetry ) {
+	if ( ! is_array( $telemetry ) )
+		return '';
+
+	$pairs = [];
+
+	foreach ( $telemetry as $key => $value ) {
+		$key = preg_replace( '/[^a-z0-9_]/', '', strtolower( (string) $key ) );
+		$value = preg_replace( '/[^A-Za-z0-9._,-]/', '', (string) $value );
+
+		if ( $key === '' || $value === '' )
+			continue;
+
+		$pairs[] = $key . '=' . $value;
+	}
+
+	if ( empty( $pairs ) )
+		return '';
+
+	return substr( implode( ';', $pairs ), 0, 512 );
+}

@@ -60,8 +60,23 @@ class Cookie_Notice_Modules_GravityForms {
 	/** Category Google Recaptcha ships in — non-essential, so held until consent. */
 	const DEFAULT_CATEGORY = 2;
 
-	/** Whether the add-on bundle was actually found and held on this request. */
-	private $held = false;
+	/**
+	 * What happened to the add-on bundle on this request.
+	 *
+	 * One of: 'absent' (the handle never rendered), 'held' (rewritten inert, release
+	 * pending), 'no-controller' (found, but recaptcha.js is missing from disk so we
+	 * deliberately did not hold it), 'already-held' (a second filter pass), 'no-src'
+	 * (the tag carried no src to move).
+	 *
+	 * Deliberately NOT a boolean. It used to be `$filtered !== $tag`, which collapsed
+	 * every not-held reason into one message — "not found on this page" — including
+	 * 'no-controller', i.e. a partial or stripped deploy. That is the failure most worth
+	 * shouting about, and it was reported as "you have not got the add-on installed".
+	 */
+	private $state = 'absent';
+
+	/** Consent category Google Recaptcha is in on this site. See __construct(). */
+	private $category = self::DEFAULT_CATEGORY;
 
 	/**
 	 * Constructor.
@@ -69,10 +84,20 @@ class Cookie_Notice_Modules_GravityForms {
 	 * @return void
 	 */
 	public function __construct() {
+		// Switched off for this site? Bail before anything is hooked. See is_enabled().
+		if ( ! self::is_enabled() )
+			return;
+
 		// Already essential on this site? Then the widget never holds reCAPTCHA, the
 		// add-on captures a real grecaptcha, and there is nothing to fix. Bail so we
 		// cannot regress a site that has already worked around this by hand.
-		if ( self::recaptcha_category( self::get_blocking_data() ) === 1 )
+		//
+		// Kept rather than recomputed: recaptcha.js needs the same number, because the
+		// question "may this visitor run reCAPTCHA yet" is `categories[$category] === true`
+		// against THIS site's category, not a hardcoded 2.
+		$this->category = self::recaptcha_category( self::get_blocking_data() );
+
+		if ( $this->category === 1 )
 			return;
 
 		add_filter( 'script_loader_tag', [ $this, 'hold_addon_script' ], 10, 2 );
@@ -85,6 +110,30 @@ class Cookie_Notice_Modules_GravityForms {
 		// silently unfixed. Mirrors Cookie_Notice_Frontend::debug_excluded_handles().
 		if ( Cookie_Notice()->options['general']['debug_mode'] )
 			add_action( 'wp_footer', [ $this, 'debug_held_state' ], 999 );
+	}
+
+	/**
+	 * Whether this compatibility module runs on this site.
+	 *
+	 * A developer-level off-switch, deliberately a filter and not a setting. Agencies run
+	 * this plugin across whole portfolios, so the useful shape is one mu-plugin applied
+	 * fleet-wide rather than a checkbox to find on every site (#47928). It mirrors
+	 * cookie_notice_wp_consent_api_enabled.
+	 *
+	 *     add_filter( 'cookie_notice_gravity_forms_recaptcha_enabled', '__return_false' );
+	 *
+	 * IMPORTANT — what this does NOT do. It disables only the hold-and-release controller.
+	 * Google reCAPTCHA is still held until the visitor's consent covers its category,
+	 * because that is the widget's job and is decided by the Autoblocking configuration,
+	 * not here. So switching this off cannot let reCAPTCHA run before consent; it returns
+	 * the site to the earlier behaviour, where the add-on captures an empty grecaptcha and
+	 * the submit button waits without explaining itself. Never widen this filter to reach
+	 * the blocking flag or a provider's category — that would make it a pre-consent leak.
+	 *
+	 * @return bool
+	 */
+	public static function is_enabled() {
+		return (bool) apply_filters( 'cookie_notice_gravity_forms_recaptcha_enabled', true );
 	}
 
 	/**
@@ -153,11 +202,20 @@ class Cookie_Notice_Modules_GravityForms {
 	/**
 	 * Hold the add-on bundle: make the tag inert and stash its URL for recaptcha.js.
 	 *
-	 * @param string $tag    Full <script> tag HTML.
-	 * @param string $handle WordPress script handle.
+	 * $reason reports WHICH branch was taken, so debug_held_state() can name it instead of
+	 * guessing from whether the string changed. Every bail below returns the tag untouched
+	 * and is therefore indistinguishable from outside — including the one that matters
+	 * most, a controller missing from disk. An out-param rather than a second method so
+	 * the reason cannot drift from the branch that produced it.
+	 *
+	 * @param string      $tag    Full <script> tag HTML.
+	 * @param string      $handle WordPress script handle.
+	 * @param string|null $reason Out: 'absent'|'no-controller'|'already-held'|'no-src'|'held'.
 	 * @return string
 	 */
-	public static function hold_tag( $tag, $handle ) {
+	public static function hold_tag( $tag, $handle, &$reason = null ) {
+		$reason = 'absent';
+
 		if ( $handle !== self::HANDLE_ADDON )
 			return $tag;
 
@@ -165,15 +223,24 @@ class Cookie_Notice_Modules_GravityForms {
 		// partial update, a stripped deploy — holding would leave every visitor,
 		// including consented ones, with a form that submits without a token. Falling
 		// through leaves the current behaviour instead of inventing a worse one.
-		if ( ! file_exists( self::controller_path() ) )
+		if ( ! file_exists( self::controller_path() ) ) {
+			$reason = 'no-controller';
+
 			return $tag;
+		}
 
 		// already held
-		if ( strpos( $tag, 'data-cn-gf-recaptcha-src' ) !== false )
-			return $tag;
+		if ( strpos( $tag, 'data-cn-gf-recaptcha-src' ) !== false ) {
+			$reason = 'already-held';
 
-		if ( ! preg_match( '/\ssrc=(["\'])(.*?)\1/', $tag, $m ) )
 			return $tag;
+		}
+
+		if ( ! preg_match( '/\ssrc=(["\'])(.*?)\1/', $tag, $m ) ) {
+			$reason = 'no-src';
+
+			return $tag;
+		}
 
 		// Drop the executable src and strip any type, then mark it inert. text/plain
 		// means no browser executes it and — unlike the widget's own
@@ -188,6 +255,8 @@ class Cookie_Notice_Modules_GravityForms {
 			1
 		);
 
+		$reason = 'held';
+
 		return $tag;
 	}
 
@@ -199,10 +268,14 @@ class Cookie_Notice_Modules_GravityForms {
 	 * @return string
 	 */
 	public function hold_addon_script( $tag, $handle ) {
-		$filtered = self::hold_tag( $tag, $handle );
+		$reason   = null;
+		$filtered = self::hold_tag( $tag, $handle, $reason );
 
+		// Taken from hold_tag() rather than re-derived here. Re-deriving worked, but the
+		// two condition lists could drift apart silently and the console would then name
+		// the wrong reason — which is the exact defect this reporting exists to fix.
 		if ( $handle === self::HANDLE_ADDON )
-			$this->held = $filtered !== $tag;
+			$this->state = $reason;
 
 		return $filtered;
 	}
@@ -213,11 +286,36 @@ class Cookie_Notice_Modules_GravityForms {
 	 * @return void
 	 */
 	public function debug_held_state() {
-		echo '<script>console.warn("CC Banner: Gravity Forms reCAPTCHA — '
-			. ( $this->held
-				? 'held ' . esc_js( self::HANDLE_ADDON ) . ', release waits for grecaptcha'
-				: esc_js( self::HANDLE_ADDON ) . ' not found on this page, nothing held' )
-			. '");</script>' . "\n";
+		$handle = esc_js( self::HANDLE_ADDON );
+
+		switch ( $this->state ) {
+			case 'held':
+				$message = 'held ' . $handle . ', release waits for grecaptcha';
+				break;
+
+			// The one worth shouting about: the handle IS on the page, so the add-on is
+			// installed and this site needs the fix — we simply cannot deliver it, because
+			// the file that releases the hold is not on disk. A partial update, a stripped
+			// deploy, an incomplete upload. Forms keep working as they did before 3.1.5.
+			case 'no-controller':
+				$message = $handle . ' found but recaptcha.js is MISSING from disk — not held, '
+					. 'and this site is not getting the fix. Check the plugin files are complete';
+				break;
+
+			case 'already-held':
+				$message = $handle . ' was already held by an earlier pass, left alone';
+				break;
+
+			case 'no-src':
+				$message = $handle . ' found but its tag carried no src to hold — an optimizer '
+					. 'may have inlined or rewritten it';
+				break;
+
+			default:
+				$message = $handle . ' not found on this page, nothing held';
+		}
+
+		echo '<script>console.warn("CC Banner: Gravity Forms reCAPTCHA — ' . $message . '");</script>' . "\n";
 	}
 
 	/**
@@ -261,12 +359,23 @@ class Cookie_Notice_Modules_GravityForms {
 			true
 		);
 
+		// Three messages, because there are three states — see showNotice() in recaptcha.js.
+		// loadingMessage covers the one that had no wording of its own: a visitor whose
+		// consent DOES cover reCAPTCHA, on the second or two before Google's api.js defines
+		// grecaptcha. They used to be told to accept cookies they had already accepted.
+		//
+		// `category` is what lets the controller ask the right question. Without it the JS
+		// can only see THAT a consent record exists, which is true for someone who declined
+		// — and that visitor is still held, so they must keep getting the accept-cookies
+		// wording rather than being told Google failed.
 		wp_localize_script(
 			self::HANDLE_CONTROLLER,
 			'cn_gf_recaptcha',
 			[
+				'category'           => $this->category,
 				'blockedMessage'     => __( 'Please accept cookies to submit this form. This form is protected by Google reCAPTCHA, which needs your consent before it can run.', 'cookie-notice' ),
 				'unavailableMessage' => __( 'This form could not be submitted because Google reCAPTCHA did not load. Please reload the page and try again.', 'cookie-notice' ),
+				'loadingMessage'     => __( 'This form is still loading. Please try again in a moment.', 'cookie-notice' ),
 			]
 		);
 	}

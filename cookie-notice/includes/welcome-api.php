@@ -1385,8 +1385,15 @@ class Cookie_Notice_Welcome_API {
 		// Self-reported client metadata — lets backend correlate cancellation
 		// with integration client (WordPress plugin, future Shopify app, etc.)
 		// and with the UI mode in use. Banner (JS widget) does NOT send these.
+		//
+		// Cn-Client-Version now carries the version of the code that is RUNNING.
+		// It previously carried $cn->db_version — the version at the last
+		// COMPLETED upgrade routine — which lags the running code and is why the
+		// platform recorded 2.5.x for sites on current code. See
+		// cn_get_integration_telemetry().
 		$cn_ui_mode = isset( $cn->options['general']['ui_mode'] ) ? $cn->options['general']['ui_mode'] : 'legacy';
-		$cn_plugin_version = ! empty( $cn->db_version ) ? $cn->db_version : '';
+		$cn_telemetry = cn_get_integration_telemetry();
+		$cn_plugin_version = isset( $cn_telemetry['version'] ) ? $cn_telemetry['version'] : '';
 
 		// request arguments
 		$api_args = [
@@ -1398,6 +1405,15 @@ class Cookie_Notice_Welcome_API {
 				'Cn-Client-Ui-Mode'	=> $cn_ui_mode,
 			]
 		];
+
+		// The rest of the telemetry rides ONE further header rather than a header
+		// per field, so a later field is a value change instead of a new header
+		// for the backend to learn. Omitted entirely when there is nothing safe
+		// to send.
+		$cn_env = cn_encode_integration_telemetry( $cn_telemetry );
+
+		if ( $cn_env !== '' )
+			$api_args['headers']['Cn-Client-Env'] = $cn_env;
 
 		// request parameters
 		$api_params = [];
@@ -1752,8 +1768,19 @@ class Cookie_Notice_Welcome_API {
 
 		// compliance active only
 		if ( $app_id !== '' && $app_key !== '' ) {
+			// ── Begin config pull scheduling
+			// twicedaily, not daily: this pull is what refreshes the stored config
+			// snapshot, and that snapshot is what the admin screens report, what the
+			// quota/threshold state is read from, and what frontend.php seeds into
+			// huOptions on a cold pageview. Halving the interval halves how long any of
+			// them can disagree with the platform. The publish-time
+			// purge (rest_purge_cache) is the primary freshness mechanism and reaches a
+			// healthy 3.1.3+ site in seconds; this cron is the fallback for the tail it
+			// misses, so halving its interval halves the worst case for those sites.
+			// A custom 6-hour schedule was considered and rejected — twicedaily is a core
+			// built-in and needs no cron_schedules registration to carry.
 			if ( $cn->get_status() === 'active' )
-				$recurrence = 'daily';
+				$recurrence = 'twicedaily';
 			else
 				$recurrence = 'hourly';
 
@@ -1761,9 +1788,33 @@ class Cookie_Notice_Welcome_API {
 			if ( ! wp_next_scheduled( 'cookie_notice_get_app_analytics' ) )
 				wp_schedule_event( time(), 'hourly', 'cookie_notice_get_app_analytics' );
 
-			// set schedule if needed
-			if ( ! wp_next_scheduled( 'cookie_notice_get_app_config' ) )
+			// A wp_next_scheduled() guard ALONE pins an install to whatever recurrence it
+			// was FIRST registered with: the guard stays true forever after, so changing
+			// $recurrence above would reach new installs only and leave every existing
+			// site on its original cadence indefinitely. Compare the registered schedule
+			// and re-register when it differs. check_cron() is hooked on `init`, so an
+			// upgraded install self-heals on its first page load — no migration routine,
+			// and nothing to run for sites that upgrade while nobody is looking.
+			//
+			// Re-registering at time() makes that first pull happen immediately rather
+			// than at the old schedule's next due time. Deliberate: an install upgrading
+			// with a snapshot already 20+ hours old would otherwise keep serving it for
+			// most of another day, which is the state the shorter cadence exists to end.
+			// Cost is one extra pull per install, spread over however long the release
+			// takes to roll out — and the analytics job on the same installs already runs
+			// hourly, so this cadence is not new load for the endpoint.
+			//
+			// get_status() is read from stored status data and only moves when the API
+			// says so, so this cannot thrash on ordinary page loads.
+			$scheduled = wp_get_schedule( 'cookie_notice_get_app_config' );
+
+			if ( $scheduled === false )
 				wp_schedule_event( time(), $recurrence, 'cookie_notice_get_app_config' );
+			elseif ( $scheduled !== $recurrence ) {
+				wp_clear_scheduled_hook( 'cookie_notice_get_app_config' );
+				wp_schedule_event( time(), $recurrence, 'cookie_notice_get_app_config' );
+			}
+			// ── End config pull scheduling
 		} else {
 			// remove schedule if needed
 			if ( wp_next_scheduled( 'cookie_notice_get_app_analytics' ) )
@@ -2220,7 +2271,7 @@ class Cookie_Notice_Welcome_API {
 
 				// Is Google consent mode enabled? Free-tier feature, and NOT quota-gated.
 				// Designer API logic.service.ts::downgradeLiveDefaults is explicit that
-				// Google CM, GPC and DNT survive a Basic plan; only Facebook and Microsoft
+				// Google CM, GPC and DNT survive the Free plan; only Facebook and Microsoft
 				// are Pro-only. Consent SIGNALS cost us nothing to serve — storage is the
 				// metered resource — so a site over its visit quota keeps telling Google
 				// what the visitor actually chose rather than silently losing its consent
@@ -2241,7 +2292,7 @@ class Cookie_Notice_Welcome_API {
 				// Is Facebook consent mode enabled? Pro-only — but enforced by the BACKEND,
 				// which is the only party holding the authoritative plan. Designer API
 				// logic.service.ts::downgradeLiveDefaults resets facebookConsentMode to its
-				// default for a Basic app before this response is ever built, so $fcm is
+				// default for a Free-plan app before this response is ever built, so $fcm is
 				// already 0 for a free plan. Re-deciding it here off a locally cached
 				// subscription added no enforcement and one failure mode: a Pro app whose
 				// cache still said 'basic' silently lost the feature it had paid for.
@@ -2253,7 +2304,7 @@ class Cookie_Notice_Welcome_API {
 
 				// Is Microsoft consent mode enabled? Pro-only, enforced by the backend for
 				// the same reason as Facebook above — downgradeLiveDefaults already reset
-				// microsoftConsentMode* for a Basic app.
+				// microsoftConsentMode* for a Free-plan app.
 				if ( $mcm === 1 ) {
 					$result['microsoft_consent_default']['ad_storage'] = isset( $result_raw['BannerConfigJSON']->microsoftConsentMapAdStorage ) ? (int) $result_raw['BannerConfigJSON']->microsoftConsentMapAdStorage : 4;
 					$result['microsoft_consent_default']['analytics_storage'] = isset( $result_raw['BannerConfigJSON']->microsoftConsentMapAnalyticsStorage ) ? (int) $result_raw['BannerConfigJSON']->microsoftConsentMapAnalyticsStorage : 3;
