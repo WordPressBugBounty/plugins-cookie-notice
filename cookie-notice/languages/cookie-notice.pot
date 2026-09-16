@@ -2,14 +2,14 @@
 # This file is distributed under the MIT License.
 msgid ""
 msgstr ""
-"Project-Id-Version: Cookie Compliance for WordPress – Cookie Consent, GDPR & CCPA 3.1.9\n"
-"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/cookie-notice\n"
+"Project-Id-Version: Cookie Compliance for WordPress – Cookie Consent, GDPR & CCPA 3.1.10\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/cookie-notice-trunk\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-08-26T11:13:04+00:00\n"
+"POT-Creation-Date: 2026-09-12T11:58:04+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: cookie-notice\n"
@@ -26,7 +26,7 @@ msgstr ""
 
 #. Description of the plugin
 #: cookie-notice.php
-msgid "Cookie Compliance for WordPress (formerly \"Compliance by Hu-manity.co\" / \"Cookie Notice\") — the WordPress component of Cookie Compliance, the consent management platform by Hu-manity.co. Cookie consent banner, pre-consent script blocking, Google Consent Mode v2 and consent records for GDPR, CCPA and global data privacy laws."
+msgid "Cookie Compliance for WordPress (formerly \"Compliance by Hu-manity.co\" / \"Cookie Notice\") — the WordPress component of Cookie Compliance, the consent management platform by Hu-manity.co. Cookie consent banner, pre-consent script blocking, Google Consent Mode v2, WP Consent API integration, and consent records for GDPR, CCPA and global data privacy laws."
 msgstr ""
 
 #. Author of the plugin
@@ -39,130 +39,130 @@ msgstr ""
 msgid "https://hu-manity.co/"
 msgstr ""
 
-#: cookie-notice.php:1019
+#: cookie-notice.php:1153
 #, php-format
 msgid "%d domain remaining on your plan."
 msgid_plural "%d domains remaining on your plan."
 msgstr[0] ""
 msgstr[1] ""
 
-#: cookie-notice.php:1023
+#: cookie-notice.php:1157
 msgid "No domains remaining on this plan."
 msgstr ""
 
-#: cookie-notice.php:1028
+#: cookie-notice.php:1162
 msgid "Cookie Compliance — Pro is now active on this site."
 msgstr ""
 
-#: cookie-notice.php:1282
+#: cookie-notice.php:1416
 msgid "Cookie Compliance Warning"
 msgstr ""
 
-#: cookie-notice.php:1282
+#: cookie-notice.php:1416
 #, php-format
 msgid "Your website has reached the <b>%1$s visits usage limit for the Cookie Compliance Free Plan</b>. Compliance services such as Consent Record Storage, Autoblocking, and Consent Analytics have been deactivated until current usage cycle ends on %2$s."
 msgstr ""
 
-#: cookie-notice.php:1282
+#: cookie-notice.php:1416
 #, php-format
 msgid "To reactivate compliance services now, <a href=\"%s\" target=\"_blank\">upgrade your domain to a Pro plan.</a>"
 msgstr ""
 
-#: cookie-notice.php:1306
+#: cookie-notice.php:1440
 msgid "We Value Your Feedback"
 msgstr ""
 
-#: cookie-notice.php:1306
+#: cookie-notice.php:1440
 #, php-format
 msgid "Hi, you've been using <strong>Cookie Compliance</strong> for more than %s. We hope it has been a valuable addition to your WordPress site. We would be grateful if you could take a few minutes to share your thoughts by leaving a review."
 msgstr ""
 
-#: cookie-notice.php:1306
+#: cookie-notice.php:1440
 msgid "Thank you for helping us improve and grow!"
 msgstr ""
 
-#: cookie-notice.php:1306
+#: cookie-notice.php:1440
 msgid "Review"
 msgstr ""
 
-#: cookie-notice.php:1306
+#: cookie-notice.php:1440
 msgid "Delay"
 msgstr ""
 
-#: cookie-notice.php:1306
+#: cookie-notice.php:1440
 #: includes/modules/wp-consent-api/wp-consent-api.php:229
-#: src/admin-react/components/Protection.jsx:261
+#: src/admin-react/components/Protection.jsx:264
 #: src/admin-react/components/shared/NotificationBar.jsx:60
 msgid "Dismiss"
 msgstr ""
 
-#: cookie-notice.php:1672
+#: cookie-notice.php:1806
 msgid "Cookie Compliance - Deactivation survey"
 msgstr ""
 
-#: cookie-notice.php:1737
+#: cookie-notice.php:1871
 #: src/admin-react/App.jsx:24
-#: src/admin-react/components/Settings.jsx:145
+#: src/admin-react/components/Settings.jsx:146
 msgid "Settings"
 msgstr ""
 
-#: cookie-notice.php:1752
+#: cookie-notice.php:1886
 #: includes/privacy-consent.php:331
 #: includes/settings.php:551
 #: includes/settings.php:597
-#: includes/settings.php:1063
-#: includes/settings.php:1119
+#: includes/settings.php:1098
+#: includes/settings.php:1154
 msgid "Try Cookie Compliance free"
 msgstr ""
 
-#: cookie-notice.php:1778
+#: cookie-notice.php:1912
 msgid "We're sorry to see you go. Could you please tell us what happened?"
 msgstr ""
 
-#: cookie-notice.php:1782
+#: cookie-notice.php:1916
 msgid "I couldn't figure out how to make it work."
 msgstr ""
 
-#: cookie-notice.php:1783
+#: cookie-notice.php:1917
 msgid "I found another plugin to use for the same task."
 msgstr ""
 
-#: cookie-notice.php:1784
+#: cookie-notice.php:1918
 msgid "The Cookie Compliance banner is too big."
 msgstr ""
 
-#: cookie-notice.php:1785
+#: cookie-notice.php:1919
 msgid "The Cookie Compliance consent choices (Silver, Gold, Platinum) are confusing."
 msgstr ""
 
-#: cookie-notice.php:1786
+#: cookie-notice.php:1920
 msgid "The Cookie Compliance default settings are too strict."
 msgstr ""
 
-#: cookie-notice.php:1787
+#: cookie-notice.php:1921
 msgid "The web application user interface is not clear to me."
 msgstr ""
 
-#: cookie-notice.php:1788
+#: cookie-notice.php:1922
 msgid "Support isn't timely."
 msgstr ""
 
-#: cookie-notice.php:1789
+#: cookie-notice.php:1923
 #: includes/welcome.php:498
 msgid "Other"
 msgstr ""
 
-#: cookie-notice.php:1803
+#: cookie-notice.php:1937
 #: src/admin-react/components/modals/BannerWizardModal.jsx:45
 #: src/admin-react/components/modals/LawSelectorModal.jsx:72
 msgid "Cancel"
 msgstr ""
 
-#: cookie-notice.php:1804
+#: cookie-notice.php:1938
 msgid "Deactivate"
 msgstr ""
 
-#: cookie-notice.php:1805
+#: cookie-notice.php:1939
 msgid "Deactivate & Submit"
 msgstr ""
 
@@ -315,15 +315,15 @@ msgid "%s hours old"
 msgstr ""
 
 #: includes/dashboard.php:110
-#: includes/dashboard.php:784
-#: includes/settings.php:897
+#: includes/dashboard.php:788
+#: includes/settings.php:904
 msgid "Compliance status"
 msgstr ""
 
 #: includes/dashboard.php:114
-#: includes/settings.php:876
-#: includes/settings.php:898
-#: src/admin-react/components/Protection.jsx:126
+#: includes/settings.php:881
+#: includes/settings.php:905
+#: src/admin-react/components/Protection.jsx:129
 #: src/admin-react/components/shared/DomainInfoCard.jsx:105
 msgid "App ID"
 msgstr ""
@@ -388,9 +388,9 @@ msgstr ""
 #: includes/dashboard.php:300
 #: includes/dashboard.php:312
 #: includes/dashboard.php:324
-#: includes/dashboard.php:895
-#: includes/dashboard.php:896
-#: includes/dashboard.php:897
+#: includes/dashboard.php:899
+#: includes/dashboard.php:900
+#: includes/dashboard.php:901
 #, php-format
 msgid "Level %s"
 msgstr ""
@@ -399,218 +399,219 @@ msgstr ""
 msgid "Privacy Content Logs"
 msgstr ""
 
-#: includes/dashboard.php:572
+#: includes/dashboard.php:576
 msgid "Turn on with Pro →"
 msgstr ""
 
-#: includes/dashboard.php:578
+#: includes/dashboard.php:582
 #: includes/settings.php:228
 #: src/admin-react/components/AuditTrail.jsx:40
 #: src/admin-react/components/settings/PluginSettings.jsx:324
 msgid "Banner"
 msgstr ""
 
-#: includes/dashboard.php:580
+#: includes/dashboard.php:584
 msgid "Showing"
 msgstr ""
 
-#: includes/dashboard.php:581
+#: includes/dashboard.php:585
 #: includes/privacy-consent.php:300
 #: includes/privacy-consent.php:301
 #: includes/privacy-consent.php:302
-#: includes/settings.php:1024
-#: includes/settings.php:1025
-#: includes/settings.php:1026
-#: includes/settings.php:1027
-#: includes/settings.php:1038
-#: includes/settings.php:1057
-#: includes/settings.php:1091
+#: includes/settings.php:1047
+#: includes/settings.php:1059
+#: includes/settings.php:1061
+#: includes/settings.php:1062
+#: includes/settings.php:1073
 #: includes/settings.php:1092
+#: includes/settings.php:1126
+#: includes/settings.php:1127
 #: src/admin-react/components/settings/BannerStyleSelector.jsx:173
 #: src/admin-react/components/shared/DomainInfoCard.jsx:91
 msgid "Active"
 msgstr ""
 
-#: includes/dashboard.php:587
-#: includes/dashboard.php:596
-#: includes/dashboard.php:604
-#: includes/settings.php:909
+#: includes/dashboard.php:591
+#: includes/dashboard.php:600
+#: includes/dashboard.php:608
+#: includes/settings.php:920
 msgid "Script blocking"
 msgstr ""
 
-#: includes/dashboard.php:589
-#: includes/dashboard.php:616
-#: includes/dashboard.php:623
-#: includes/dashboard.php:656
-#: includes/dashboard.php:663
-#: includes/dashboard.php:675
-#: includes/dashboard.php:682
-#: includes/dashboard.php:684
-#: includes/dashboard.php:697
-#: src/admin-react/components/settings/ComplianceBehavior.jsx:280
-#: src/admin-react/components/settings/ComplianceBehavior.jsx:284
+#: includes/dashboard.php:593
+#: includes/dashboard.php:620
+#: includes/dashboard.php:627
+#: includes/dashboard.php:660
+#: includes/dashboard.php:667
+#: includes/dashboard.php:679
+#: includes/dashboard.php:686
+#: includes/dashboard.php:688
+#: includes/dashboard.php:701
+#: includes/settings.php:1051
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:310
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:314
 msgid "Off"
 msgstr ""
 
-#: includes/dashboard.php:591
+#: includes/dashboard.php:595
 msgid "Firing before consent"
 msgstr ""
 
-#: includes/dashboard.php:592
+#: includes/dashboard.php:596
 msgid "Exposed"
 msgstr ""
 
-#: includes/dashboard.php:598
+#: includes/dashboard.php:602
 msgid "On · at risk"
 msgstr ""
 
-#: includes/dashboard.php:599
+#: includes/dashboard.php:603
 msgid "Off at 100%"
 msgstr ""
 
-#: includes/dashboard.php:600
-#: includes/dashboard.php:633
+#: includes/dashboard.php:604
+#: includes/dashboard.php:637
 msgid "Ends soon"
 msgstr ""
 
-#: includes/dashboard.php:606
-#: includes/dashboard.php:649
-#: src/admin-react/components/settings/ComplianceBehavior.jsx:280
-#: src/admin-react/components/settings/ComplianceBehavior.jsx:284
+#: includes/dashboard.php:610
+#: includes/dashboard.php:653
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:310
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:314
 msgid "On"
 msgstr ""
 
-#: includes/dashboard.php:607
-#: includes/dashboard.php:640
-#: includes/dashboard.php:650
-#: includes/dashboard.php:691
-#: includes/dashboard.php:718
+#: includes/dashboard.php:611
+#: includes/dashboard.php:644
+#: includes/dashboard.php:654
+#: includes/dashboard.php:695
+#: includes/dashboard.php:722
 msgid "Compliant"
 msgstr ""
 
-#: includes/dashboard.php:614
-#: includes/dashboard.php:621
-#: includes/dashboard.php:629
-#: includes/dashboard.php:637
+#: includes/dashboard.php:618
+#: includes/dashboard.php:625
+#: includes/dashboard.php:633
+#: includes/dashboard.php:641
 msgid "Google Consent Mode"
 msgstr ""
 
-#: includes/dashboard.php:617
-#: includes/dashboard.php:657
-#: includes/dashboard.php:676
-#: includes/dashboard.php:711
+#: includes/dashboard.php:621
+#: includes/dashboard.php:661
+#: includes/dashboard.php:680
+#: includes/dashboard.php:715
 #: includes/privacy-consent.php:326
 #: includes/privacy-consent.php:327
 #: includes/privacy-consent.php:328
-#: includes/settings.php:1058
-#: includes/settings.php:1059
-#: includes/settings.php:1060
-#: includes/settings.php:1115
-#: includes/settings.php:1116
+#: includes/settings.php:1093
+#: includes/settings.php:1094
+#: includes/settings.php:1095
+#: includes/settings.php:1150
+#: includes/settings.php:1151
 msgid "Inactive"
 msgstr ""
 
-#: includes/dashboard.php:624
+#: includes/dashboard.php:628
 msgid "Signals stopped"
 msgstr ""
 
-#: includes/dashboard.php:625
+#: includes/dashboard.php:629
 msgid "Stopped"
 msgstr ""
 
-#: includes/dashboard.php:631
+#: includes/dashboard.php:635
 msgid "v2 · at risk"
 msgstr ""
 
-#: includes/dashboard.php:632
+#: includes/dashboard.php:636
 msgid "Stops at limit"
 msgstr ""
 
-#: includes/dashboard.php:639
+#: includes/dashboard.php:643
 msgid "v2 active"
 msgstr ""
 
-#: includes/dashboard.php:647
-#: includes/dashboard.php:654
-#: includes/dashboard.php:661
+#: includes/dashboard.php:651
+#: includes/dashboard.php:658
+#: includes/dashboard.php:665
 msgid "Meta & Microsoft"
 msgstr ""
 
-#: includes/dashboard.php:665
+#: includes/dashboard.php:669
 msgid "Pixels uncovered"
 msgstr ""
 
-#: includes/dashboard.php:673
-#: includes/dashboard.php:680
-#: includes/dashboard.php:688
-#: includes/dashboard.php:695
+#: includes/dashboard.php:677
+#: includes/dashboard.php:684
+#: includes/dashboard.php:692
+#: includes/dashboard.php:699
 msgid "GPC signal"
 msgstr ""
 
-#: includes/dashboard.php:683
-#: includes/dashboard.php:698
+#: includes/dashboard.php:687
+#: includes/dashboard.php:702
 msgid "Not honored"
 msgstr ""
 
-#: includes/dashboard.php:690
+#: includes/dashboard.php:694
 msgid "Honored"
 msgstr ""
 
-#: includes/dashboard.php:699
+#: includes/dashboard.php:703
 #: includes/welcome.php:355
 #: src/admin-react/components/modals/welcome/ProtectionChooser.jsx:91
 msgid "Recommended"
 msgstr ""
 
-#: includes/dashboard.php:708
+#: includes/dashboard.php:712
 msgid "Visits"
 msgstr ""
 
-#: includes/dashboard.php:715
-#: includes/dashboard.php:730
+#: includes/dashboard.php:719
+#: includes/dashboard.php:734
 msgid "Visit limit"
 msgstr ""
 
-#: includes/dashboard.php:717
+#: includes/dashboard.php:721
 msgid "Unlimited"
 msgstr ""
 
 #. translators: 1: visits used, 2: visit threshold
-#: includes/dashboard.php:724
+#: includes/dashboard.php:728
 #, php-format
 msgid "%1$s / %2$s visits"
 msgstr ""
 
-#: includes/dashboard.php:735
+#: includes/dashboard.php:739
 msgid "Go unlimited →"
 msgstr ""
 
-#: includes/dashboard.php:787
+#: includes/dashboard.php:791
 msgid "Upgrade to Pro →"
 msgstr ""
 
-#: includes/dashboard.php:892
+#: includes/dashboard.php:896
 msgid "Consent & traffic analytics"
 msgstr ""
 
-#: includes/dashboard.php:945
+#: includes/dashboard.php:949
 msgid "Cookie Compliance Status"
 msgstr ""
 
-#: includes/dashboard.php:960
+#: includes/dashboard.php:964
 msgid "Your site does not have Cookie Compliance"
 msgstr ""
 
-#: includes/dashboard.php:962
+#: includes/dashboard.php:966
 msgid "Run Compliance Check to determine your site's compliance with updated data processing and consent rules under GDPR, CCPA and other international data privacy laws."
 msgstr ""
 
-#: includes/dashboard.php:963
+#: includes/dashboard.php:967
 msgid "Run Compliance Check"
 msgstr ""
 
-#: includes/dashboard.php:966
-#: includes/dashboard.php:978
+#: includes/dashboard.php:970
+#: includes/dashboard.php:982
 #: includes/settings.php:352
 #: src/admin-react/data/portalSettings.js:24
 #: src/admin-react/data/portalSettings.js:31
@@ -618,15 +619,15 @@ msgstr ""
 msgid "Compliance"
 msgstr ""
 
-#: includes/dashboard.php:972
+#: includes/dashboard.php:976
 msgid "Cookie Compliance is active"
 msgstr ""
 
-#: includes/dashboard.php:974
+#: includes/dashboard.php:978
 msgid "Cookie Compliance is configured with active Cookie Compliance protection. Your site is collecting consent in accordance with GDPR, CCPA, and other applicable privacy laws."
 msgstr ""
 
-#: includes/dashboard.php:975
+#: includes/dashboard.php:979
 msgid "View compliance dashboard"
 msgstr ""
 
@@ -743,8 +744,8 @@ msgid "Fields"
 msgstr ""
 
 #: includes/privacy-consent-list-table.php:254
-#: src/admin-react/components/Protection.jsx:119
-#: src/admin-react/components/Settings.jsx:33
+#: src/admin-react/components/Protection.jsx:122
+#: src/admin-react/components/Settings.jsx:34
 msgid "Status"
 msgstr ""
 
@@ -801,15 +802,15 @@ msgid "Apply to selected forms"
 msgstr ""
 
 #: includes/privacy-consent.php:258
-#: includes/settings.php:829
-#: includes/settings.php:874
-#: includes/settings.php:896
+#: includes/settings.php:834
+#: includes/settings.php:879
+#: includes/settings.php:903
 msgid "Compliance Integration"
 msgstr ""
 
 #: includes/privacy-consent.php:260
-#: includes/settings.php:831
-#: includes/settings.php:875
+#: includes/settings.php:836
+#: includes/settings.php:880
 msgid "Compliance Status"
 msgstr ""
 
@@ -840,38 +841,38 @@ msgstr ""
 
 #: includes/privacy-consent.php:305
 #: includes/privacy-consent.php:318
-#: includes/settings.php:1030
-#: includes/settings.php:1044
-#: includes/settings.php:1095
-#: includes/settings.php:1107
+#: includes/settings.php:1065
+#: includes/settings.php:1079
+#: includes/settings.php:1130
+#: includes/settings.php:1142
 msgid "Log in & Configure"
 msgstr ""
 
 #: includes/privacy-consent.php:306
-#: includes/settings.php:1031
-#: includes/settings.php:1096
+#: includes/settings.php:1066
+#: includes/settings.php:1131
 msgid "Log in to the Cookie Compliance Admin Portal to explore, configure and manage its functionalities."
 msgstr ""
 
 #: includes/privacy-consent.php:313
 #: includes/privacy-consent.php:314
 #: includes/privacy-consent.php:315
-#: includes/settings.php:1039
-#: includes/settings.php:1040
-#: includes/settings.php:1041
-#: includes/settings.php:1103
-#: includes/settings.php:1104
+#: includes/settings.php:1074
+#: includes/settings.php:1075
+#: includes/settings.php:1076
+#: includes/settings.php:1138
+#: includes/settings.php:1139
 msgid "Pending"
 msgstr ""
 
 #: includes/privacy-consent.php:319
-#: includes/settings.php:1045
-#: includes/settings.php:1108
+#: includes/settings.php:1080
+#: includes/settings.php:1143
 msgid "Log in to the Cookie Compliance Admin Portal and complete the setup process."
 msgstr ""
 
 #: includes/privacy-consent.php:332
-#: includes/settings.php:1120
+#: includes/settings.php:1155
 #, php-format
 msgid "Sign up to %s and enable Privacy Consent support."
 msgstr ""
@@ -882,13 +883,13 @@ msgid "Enable to apply privacy consent support for %s forms."
 msgstr ""
 
 #: includes/privacy-consent.php:662
-#: includes/react-admin-ajax.php:1339
-#: includes/settings.php:2461
+#: includes/react-admin-ajax.php:1358
+#: includes/settings.php:2565
 msgid "Settings saved."
 msgstr ""
 
 #: includes/privacy-consent.php:666
-#: includes/settings.php:2465
+#: includes/settings.php:2569
 msgid "Settings restored to defaults."
 msgstr ""
 
@@ -896,23 +897,23 @@ msgstr ""
 msgid "Could not save: the settings payload could not be decoded. Please retry."
 msgstr ""
 
-#: includes/react-admin-ajax.php:1373
-#: includes/settings.php:3183
+#: includes/react-admin-ajax.php:1392
+#: includes/settings.php:3287
 msgid "Front Page"
 msgstr ""
 
-#: includes/react-admin-ajax.php:1374
-#: includes/settings.php:3184
+#: includes/react-admin-ajax.php:1393
+#: includes/settings.php:3288
 msgid "Home Page"
 msgstr ""
 
-#: includes/react-admin-ajax.php:1409
-#: includes/settings.php:3195
+#: includes/react-admin-ajax.php:1428
+#: includes/settings.php:3299
 msgid "Logged in"
 msgstr ""
 
-#: includes/react-admin-ajax.php:1410
-#: includes/settings.php:3196
+#: includes/react-admin-ajax.php:1429
+#: includes/settings.php:3300
 msgid "Guest"
 msgstr ""
 
@@ -923,22 +924,22 @@ msgstr ""
 
 #: includes/settings.php:158
 #: includes/settings.php:359
-#: includes/settings.php:833
+#: includes/settings.php:838
 msgid "Consent Logs"
 msgstr ""
 
 #: includes/settings.php:172
-#: includes/settings.php:1091
-#: includes/settings.php:1103
-#: includes/settings.php:1115
+#: includes/settings.php:1126
+#: includes/settings.php:1138
+#: includes/settings.php:1150
 #: includes/welcome.php:445
 msgid "Cookie Consent Logs"
 msgstr ""
 
 #: includes/settings.php:173
-#: includes/settings.php:1092
-#: includes/settings.php:1104
-#: includes/settings.php:1116
+#: includes/settings.php:1127
+#: includes/settings.php:1139
+#: includes/settings.php:1151
 #: includes/welcome.php:446
 msgid "Privacy Consent Logs"
 msgstr ""
@@ -1036,7 +1037,7 @@ msgid "Custom link"
 msgstr ""
 
 #: includes/settings.php:229
-#: includes/settings.php:903
+#: includes/settings.php:910
 #: src/admin-react/components/settings/PluginSettings.jsx:325
 msgid "Message"
 msgstr ""
@@ -1141,7 +1142,7 @@ msgstr ""
 
 #: includes/settings.php:283
 #: includes/settings.php:307
-#: includes/settings.php:905
+#: includes/settings.php:912
 #: src/admin-react/components/settings/PluginSettings.jsx:272
 msgid "Privacy policy"
 msgstr ""
@@ -1196,8 +1197,8 @@ msgid "You can revoke your consent any time using the Revoke consent button."
 msgstr ""
 
 #: includes/settings.php:306
-#: includes/settings.php:907
-#: src/admin-react/components/settings/ComplianceBehavior.jsx:98
+#: includes/settings.php:914
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:113
 #: src/admin-react/components/settings/PluginSettings.jsx:198
 msgid "Revoke consent"
 msgstr ""
@@ -1435,493 +1436,531 @@ msgstr ""
 msgid "You can learn more about the features and pricing by visiting the Cookie Compliance website here:"
 msgstr ""
 
-#: includes/settings.php:840
+#: includes/settings.php:794
+msgid "Can I add Cookie Compliance with an AI assistant?"
+msgstr ""
+
+#: includes/settings.php:795
+msgid "Yes. Point an MCP-capable assistant (Claude Code, Cursor, and others) at the Cookie Compliance MCP server — no account is required to start. On WordPress, keep using this plugin for placement rather than pasting a snippet."
+msgstr ""
+
 #: includes/settings.php:845
+#: includes/settings.php:850
 msgid "Network Settings"
 msgstr ""
 
-#: includes/settings.php:841
+#: includes/settings.php:846
 msgid "Global Settings Override"
 msgstr ""
 
-#: includes/settings.php:842
+#: includes/settings.php:847
 msgid "Global Cookie"
 msgstr ""
 
-#: includes/settings.php:877
-#: includes/settings.php:899
+#: includes/settings.php:882
+#: includes/settings.php:906
 #: src/admin-react/components/shared/DomainInfoCard.jsx:112
 msgid "App Key"
 msgstr ""
 
-#: includes/settings.php:880
+#: includes/settings.php:885
 msgid "Cookie Consent Settings"
 msgstr ""
 
-#: includes/settings.php:881
-#: includes/settings.php:908
-#: includes/settings.php:1025
-#: includes/settings.php:1039
-#: includes/settings.php:1058
+#: includes/settings.php:887
+#: includes/settings.php:918
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:56
+msgid "Script blocking engine"
+msgstr ""
+
+#: includes/settings.php:888
+#: includes/settings.php:919
+#: includes/settings.php:1060
+#: includes/settings.php:1074
+#: includes/settings.php:1093
 #: includes/welcome.php:443
 #: src/admin-react/components/modals/PricingModal.jsx:11
-#: src/admin-react/components/settings/ComplianceBehavior.jsx:51
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:66
 msgid "Autoblocking"
 msgstr ""
 
-#: includes/settings.php:882
-#: src/admin-react/components/settings/AdvancedSettings.jsx:23
+#: includes/settings.php:889
+#: src/admin-react/components/settings/AdvancedSettings.jsx:26
 msgid "Excluded Script Handles"
 msgstr ""
 
-#: includes/settings.php:883
-#: includes/settings.php:1221
+#: includes/settings.php:890
+#: includes/settings.php:1294
 #: src/admin-react/components/shared/DomainInfoCard.jsx:131
 msgid "Pull Configuration"
 msgstr ""
 
-#: includes/settings.php:884
+#: includes/settings.php:891
 msgid "Scripts"
 msgstr ""
 
-#: includes/settings.php:885
+#: includes/settings.php:892
 msgid "Caching Compatibility"
 msgstr ""
 
-#: includes/settings.php:886
-#: includes/settings.php:1240
+#: includes/settings.php:893
+#: includes/settings.php:1313
 #: src/admin-react/components/settings/PluginSettings.jsx:519
 msgid "Purge Cache"
 msgstr ""
 
-#: includes/settings.php:887
+#: includes/settings.php:894
 msgid "Conditional Display"
 msgstr ""
 
-#: includes/settings.php:888
+#: includes/settings.php:895
 msgid "Bot Detection"
 msgstr ""
 
-#: includes/settings.php:889
+#: includes/settings.php:896
 msgid "AMP Support"
 msgstr ""
 
-#: includes/settings.php:890
+#: includes/settings.php:897
 #: src/admin-react/components/settings/PluginSettings.jsx:432
 msgid "WP Consent API"
 msgstr ""
 
-#: includes/settings.php:891
+#: includes/settings.php:898
 msgid "Debug Mode"
 msgstr ""
 
-#: includes/settings.php:892
-#: includes/settings.php:918
+#: includes/settings.php:899
+#: includes/settings.php:929
 msgid "Deactivation"
 msgstr ""
 
-#: includes/settings.php:902
+#: includes/settings.php:909
 msgid "Notice Settings"
 msgstr ""
 
-#: includes/settings.php:904
+#: includes/settings.php:911
 msgid "Button text"
 msgstr ""
 
-#: includes/settings.php:906
+#: includes/settings.php:913
 msgid "Refuse consent"
 msgstr ""
 
-#: includes/settings.php:910
+#: includes/settings.php:921
 msgid "Pro Features"
 msgstr ""
 
-#: includes/settings.php:911
+#: includes/settings.php:922
 msgid "Reloading"
 msgstr ""
 
-#: includes/settings.php:912
+#: includes/settings.php:923
 msgid "On scroll"
 msgstr ""
 
-#: includes/settings.php:913
+#: includes/settings.php:924
 msgid "On click"
 msgstr ""
 
-#: includes/settings.php:914
+#: includes/settings.php:925
 #: src/admin-react/components/settings/PluginSettings.jsx:242
 msgid "Accepted expiry"
 msgstr ""
 
-#: includes/settings.php:915
+#: includes/settings.php:926
 #: src/admin-react/components/settings/PluginSettings.jsx:249
 msgid "Rejected expiry"
 msgstr ""
 
-#: includes/settings.php:916
+#: includes/settings.php:927
 #: src/admin-react/components/settings/PluginSettings.jsx:473
 msgid "Conditional display"
 msgstr ""
 
-#: includes/settings.php:917
+#: includes/settings.php:928
 #: src/admin-react/components/settings/PluginSettings.jsx:462
 msgid "Script placement"
 msgstr ""
 
-#: includes/settings.php:921
+#: includes/settings.php:932
 msgid "Notice Design"
 msgstr ""
 
-#: includes/settings.php:922
+#: includes/settings.php:933
 msgid "Position"
 msgstr ""
 
-#: includes/settings.php:923
+#: includes/settings.php:934
 msgid "Animation"
 msgstr ""
 
-#: includes/settings.php:924
+#: includes/settings.php:935
 msgid "Colors"
 msgstr ""
 
-#: includes/settings.php:925
+#: includes/settings.php:936
 msgid "Button class"
 msgstr ""
 
-#: includes/settings.php:937
+#: includes/settings.php:948
 msgid "Enable global network settings override."
 msgstr ""
 
-#: includes/settings.php:938
+#: includes/settings.php:949
 msgid "Every site in the network will use the same settings. Site administrators will not be able to change them."
 msgstr ""
 
-#: includes/settings.php:952
+#: includes/settings.php:963
 msgid "This option works only for domain-based networks."
 msgstr ""
 
-#: includes/settings.php:958
+#: includes/settings.php:969
 msgid "Enable global network cookie consent."
 msgstr ""
 
-#: includes/settings.php:959
+#: includes/settings.php:970
 msgid "Cookie consent in one of the network sites results in a consent in all of the sites on the network."
 msgstr ""
 
-#: includes/settings.php:970
+#: includes/settings.php:981
 msgid "Global network settings override is active. Every site will use the same network settings. Please contact super administrator if you want to have more control over the settings."
 msgstr ""
 
-#: includes/settings.php:1024
-#: includes/settings.php:1038
-#: includes/settings.php:1057
+#: includes/settings.php:1044
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:319
+msgid "Paused"
+msgstr ""
+
+#: includes/settings.php:1059
+#: includes/settings.php:1073
+#: includes/settings.php:1092
 #: includes/welcome.php:442
 msgid "Consent Banner"
 msgstr ""
 
-#: includes/settings.php:1026
-#: includes/settings.php:1040
-#: includes/settings.php:1059
-#: includes/settings.php:1483
+#: includes/settings.php:1061
+#: includes/settings.php:1075
+#: includes/settings.php:1094
+#: includes/settings.php:1556
 #: includes/welcome.php:444
 msgid "Cookie Categories"
 msgstr ""
 
-#: includes/settings.php:1027
-#: includes/settings.php:1041
-#: includes/settings.php:1060
+#: includes/settings.php:1062
+#: includes/settings.php:1076
+#: includes/settings.php:1095
 msgid "Cookie Consent Storage"
 msgstr ""
 
-#: includes/settings.php:1064
+#: includes/settings.php:1099
 #, php-format
 msgid "Sign up to %s and add GDPR, CCPA and other international data privacy laws compliance features."
 msgstr ""
 
-#: includes/settings.php:1134
+#: includes/settings.php:1169
 msgid "Enter your Cookie Compliance application ID."
 msgstr ""
 
-#: includes/settings.php:1147
+#: includes/settings.php:1182
 msgid "Enter your Cookie Compliance application secret key."
 msgstr ""
 
-#: includes/settings.php:1166
+#: includes/settings.php:1211
+msgid "Allow Cookie Compliance to block scripts on this site."
+msgstr ""
+
+#: includes/settings.php:1212
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:57
+msgid "The master switch. Turn this off and Cookie Compliance never touches your scripts — nothing is blocked for any visitor, in any region, regardless of privacy signals. Leave it on unless you handle script blocking yourself."
+msgstr ""
+
+#: includes/settings.php:1237
 msgid "Enable to automatically block 3rd party scripts before user consent is set."
 msgstr ""
 
-#: includes/settings.php:1167
+#: includes/settings.php:1238
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:67
+msgid "Block before consent. Holds third-party scripts until the visitor makes a choice. With this off, scripts load immediately; once the visitor chooses, their choice is enforced either way."
+msgstr ""
+
+#: includes/settings.php:1239
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:389
+msgid "No effect while the script blocking engine is off."
+msgstr ""
+
+#: includes/settings.php:1240
 msgid "This option has been temporarily disabled because your website has reached the usage limit for the Cookie Compliance Free Plan. It will become available again when the current visits cycle resets or you upgrade your website to a Professional plan."
 msgstr ""
 
-#: includes/settings.php:1188
-#: src/admin-react/components/settings/AdvancedSettings.jsx:34
+#: includes/settings.php:1261
+#: src/admin-react/components/settings/AdvancedSettings.jsx:37
 msgid "Enter WordPress script handles to exclude from autoblocking, one per line. These scripts will be marked as Essential (Category 1) so they are never blocked."
 msgstr ""
 
 #. translators: %s: UTC timestamp of the last successful sync.
-#: includes/settings.php:1210
+#: includes/settings.php:1283
 #: src/admin-react/components/shared/DomainInfoCard.jsx:137
 #, php-format,js-format
 msgid "Last synced (UTC): %s"
 msgstr ""
 
-#: includes/settings.php:1210
+#: includes/settings.php:1283
 #: src/admin-react/components/shared/DomainInfoCard.jsx:140
 msgid "Not synced yet"
 msgstr ""
 
-#: includes/settings.php:1226
+#: includes/settings.php:1299
 msgid "Manually pull the latest configuration including autoblocking. Configuration syncs automatically every 24 hours."
 msgstr ""
 
-#: includes/settings.php:1242
+#: includes/settings.php:1315
 msgid "Click the Purge Cache button to refresh the app configuration."
 msgstr ""
 
-#: includes/settings.php:1257
+#: includes/settings.php:1330
 msgid "Enable conditional display of the banner."
 msgstr ""
 
-#: includes/settings.php:1269
+#: includes/settings.php:1342
 msgid "Determine what should happen when the following conditions are met."
 msgstr ""
 
-#: includes/settings.php:1305
+#: includes/settings.php:1378
 msgid "Enable to run the consent banner in debug mode."
 msgstr ""
 
-#: includes/settings.php:1319
+#: includes/settings.php:1392
 msgid "Enable to support AMP."
 msgstr ""
 
-#: includes/settings.php:1320
+#: includes/settings.php:1393
 msgid "No compatible Google AMP plugins found."
 msgstr ""
 
-#: includes/settings.php:1320
+#: includes/settings.php:1393
 msgid "Allows you to activate consent banner support for Google AMP."
 msgstr ""
 
-#: includes/settings.php:1334
+#: includes/settings.php:1407
 msgid "Register as the active CMP under the WP Consent API."
 msgstr ""
 
-#: includes/settings.php:1335
+#: includes/settings.php:1408
 msgid "The WP Consent API plugin is not active. Install and activate it to enable this integration."
 msgstr ""
 
-#: includes/settings.php:1335
+#: includes/settings.php:1408
 msgid "Allows cooperative plugins (WooCommerce, Google Site Kit, Burst Statistics, WP Statistics, and others) to gate themselves on the consent state captured by the banner."
 msgstr ""
 
-#: includes/settings.php:1347
+#: includes/settings.php:1420
 msgid "Enable to activate bot detection and reduce the number of calculated website visits."
 msgstr ""
 
-#: includes/settings.php:1368
+#: includes/settings.php:1441
 msgid "Currently detected active caching plugins"
 msgstr ""
 
-#: includes/settings.php:1376
+#: includes/settings.php:1449
 msgid "No compatible cache plugins found."
 msgstr ""
 
-#: includes/settings.php:1380
+#: includes/settings.php:1453
 msgid "Enable to apply changes improving compatibility with caching plugins."
 msgstr ""
 
-#: includes/settings.php:1393
+#: includes/settings.php:1466
 msgid "Enter the cookie notice message."
 msgstr ""
 
-#: includes/settings.php:1406
+#: includes/settings.php:1479
 msgid "The text of the option to accept the notice and make it disappear."
 msgstr ""
 
-#: includes/settings.php:1421
+#: includes/settings.php:1494
 msgid "Enable to give to the user the possibility to refuse third party non functional cookies."
 msgstr ""
 
-#: includes/settings.php:1425
+#: includes/settings.php:1498
 msgid "The text of the button to refuse the consent."
 msgstr ""
 
-#: includes/settings.php:1446
+#: includes/settings.php:1519
 #: src/admin-react/components/settings/PluginSettings.jsx:341
 msgid "Head"
 msgstr ""
 
-#: includes/settings.php:1447
+#: includes/settings.php:1520
 #: src/admin-react/components/settings/PluginSettings.jsx:348
 msgid "Body"
 msgstr ""
 
-#: includes/settings.php:1450
+#: includes/settings.php:1523
 msgid "The code to be used in your site header, before the closing head tag."
 msgstr ""
 
-#: includes/settings.php:1454
+#: includes/settings.php:1527
 msgid "The code to be used in your site footer, before the closing body tag."
 msgstr ""
 
-#: includes/settings.php:1458
+#: includes/settings.php:1531
 msgid "Enter non functional cookies Javascript code here (for e.g. Google Analitycs) to be used after the visitor consent is given."
 msgstr ""
 
-#: includes/settings.php:1483
-#: includes/settings.php:1487
+#: includes/settings.php:1556
+#: includes/settings.php:1560
 #: src/admin-react/components/shared/DomainInfoCard.jsx:99
 msgid "Pro"
 msgstr ""
 
-#: includes/settings.php:1484
+#: includes/settings.php:1557
 msgid "Group cookies by purpose and let users consent selectively."
 msgstr ""
 
-#: includes/settings.php:1487
+#: includes/settings.php:1560
 msgid "Analytics &amp; Consent Logs"
 msgstr ""
 
-#: includes/settings.php:1488
+#: includes/settings.php:1561
 msgid "Track consent rates, view logs, and generate compliance reports."
 msgstr ""
 
-#: includes/settings.php:1490
+#: includes/settings.php:1563
 msgid "Connect your site to unlock &#8594;"
 msgstr ""
 
-#: includes/settings.php:1505
+#: includes/settings.php:1578
 #, php-format
 msgid "Enable to give to the user the possibility to revoke their consent %s(requires \"Refuse consent\" option enabled)%s."
 msgstr ""
 
-#: includes/settings.php:1508
+#: includes/settings.php:1581
 msgid "Enter the revoke message."
 msgstr ""
 
-#: includes/settings.php:1510
+#: includes/settings.php:1583
 msgid "The text of the button to revoke the consent."
 msgstr ""
 
-#: includes/settings.php:1518
+#: includes/settings.php:1591
 #, php-format
 msgid "Select the method for displaying the revoke button - automatic (in the banner) or manual using %s[cookies_revoke]%s shortcode."
 msgstr ""
 
-#: includes/settings.php:1531
+#: includes/settings.php:1604
 msgid "Enable to reload the page after the notice is accepted."
 msgstr ""
 
-#: includes/settings.php:1562
+#: includes/settings.php:1635
 msgid "Enable privacy policy link."
 msgstr ""
 
-#: includes/settings.php:1565
+#: includes/settings.php:1638
 msgid "The text of the privacy policy button."
 msgstr ""
 
-#: includes/settings.php:1575
+#: includes/settings.php:1648
 msgid "Select where to redirect user for more information."
 msgstr ""
 
-#: includes/settings.php:1578
+#: includes/settings.php:1651
 msgid "-- select page --"
 msgstr ""
 
-#: includes/settings.php:1589
+#: includes/settings.php:1662
 msgid "Select from one of your site's pages."
 msgstr ""
 
-#: includes/settings.php:1595
+#: includes/settings.php:1668
 msgid "Synchronize with WordPress Privacy Policy page."
 msgstr ""
 
-#: includes/settings.php:1602
+#: includes/settings.php:1675
 msgid "Enter the full URL starting with http(s)://"
 msgstr ""
 
-#: includes/settings.php:1612
+#: includes/settings.php:1685
 msgid "Select the privacy policy link target."
 msgstr ""
 
-#: includes/settings.php:1622
+#: includes/settings.php:1695
 msgid "Select the privacy policy link position."
 msgstr ""
 
-#: includes/settings.php:1645
+#: includes/settings.php:1718
 msgid "The amount of time that the cookie should be stored for when user accepts the notice."
 msgstr ""
 
-#: includes/settings.php:1666
+#: includes/settings.php:1739
 msgid "The amount of time that the cookie should be stored for when the user doesn't accept the notice."
 msgstr ""
 
-#: includes/settings.php:1685
+#: includes/settings.php:1758
 msgid "Select where all the plugin scripts should be placed."
 msgstr ""
 
-#: includes/settings.php:1704
+#: includes/settings.php:1777
 msgid "Select location for the notice."
 msgstr ""
 
-#: includes/settings.php:1723
+#: includes/settings.php:1796
 msgid "Select the animation style."
 msgstr ""
 
-#: includes/settings.php:1738
+#: includes/settings.php:1811
 msgid "Enable to accept the notice when user scrolls."
 msgstr ""
 
-#: includes/settings.php:1741
+#: includes/settings.php:1814
 msgid "Number of pixels user has to scroll to accept the notice and make it disappear."
 msgstr ""
 
-#: includes/settings.php:1754
+#: includes/settings.php:1827
 msgid "Enable to accept the notice on any click on the page."
 msgstr ""
 
-#: includes/settings.php:1766
+#: includes/settings.php:1839
 msgid "Enable if you want all plugin data to be deleted on deactivation."
 msgstr ""
 
-#: includes/settings.php:1779
+#: includes/settings.php:1852
 msgid "Enter additional button CSS classes separated by spaces."
 msgstr ""
 
-#: includes/settings.php:1804
+#: includes/settings.php:1877
 msgid "Bar opacity"
 msgstr ""
 
-#: includes/settings.php:2032
+#: includes/settings.php:2105
 msgid "It looks like some of the Consent Security Policy (CSP) records in your website's .htaccess file may be causing Cookie Compliance loading problems. Make sure you allow loading of Cookie Compliance resources by adding the following record:"
 msgstr ""
 
-#: includes/settings.php:2572
+#: includes/settings.php:2676
 msgid "Are you sure you want to reset these settings to defaults?"
 msgstr ""
 
-#: includes/settings.php:2862
+#: includes/settings.php:2966
 msgid "or"
 msgstr ""
 
-#: includes/settings.php:2929
+#: includes/settings.php:3033
 msgid "+ Add rule"
 msgstr ""
 
-#: includes/settings.php:2930
+#: includes/settings.php:3034
 msgid "Create a set of rules to define the exact conditions for displaying or hiding the banner."
 msgstr ""
 
-#: includes/settings.php:3036
+#: includes/settings.php:3140
 msgid "-- no public archives --"
 msgstr ""
 
-#: includes/settings.php:3055
+#: includes/settings.php:3159
 msgid "-- no public terms --"
 msgstr ""
 
-#: includes/settings.php:3169
+#: includes/settings.php:3273
 #, php-format
 msgid "Untitled Page %d"
 msgstr ""
@@ -2435,7 +2474,7 @@ msgstr ""
 
 #: includes/welcome.php:609
 #: src/admin-react/components/modals/welcome/AccountSetup.jsx:207
-#: src/admin-react/components/Protection.jsx:141
+#: src/admin-react/components/Protection.jsx:144
 msgid "Already have an account?"
 msgstr ""
 
@@ -2711,7 +2750,7 @@ msgid "Last 30 days"
 msgstr ""
 
 #: src/admin-react/components/AuditTrail.jsx:110
-#: src/admin-react/components/Settings.jsx:41
+#: src/admin-react/components/Settings.jsx:42
 msgid "Why Connect?"
 msgstr ""
 
@@ -3164,7 +3203,7 @@ msgstr ""
 
 #: src/admin-react/components/modals/welcome/ProPricingDetail.jsx:111
 #: src/admin-react/components/settings/PluginSettings.jsx:260
-#: src/admin-react/components/shared/Footer.jsx:107
+#: src/admin-react/components/shared/Footer.jsx:111
 msgid "Privacy Policy"
 msgstr ""
 
@@ -3177,7 +3216,7 @@ msgid "Choose your protection level"
 msgstr ""
 
 #: src/admin-react/components/modals/welcome/ProtectionChooser.jsx:27
-#: src/admin-react/components/Protection.jsx:278
+#: src/admin-react/components/Protection.jsx:281
 msgid "Google tools detected."
 msgstr ""
 
@@ -3307,131 +3346,131 @@ msgstr ""
 msgid "Choose Protection"
 msgstr ""
 
-#: src/admin-react/components/Protection.jsx:77
+#: src/admin-react/components/Protection.jsx:78
 #: src/admin-react/components/shared/DomainInfoCard.jsx:75
 msgid "Save failed"
 msgstr ""
 
-#: src/admin-react/components/Protection.jsx:112
-#: src/admin-react/components/Settings.jsx:26
+#: src/admin-react/components/Protection.jsx:115
+#: src/admin-react/components/Settings.jsx:27
 #: src/admin-react/components/shared/DomainInfoCard.jsx:81
 msgid "Domain Info"
 msgstr ""
 
-#: src/admin-react/components/Protection.jsx:115
-#: src/admin-react/components/Settings.jsx:29
+#: src/admin-react/components/Protection.jsx:118
+#: src/admin-react/components/Settings.jsx:30
 #: src/admin-react/components/shared/DomainInfoCard.jsx:84
 msgid "Domain"
 msgstr ""
 
-#: src/admin-react/components/Protection.jsx:121
-#: src/admin-react/components/Settings.jsx:35
+#: src/admin-react/components/Protection.jsx:124
+#: src/admin-react/components/Settings.jsx:36
 #: src/admin-react/components/shared/DomainInfoCard.jsx:92
 msgid "Not Connected"
 msgstr ""
 
-#: src/admin-react/components/Protection.jsx:129
+#: src/admin-react/components/Protection.jsx:132
 #: src/admin-react/components/shared/DomainInfoCard.jsx:108
 msgid "Your application ID"
 msgstr ""
 
-#: src/admin-react/components/Protection.jsx:133
+#: src/admin-react/components/Protection.jsx:136
 msgid "Secret Key"
 msgstr ""
 
-#: src/admin-react/components/Protection.jsx:137
+#: src/admin-react/components/Protection.jsx:140
 #: src/admin-react/components/shared/DomainInfoCard.jsx:116
 msgid "Your application key"
 msgstr ""
 
-#: src/admin-react/components/Protection.jsx:143
+#: src/admin-react/components/Protection.jsx:146
 msgid "Find your App ID and Secret Key at app.hu-manity.co"
 msgstr ""
 
-#: src/admin-react/components/Protection.jsx:148
+#: src/admin-react/components/Protection.jsx:151
 #: src/admin-react/components/settings/PluginSettings.jsx:531
 #: src/admin-react/components/shared/DomainInfoCard.jsx:121
 msgid "Saving…"
 msgstr ""
 
-#: src/admin-react/components/Protection.jsx:148
-#: src/admin-react/components/Settings.jsx:70
+#: src/admin-react/components/Protection.jsx:151
+#: src/admin-react/components/Settings.jsx:71
 msgid "Connect Your Site"
 msgstr ""
 
-#: src/admin-react/components/Protection.jsx:151
+#: src/admin-react/components/Protection.jsx:154
 msgid "What you get with compliance"
 msgstr ""
 
-#: src/admin-react/components/Protection.jsx:155
+#: src/admin-react/components/Protection.jsx:158
 msgid "Stop tracking scripts from firing before visitors agree"
 msgstr ""
 
-#: src/admin-react/components/Protection.jsx:159
+#: src/admin-react/components/Protection.jsx:162
 msgid "Build a legal evidence trail regulators can verify"
 msgstr ""
 
-#: src/admin-react/components/Protection.jsx:163
+#: src/admin-react/components/Protection.jsx:166
 msgid "Cover GDPR, CCPA, and 40+ global regulations automatically"
 msgstr ""
 
-#: src/admin-react/components/Protection.jsx:167
+#: src/admin-react/components/Protection.jsx:170
 msgid "Real compliance in under 60 seconds — free to start"
 msgstr ""
 
-#: src/admin-react/components/Protection.jsx:176
+#: src/admin-react/components/Protection.jsx:179
 msgid "Set up compliance"
 msgstr ""
 
-#: src/admin-react/components/Protection.jsx:178
+#: src/admin-react/components/Protection.jsx:181
 msgid "No credit card required"
 msgstr ""
 
-#: src/admin-react/components/Protection.jsx:186
+#: src/admin-react/components/Protection.jsx:189
 msgid "Script blocking, consent records, regulatory alerts & more"
 msgstr ""
 
-#: src/admin-react/components/Protection.jsx:217
+#: src/admin-react/components/Protection.jsx:220
 msgid "banner template"
 msgstr ""
 
-#: src/admin-react/components/Protection.jsx:218
+#: src/admin-react/components/Protection.jsx:221
 msgid "laws"
 msgstr ""
 
 #. translators: %d: number of trackers that have not been categorised yet.
-#: src/admin-react/components/Protection.jsx:222
+#: src/admin-react/components/Protection.jsx:225
 #, js-format
 msgid "%d uncategorized tracker"
 msgid_plural "%d uncategorized trackers"
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/admin-react/components/Protection.jsx:227
+#: src/admin-react/components/Protection.jsx:230
 msgid "Google Consent Mode review"
 msgstr ""
 
-#: src/admin-react/components/Protection.jsx:251
+#: src/admin-react/components/Protection.jsx:254
 msgid "Your banner is live."
 msgstr ""
 
-#: src/admin-react/components/Protection.jsx:252
+#: src/admin-react/components/Protection.jsx:255
 msgid "Visitors will now see your selected template and your chosen laws/languages are active."
 msgstr ""
 
-#: src/admin-react/components/Protection.jsx:257
+#: src/admin-react/components/Protection.jsx:260
 msgid "Preview your live banner"
 msgstr ""
 
-#: src/admin-react/components/Protection.jsx:270
+#: src/admin-react/components/Protection.jsx:273
 msgid "Still missing:"
 msgstr ""
 
-#: src/admin-react/components/Protection.jsx:279
+#: src/admin-react/components/Protection.jsx:282
 msgid "Review Google Consent Mode before you consider setup complete."
 msgstr ""
 
-#: src/admin-react/components/Protection.jsx:282
+#: src/admin-react/components/Protection.jsx:285
 msgid "Review consent modes"
 msgstr ""
 
@@ -4073,55 +4112,55 @@ msgstr ""
 msgid "Threat Intelligence"
 msgstr ""
 
-#: src/admin-react/components/Settings.jsx:45
+#: src/admin-react/components/Settings.jsx:46
 msgid "Automated script blocking before visitor consent"
 msgstr ""
 
-#: src/admin-react/components/Settings.jsx:49
+#: src/admin-react/components/Settings.jsx:50
 msgid "Cookie categorization across your entire site"
 msgstr ""
 
-#: src/admin-react/components/Settings.jsx:53
+#: src/admin-react/components/Settings.jsx:54
 msgid "Consent proof collection for legal audit trails"
 msgstr ""
 
-#: src/admin-react/components/Settings.jsx:57
+#: src/admin-react/components/Settings.jsx:58
 msgid "Visitor analytics and consent rate reporting"
 msgstr ""
 
-#: src/admin-react/components/Settings.jsx:61
+#: src/admin-react/components/Settings.jsx:62
 msgid "Google Consent Mode v2, Facebook & Microsoft signals"
 msgstr ""
 
-#: src/admin-react/components/Settings.jsx:111
+#: src/admin-react/components/Settings.jsx:112
 msgid "Plugin Settings"
 msgstr ""
 
-#: src/admin-react/components/Settings.jsx:112
+#: src/admin-react/components/Settings.jsx:113
 msgid "Connect your site to enable consent management features."
 msgstr ""
 
-#: src/admin-react/components/Settings.jsx:146
+#: src/admin-react/components/Settings.jsx:147
 msgid "Manage your banner template, laws, consent modes, and languages."
 msgstr ""
 
-#: src/admin-react/components/settings/AdvancedSettings.jsx:15
+#: src/admin-react/components/settings/AdvancedSettings.jsx:16
 msgid "Advanced Settings"
 msgstr ""
 
-#: src/admin-react/components/settings/AdvancedSettings.jsx:16
+#: src/admin-react/components/settings/AdvancedSettings.jsx:17
 msgid "Excluded scripts, script blocking"
 msgstr ""
 
-#: src/admin-react/components/settings/AdvancedSettings.jsx:41
+#: src/admin-react/components/settings/AdvancedSettings.jsx:44
 msgid "Script Blocking"
 msgstr ""
 
-#: src/admin-react/components/settings/AdvancedSettings.jsx:43
+#: src/admin-react/components/settings/AdvancedSettings.jsx:46
 msgid "Scripts categorized"
 msgstr ""
 
-#: src/admin-react/components/settings/AdvancedSettings.jsx:47
+#: src/admin-react/components/settings/AdvancedSettings.jsx:50
 msgid "Unblocked"
 msgstr ""
 
@@ -4219,80 +4258,72 @@ msgstr ""
 msgid "Edit colors & text"
 msgstr ""
 
-#: src/admin-react/components/settings/ComplianceBehavior.jsx:52
-msgid "Scripts wait for visitor consent before firing"
-msgstr ""
-
-#: src/admin-react/components/settings/ComplianceBehavior.jsx:60
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:75
 #: src/admin-react/components/settings/PluginSettings.jsx:210
 msgid "Accept on scroll"
 msgstr ""
 
-#: src/admin-react/components/settings/ComplianceBehavior.jsx:61
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:76
 msgid "Consent granted automatically if visitor scrolls"
 msgstr ""
 
-#: src/admin-react/components/settings/ComplianceBehavior.jsx:69
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:84
 #: src/admin-react/components/settings/PluginSettings.jsx:225
 msgid "Accept on click"
 msgstr ""
 
-#: src/admin-react/components/settings/ComplianceBehavior.jsx:70
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:85
 msgid "Consent granted automatically on any page click"
 msgstr ""
 
-#: src/admin-react/components/settings/ComplianceBehavior.jsx:78
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:93
 #: src/admin-react/data/portalSettings.js:29
 msgid "Accept on close"
 msgstr ""
 
-#: src/admin-react/components/settings/ComplianceBehavior.jsx:79
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:94
 msgid "Consent granted automatically if banner is closed"
 msgstr ""
 
-#: src/admin-react/components/settings/ComplianceBehavior.jsx:89
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:104
 msgid "Refuse button"
 msgstr ""
 
-#: src/admin-react/components/settings/ComplianceBehavior.jsx:90
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:105
 msgid "Display a button allowing visitors to decline tracking"
 msgstr ""
 
-#: src/admin-react/components/settings/ComplianceBehavior.jsx:99
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:114
 msgid "Floating widget allowing visitors to change preferences"
 msgstr ""
 
-#: src/admin-react/components/settings/ComplianceBehavior.jsx:107
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:122
 #: src/admin-react/data/portalSettings.js:22
 msgid "GPC support"
 msgstr ""
 
-#: src/admin-react/components/settings/ComplianceBehavior.jsx:108
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:123
 msgid "Honor browser-level opt-out signals automatically"
 msgstr ""
 
-#: src/admin-react/components/settings/ComplianceBehavior.jsx:115
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:130
 msgid "Required for all connected sites (CCPA/CPRA mandate)"
 msgstr ""
 
-#: src/admin-react/components/settings/ComplianceBehavior.jsx:119
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:134
 msgid "Consent expiry"
 msgstr ""
 
-#: src/admin-react/components/settings/ComplianceBehavior.jsx:120
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:135
 msgid "How long before visitors are prompted again"
 msgstr ""
 
-#: src/admin-react/components/settings/ComplianceBehavior.jsx:127
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:142
 msgid "Cookie wall"
 msgstr ""
 
-#: src/admin-react/components/settings/ComplianceBehavior.jsx:128
+#: src/admin-react/components/settings/ComplianceBehavior.jsx:143
 msgid "Block access to site content until consent is given"
-msgstr ""
-
-#: src/admin-react/components/settings/ComplianceBehavior.jsx:289
-msgid "Paused"
 msgstr ""
 
 #: src/admin-react/components/settings/ConditionalRuleBuilder.jsx:97
@@ -4705,6 +4736,10 @@ msgid "Documentation"
 msgstr ""
 
 #: src/admin-react/components/shared/Footer.jsx:103
+msgid "AI assistant"
+msgstr ""
+
+#: src/admin-react/components/shared/Footer.jsx:107
 msgid "Support"
 msgstr ""
 

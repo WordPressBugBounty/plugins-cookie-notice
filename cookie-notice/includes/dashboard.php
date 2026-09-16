@@ -451,7 +451,11 @@ class Cookie_Notice_Dashboard {
 		$app_id       = ! empty( $cn->options['general']['app_id'] ) ? $cn->options['general']['app_id'] : '';
 		$tier         = $cn->get_subscription();
 		$exceeded     = (bool) $cn->threshold_exceeded();
-		$app_blocking = ! empty( $cn->options['general']['app_blocking'] ); // already forced false when threshold exceeded
+		// Effective state, not the raw posture option: the AND of app_blocking and
+		// app_blocking_engine (DEC-012), with the Free-plan quota cap already applied.
+		// Feeds the "Script blocking" scorecard box and the gap count, so a site whose
+		// engine is off must not be graded as protected.
+		$app_blocking = $cn->blocking_is_active();
 
 		// consent modes are ON only when configured as a non-empty array
 		$google_cm    = ! empty( $blocking['google_consent_default'] )    && is_array( $blocking['google_consent_default'] );
@@ -540,19 +544,34 @@ class Cookie_Notice_Dashboard {
 	 * @return string banner_only|free_under|free_near|free_over|pro
 	 */
 	protected function derive_state( $s ) {
+		// ── Begin dashboard lifecycle state (DEC-012) ────────────────────────
 		if ( ! $s['connected'] || $s['app_id'] === '' )
 			return 'banner_only';
 
 		if ( $s['tier'] === 'pro' )
 			return 'pro';
 
-		if ( $s['exceeded'] || $s['threshold_used'] >= 100 )
+		// The PLUGIN'S VERDICT, never the counters. threshold_exceeded() refuses to arm
+		// without a real threshold — a Pro plan has none — and fails OPEN when it cannot
+		// prove the usage snapshot current, which is common on a low-traffic install where
+		// pseudo-cron is irregular. Re-deriving visits >= threshold here drops both rules,
+		// and this card then headlines "Protection paused — limit reached" over a Script
+		// blocking box still reading "On · Compliant", about a site that is blocking
+		// normally. The React top bar was corrected for exactly this; the same rule file
+		// feeds both, so the two must agree.
+		if ( $s['exceeded'] )
 			return 'free_over';
 
-		if ( $s['threshold_used'] >= 70 )
+		// EXCLUSIVE upper bound, matching threshold-warning's [70, 100) in
+		// notifications.json — the file's own rangeConvention. At exactly 100% with the
+		// verdict open the site still has its protection, so "protection switches off at
+		// 100%" would be wrong in the other direction. That state is neutral here, as it
+		// is in the top bar, where it falls through to the plain upsell.
+		if ( $s['threshold_used'] >= 70 && $s['threshold_used'] < 100 )
 			return 'free_near';
 
 		return 'free_under';
+		// ── End dashboard lifecycle state (DEC-012) ──────────────────────────
 	}
 
 	/**
@@ -718,7 +737,14 @@ class Cookie_Notice_Dashboard {
 				'pill'   => [ 'label' => __( 'Compliant', 'cookie-notice' ), 'cls' => 'ok' ]
 			];
 		} else {
-			$status   = $state === 'free_over' ? 'crit' : ( $state === 'free_near' ? 'warn' : 'ok' );
+			// ── Begin visit-limit box severity ───────────────────────────────
+			// This box reports USAGE, so its severity follows the counters — unlike the
+			// hero, which reports PROTECTION and so follows the verdict. Keying it off the
+			// state alone inverts at the boundary: a site whose snapshot reads 100% while
+			// the verdict is still open lands on free_under, and the bar would go GREEN at
+			// 100% having been amber at 99.99%. Greener as it gets worse.
+			$status = $state === 'free_over' ? 'crit' : ( $s['threshold_used'] >= 70 ? 'warn' : 'ok' );
+			// ── End visit-limit box severity ─────────────────────────────────
 			$usage_str = sprintf(
 				/* translators: 1: visits used, 2: visit threshold */
 				esc_html__( '%1$s / %2$s visits', 'cookie-notice' ),

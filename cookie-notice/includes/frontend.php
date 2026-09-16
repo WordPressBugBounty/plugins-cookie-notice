@@ -26,6 +26,7 @@ class Cookie_Notice_Frontend {
 		add_action( 'init', [ $this, 'early_init' ], 9 );
 		add_action( 'wp', [ $this, 'init' ] );
 		add_action( 'rest_api_init', [ $this, 'register_purge_route' ] );
+		add_action( 'cookie_notice_deferred_purge', [ $this, 'run_deferred_purge' ] );
 		add_action( 'wp_head', [ $this, 'wp_print_header_scripts' ] );
 		add_action( 'wp_print_footer_scripts', [ $this, 'wp_print_footer_scripts' ] );
 
@@ -59,13 +60,14 @@ class Cookie_Notice_Frontend {
 
 		// ── Begin admin cache-bypass
 		//
-		// huOptions carries TWO values that differ for whoever administers the banner —
-		// `blocking` (autoblocking switched off so they can work on the site) and
-		// `isAdmin` — and it is printed inline in the page HTML. So an admin's page and a
-		// visitor's page are different documents at the same URL.
+		// huOptions carries THREE values that differ for whoever administers the banner —
+		// `blocking` and `blockingEngine` (both switched off so they can work on the
+		// site) and `isAdmin` — and it is printed inline in the page HTML. So an admin's
+		// page and a visitor's page are different documents at the same URL.
 		//
 		// If a full-page cache stores the admin's copy and later serves it to the public,
-		// every visitor receives `blocking: false`: autoblocking off for the whole site,
+		// every visitor receives `blocking: false` and `blockingEngine: false`, which is
+		// strictly worse than either alone: autoblocking off for the whole site,
 		// trackers running before anyone has answered the banner. There is no error, no
 		// console warning and nothing visible in the admin screens — the owner could only
 		// find it with a network trace.
@@ -108,13 +110,25 @@ class Cookie_Notice_Frontend {
 			if ( $cn->options['general']['amp_support'] && cn_is_plugin_active( 'amp' ) )
 				include_once( COOKIE_NOTICE_PATH . 'includes/modules/amp/amp.php' );
 
-			// excluded script handles — stamp data-hu-category="1" so the widget never blocks them
-			if ( $cn->options['general']['app_blocking'] && ! empty( $cn->options['general']['excluded_handles'] ) ) {
+			// ── Begin excluded-handle stamping gate (DEC-012)
+			//
+			// Excluded script handles — stamp data-hu-category="1" so the widget never blocks them.
+			//
+			// Reads the AND of both stored options (blocking_is_active), never either
+			// alone. The engine alone would stamp handles on a site whose posture is off;
+			// the posture alone would stamp them on a site whose engine is off, where the
+			// widget can never block anything and the attribute is dead weight in the
+			// markup of every page. It is also the $cn-level state deliberately, NOT the
+			// $is_admin-exempted local computed later in get_cc_options() — this filter is
+			// registered once per request for everyone, and keying it on who is logged in
+			// would vary the HTML that a full-page cache serves to the public.
+			if ( $cn->blocking_is_active() && ! empty( $cn->options['general']['excluded_handles'] ) ) {
 				add_filter( 'script_loader_tag', [ $this, 'exclude_handles_from_blocking' ], 10, 2 );
 
 				if ( $cn->options['general']['debug_mode'] )
 					add_action( 'wp_footer', [ $this, 'debug_excluded_handles' ], 999 );
 			}
+			// ── End excluded-handle stamping gate (DEC-012)
 		}
 	}
 
@@ -202,8 +216,20 @@ class Cookie_Notice_Frontend {
 
 		// compatibility fixes
 		if ( $this->compliance ) {
-			// is blocking active?
-			if ( $cn->options['general']['app_blocking'] ) {
+			// ── Begin captcha-rescue gate (DEC-012)
+			//
+			// Is blocking actually going to happen? The AND of both stored options
+			// (blocking_is_active), never either alone — and this one is load-bearing,
+			// not tidiness.
+			//
+			// These captcha-rescue shims exist to repair a captcha that autoblocking
+			// HELD. The CF7 one deregisters CF7's own reCAPTCHA initialiser and
+			// re-initialises from a cookies-unblocked.hu listener — an event the widget
+			// only dispatches when it actually released something. Load it on a site
+			// where the widget can never block ( engine off ), and the event never
+			// arrives, reCAPTCHA is never initialised, and every contact-form submission
+			// is rejected. Narrower than app_blocking is always safe here; wider is not.
+			if ( $cn->blocking_is_active() ) {
 				// contact form 7 compatibility
 				if ( cn_is_plugin_active( 'contactform7', 'captcha' ) )
 					include_once( COOKIE_NOTICE_PATH . 'includes/modules/contact-form-7/contact-form-7.php' );
@@ -216,6 +242,7 @@ class Cookie_Notice_Frontend {
 				if ( cn_is_plugin_active( 'bestwebsoftrecaptcha', 'captcha' ) )
 					include_once( COOKIE_NOTICE_PATH . 'includes/modules/bestwebsoft-recaptcha/bestwebsoft-recaptcha.php' );
 			}
+			// ── End captcha-rescue gate (DEC-012)
 		}
 	}
 
@@ -436,11 +463,43 @@ class Cookie_Notice_Frontend {
 		// blocking=false while being cacheable, i.e. served to visitors.
 		$is_admin = $this->is_banner_admin();
 
+		// ── Begin blockingEngine seeding (huOptions.blockingEngine)
+		//
+		// The widget splits the one overloaded 'blocking' flag into two questions, and
+		// this is the only place that can answer them. Since DEC-012 each has its own
+		// admin control and its own stored option — they are no longer two readings of
+		// one checkbox:
+		//
+		//   blockingEngine  IS the autoblocker allowed to touch this site at all?
+		//                   <- app_blocking_engine ("Script blocking engine")
+		//   blocking        WHAT posture applies before the visitor chooses?
+		//                   <- app_blocking ("Autoblocking"), unchanged in value,
+		//                      type, quota handling and every existing read
+		//
+		// The engine is ABSOLUTE in the widget (DEC-011): false means no script is held
+		// for anybody, whatever the geo rule or privacy signal, with no post-boot writer
+		// to undo it. It is therefore deliberately NOT quota-capped — only the posture is.
+		//
+		// An older widget that has never heard of blockingEngine simply ignores it, and
+		// a widget that reads it as ABSENT treats that as ON, so an un-updated widget is
+		// unaffected either way. Likewise a site whose stored options predate this key:
+		// multi_array_merge() resolves it to the default true on the very first request,
+		// so nobody is migrated into "off" by the upgrade.
+		//
+		// Both keys keep the $is_admin exemption `blocking` already had, for the same
+		// reason: whoever administers the banner needs the site un-blocked to work on it.
+		$app_blocking     = $cn->options['general']['app_blocking'];
+		$app_blocking_eng = $cn->options['general']['app_blocking_engine'];
+		$blocking_engine  = ! $is_admin ? (bool) $app_blocking_eng : false;
+		$blocking_posture = ! $is_admin ? $app_blocking : false;
+		// ── End blockingEngine seeding (huOptions.blockingEngine)
+
 		// prepare huOptions
 		$options = [
 			'appID'				=> $cn->options['general']['app_id'],
 			'currentLanguage'	=> $locale_code[0],
-			'blocking'			=> ! $is_admin ? $cn->options['general']['app_blocking'] : false,
+			'blockingEngine'	=> $blocking_engine,
+			'blocking'			=> $blocking_posture,
 			'globalCookie'		=> is_multisite() && $cn->options['general']['global_cookie'] && is_subdomain_install(),
 			'isAdmin'			=> $is_admin,
 			'privacyConsent'	=> ! empty( $sources )
@@ -1306,38 +1365,133 @@ class Cookie_Notice_Frontend {
 	 * "Purge Cache" button behave identically. A short per-site cooldown bounds
 	 * forced re-pull amplification toward our own Designer API.
 	 *
+	 * Responses: 200 { purged: true } when the re-pull ran; 202 { deferred: true,
+	 * scheduled_in } when the cooldown moved it to a single deferred event. Never
+	 * 429 — a rejected purge is a lost refresh, see the coalescing region below.
+	 *
 	 * @param WP_REST_Request $request
 	 * @return WP_REST_Response
 	 */
 	public function rest_purge_cache( $request ) {
-		$cn    = Cookie_Notice();
 		$creds = $this->get_app_credentials();
 
-		// per-site cooldown (2 min) — reject rapid repeats with 429
+		// ── Begin purge cooldown coalescing
+		// A per-site cooldown bounds forced re-pull amplification toward our own
+		// Designer API. What it must NOT do is DROP the purge. The caller (Designer
+		// API, app/services/cachePurge.service.ts) is a fire-and-forget `void` call
+		// with no retry and no queue, so a rejected purge is a LOST refresh: the site
+		// keeps serving the previously published config until the twicedaily WP-Cron
+		// pull catches up, up to ~12h later. The 429 this replaces did exactly that.
+		//
+		// That case is not rare, and it loses the config that matters most. Measured on
+		// prod 2026-08-27 (Designer API nginx access.log, 08:01–13:32 UTC): 3 of 31
+		// publishes were a second publish for the SAME app inside this window — one
+		// customer published six times in 22 minutes. The LAST publish of a burst is
+		// the one carrying what the customer wants live, and it was the one dropped.
+		//
+		// So a repeat inside the window defers instead of rejecting. wp_next_scheduled()
+		// is what makes this coalescing rather than queueing: N publishes inside one
+		// window collapse onto ONE deferred re-pull, so the amplification the cooldown
+		// exists to bound is still bounded — four publishes in two minutes cost two
+		// re-pulls, not four.
+		//
+		// WP-Cron has no daemon; the event fires on the first page load after expiry,
+		// not at expiry. That is not a regression. The twicedaily fallback this leans
+		// on depends on the same loopback, so deferring is never worse than dropping,
+		// and a site with no traffic fires neither while also serving stale config to
+		// nobody.
 		$cooldown    = 120;
+		$now         = current_time( 'timestamp', true );
 		$cooldown_at = $creds['network'] ? get_site_transient( 'cookie_notice_purge_cooldown' ) : get_transient( 'cookie_notice_purge_cooldown' );
 
-		if ( $cooldown_at !== false )
-			return new WP_REST_Response( [ 'purged' => false, 'reason' => 'cooldown' ], 429 );
+		if ( $cooldown_at !== false ) {
+			// Land the event just past expiry so it cannot re-enter the cooldown it is
+			// waiting out. Floored at 1s in case the stored stamp is somehow ahead of now.
+			$remaining = max( 1, $cooldown - max( 0, $now - (int) $cooldown_at ) ) + 5;
+			$scheduled = wp_next_scheduled( 'cookie_notice_deferred_purge' );
+
+			// Already booked by an earlier repeat in this window — coalesce onto it
+			// rather than stacking a second event.
+			if ( $scheduled === false ) {
+				wp_schedule_single_event( $now + $remaining, 'cookie_notice_deferred_purge' );
+				$scheduled_in = $remaining;
+			} else {
+				$scheduled_in = max( 0, (int) $scheduled - $now );
+			}
+
+			return new WP_REST_Response( [ 'purged' => false, 'deferred' => true, 'scheduled_in' => (int) $scheduled_in ], 202 );
+		}
+		// ── End purge cooldown coalescing
 
 		if ( $creds['network'] )
-			set_site_transient( 'cookie_notice_purge_cooldown', current_time( 'timestamp', true ), $cooldown );
+			set_site_transient( 'cookie_notice_purge_cooldown', $now, $cooldown );
 		else
-			set_transient( 'cookie_notice_purge_cooldown', current_time( 'timestamp', true ), $cooldown );
+			set_transient( 'cookie_notice_purge_cooldown', $now, $cooldown );
+
+		$this->apply_purge( $creds['app_id'] );
+
+		return new WP_REST_Response( [ 'purged' => true ], 200 );
+	}
+
+	/**
+	 * Apply a purge: force a config + tier re-pull and bust the widget's client cache.
+	 *
+	 * Extracted so the synchronous REST path and the deferred path cannot drift apart.
+	 * ajax_purge_cache() (settings.php) is a third copy of this same sequence and is
+	 * deliberately left alone — folding it in here would widen the blast radius of a
+	 * freshness fix into the admin screen.
+	 *
+	 * @param string $app_id
+	 * @return void
+	 */
+	private function apply_purge( $app_id ) {
+		$cn = Cookie_Notice();
 
 		// force a config + tier re-pull (bypasses the 1h throttle)
-		$cn->welcome_api->get_app_config( $creds['app_id'], true );
+		$cn->welcome_api->get_app_config( $app_id, true );
 
 		// re-evaluate CSP state (parity with the admin Purge button)
 		$cn->settings->refresh_csp_notice( true );
 
 		// tell the frontend JS widget to bust its client cache
+		//
+		// DELIBERATELY NOT gated on can_write_at_scope() — unlike the two sibling copies of
+		// this sequence in settings.php and welcome-api.php, which are. This one runs on the
+		// REST purge route, authenticated by the app secret rather than by a user, so there is
+		// no current user for a capability test to resolve and adding one would refuse every
+		// legitimate purge. The actor is the platform, not a site administrator, and the value
+		// is a timestamp that changes no configuration.
 		if ( $cn->is_network_options() )
 			set_site_transient( 'cookie_notice_config_update', current_time( 'timestamp', true ), 600 );
 		else
 			set_transient( 'cookie_notice_config_update', current_time( 'timestamp', true ), 600 );
+	}
 
-		return new WP_REST_Response( [ 'purged' => true ], 200 );
+	/**
+	 * Run a purge that the cooldown deferred.
+	 *
+	 * Hooked on `cookie_notice_deferred_purge`, scheduled by rest_purge_cache() above.
+	 *
+	 * This needs its own hook rather than reusing `cookie_notice_get_app_config`:
+	 * that action is registered with add_action()'s default accepted_args of 1
+	 * (welcome-api.php), so a scheduled event passing [ app_id, true ] delivers only
+	 * the app id and silently drops force_update. The pull would then no-op against
+	 * the multisite global-override one-pull-per-hour throttle — a failure that
+	 * schedules cleanly, fires cleanly, and refreshes nothing.
+	 *
+	 * Deliberately does NOT reset the cooldown: doing so would let each deferred run
+	 * defer the next one, and a long burst would never actually re-pull.
+	 *
+	 * @return void
+	 */
+	public function run_deferred_purge() {
+		$creds = $this->get_app_credentials();
+
+		// unpaired between scheduling and firing — nothing to pull against
+		if ( $creds['app_id'] === '' )
+			return;
+
+		$this->apply_purge( $creds['app_id'] );
 	}
 
 }

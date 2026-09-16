@@ -1,7 +1,8 @@
 {
 	"_meta": {
-		"version": 1,
+		"version": 2,
 		"rangeConvention": "usagePercent ranges are [inclusive, exclusive). null = unbounded. Example: [70, 100] means >= 70% AND < 100%.",
+		"thresholdExceeded": "Matches the plugin's own quota verdict (Cookie_Notice::threshold_exceeded()), not the counters. Required on any rule whose copy asserts that blocking has stopped: the counters can read as over quota on a usage snapshot the plugin refused to act on, and such a rule would then raise a compliance alarm about a site that is still blocking normally.",
 		"templateVariables": "{sessionTotal}, {sessionUsed}, {usagePercent} — interpolated at render time with locale-formatted numbers."
 	},
 	"rules": [
@@ -10,7 +11,7 @@
 			"type": "critical",
 			"priority": 100,
 			"slot": "topBar",
-			"condition": { "tier": "free", "usagePercent": [ 100, null ] },
+			"condition": { "tier": "free", "usagePercent": [ 100, null ], "thresholdExceeded": true },
 			"title": "Action Required: Visit limit reached",
 			"description": "Your site has exceeded its free monthly limit of {sessionTotal} visits. Cookie autoblocking is now disabled, which means tracking scripts may fire before visitors consent. Upgrade to Pro immediately to restore full compliance protection.",
 			"cta": { "label": "Upgrade to Pro \u2192", "action": "openPricingModal" },

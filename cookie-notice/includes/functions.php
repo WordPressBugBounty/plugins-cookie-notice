@@ -364,6 +364,11 @@ function cn_detect_active_plugins() {
  */
 function cn_get_telemetry_flag_map() {
 	return [
+		// Deliberately left alone by DEC-012's two-control split. `blocking` keeps
+		// meaning exactly what it has always meant — the quota-suppressed posture
+		// option — so the fleet-wide series stays comparable across the upgrade.
+		// app_blocking_engine is NOT reported here; adding it would silently redefine
+		// this flag for every site that reports after updating.
 		'app_blocking'			=> 'blocking',
 		'caching_compatibility'	=> 'caching',
 		'wp_consent_api'		=> 'consentapi',

@@ -263,6 +263,14 @@ class Cookie_Notice_Modules_WP_Consent_API {
 
 		$network = Cookie_Notice()->is_plugin_network_active();
 
+		// On a network-active install this writes the shared options row, so every site on
+		// the network loses the WP Consent API integration. The check above is manage_options
+		// — a site-level capability — so without this any subsite administrator could turn it
+		// off for everyone. wp_die() here rather than a notice: this is an admin_post
+		// endpoint with no screen of its own to render into, matching the refusal above.
+		if ( ! Cookie_Notice()->can_write_at_scope( $network ) )
+			wp_die( esc_html( Cookie_Notice()->network_scope_denied_message() ), '', [ 'response' => 403 ] );
+
 		$options = $network
 			? get_site_option( 'cookie_notice_options', [] )
 			: get_option( 'cookie_notice_options', [] );
@@ -291,9 +299,22 @@ class Cookie_Notice_Modules_WP_Consent_API {
 	 * @return bool
 	 */
 	private function is_notice_dismissed() {
-		return (bool) ( Cookie_Notice()->is_plugin_network_active()
-			? get_site_option( self::NOTICE_DISMISSED_OPTION, false )
-			: get_option( self::NOTICE_DISMISSED_OPTION, false ) );
+		// On a network-active install EITHER flag hides it: the network one because a super
+		// admin dismissed it for everyone, the site one because this site's administrator
+		// dismissed their own copy (see set_notice_dismissed()). Reading only the network
+		// flag would make a site-scoped dismissal silently ineffective.
+		if ( Cookie_Notice()->is_plugin_network_active() ) {
+			if ( get_site_option( self::NOTICE_DISMISSED_OPTION, false ) )
+				return true;
+
+			// The site flag only speaks for its own site. In network admin get_option()
+			// resolves to the MAIN SITE's row, so honouring it there would let a main-site
+			// administrator's personal dismissal hide the notice from the super admin —
+			// the one screen where it most needs to be seen.
+			return ! is_network_admin() && (bool) get_option( self::NOTICE_DISMISSED_OPTION, false );
+		}
+
+		return (bool) get_option( self::NOTICE_DISMISSED_OPTION, false );
 	}
 
 	/**
@@ -302,7 +323,17 @@ class Cookie_Notice_Modules_WP_Consent_API {
 	 * @return void
 	 */
 	private function set_notice_dismissed() {
-		if ( Cookie_Notice()->is_plugin_network_active() )
+		$cn = Cookie_Notice();
+
+		// Network-wide ONLY when the user may write at that scope. handle_dismiss() is gated
+		// on manage_options — a site-level capability — so without this a single subsite
+		// administrator's Dismiss silenced the first-detection notice for every site on the
+		// network, the super admin included.
+		//
+		// The fallback is a site-scoped dismissal rather than a refusal: dismissing a notice
+		// you can see is a reasonable thing to want, and is_notice_dismissed() honours both
+		// flags, so a subsite administrator clears it for themselves and nobody else.
+		if ( $cn->is_plugin_network_active() && $cn->can_write_at_scope( true ) )
 			update_site_option( self::NOTICE_DISMISSED_OPTION, true );
 		else
 			update_option( self::NOTICE_DISMISSED_OPTION, true, false );

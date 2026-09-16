@@ -1,8 +1,8 @@
 <?php
 /*
 Plugin Name: Cookie Compliance for WordPress – Cookie Consent, GDPR & CCPA
-Description: Cookie Compliance for WordPress (formerly "Compliance by Hu-manity.co" / "Cookie Notice") — the WordPress component of Cookie Compliance, the consent management platform by Hu-manity.co. Cookie consent banner, pre-consent script blocking, Google Consent Mode v2 and consent records for GDPR, CCPA and global data privacy laws.
-Version: 3.1.9
+Description: Cookie Compliance for WordPress (formerly "Compliance by Hu-manity.co" / "Cookie Notice") — the WordPress component of Cookie Compliance, the consent management platform by Hu-manity.co. Cookie consent banner, pre-consent script blocking, Google Consent Mode v2, WP Consent API integration, and consent records for GDPR, CCPA and global data privacy laws.
+Version: 3.1.10
 Author: Hu-manity.co
 Author URI: https://hu-manity.co/
 Plugin URI: https://cookie-compliance.co/
@@ -71,7 +71,10 @@ class Cookie_Notice {
 	private $app_widget_url = '//cdn.hu-manity.co/hu-banner.min.js';
 	private $deactivaion_url = '';
 	private $network_admin = false;
+	private $network_scope_claimed = false;
 	private $plugin_network_active = false;
+	/** Per-request memo for app_served_by_another_site(). Never persisted — see its docblock. */
+	private $shared_app_memo = [];
 	private static $_instance;
 	private $notices = [];
 	public $options = [];
@@ -89,6 +92,31 @@ class Cookie_Notice {
 	public $db_version;
 
 	/**
+	 * The admin's STORED general.app_blocking preference, remembered before the
+	 * Free-plan quota forces it off in memory for this request.
+	 *
+	 * null  = the quota force was not applied, so options['general']['app_blocking']
+	 *         IS the stored value and nothing needs protecting.
+	 * bool  = the pre-force stored value.
+	 *
+	 * Written in set_status(), which is the only writer that can ARM it (null → bool).
+	 *
+	 * Re-pointed — never armed — by the base posture sync in
+	 * welcome-api.php::get_app_config(), when the Designer API delivers a new
+	 * BannerConfigJSON.blocking while the force is already armed. That value IS the
+	 * stored preference from that moment on, so the guard must protect it rather than
+	 * the pre-pull one; without the re-point the guard would revert a legitimate
+	 * backend `false` to `true`. It stays null if it was null, so a request with no
+	 * quota force never gains an armed guard.
+	 *
+	 * Read by preserve_app_blocking_preference() and by the React save path.
+	 * See #2272 and the guard's own docblock.
+	 *
+	 * @var bool|null
+	 */
+	public $app_blocking_stored = null;
+
+	/**
 	 * @var $defaults
 	 */
 	public $defaults = [
@@ -97,7 +125,18 @@ class Cookie_Notice {
 			'global_cookie'			=> false,
 			'app_id'				=> '',
 			'app_key'				=> '',
+			// Two independent controls, not one (DEC-012):
+			//   app_blocking         POSTURE — hold third-party scripts BEFORE the
+			//                        visitor chooses. Seeds huOptions.blocking.
+			//                        Capped by the Free-plan visit quota.
+			//   app_blocking_engine  CAPABILITY — the master switch. Seeds
+			//                        huOptions.blockingEngine, which the widget treats
+			//                        as absolute: off means no script is ever held, for
+			//                        any visitor, whatever the privacy signal. Never
+			//                        touched by the quota.
+			// Blocking happens only when BOTH are on — see blocking_is_active().
 			'app_blocking'			=> true,
+			'app_blocking_engine'	=> true,
 			'conditional_active'	=> false,
 			'conditional_display'	=> 'hide',
 			'conditional_rules'		=> [],
@@ -180,7 +219,7 @@ class Cookie_Notice {
 			'threshold_exceeded'	=> false,
 			'activation_datetime'	=> 0
 		],
-		'version'	=> '3.1.9'
+		'version'	=> '3.1.10'
 	];
 
 	/**
@@ -234,6 +273,7 @@ class Cookie_Notice {
 		'conditional_rules',
 		'deactivation_delete',
 		'app_blocking',
+		'app_blocking_engine',
 		'excluded_handles',
 		'refuse_code',
 		'refuse_code_head',
@@ -369,9 +409,25 @@ class Cookie_Notice {
 		if ( ! isset( $this->options['general']['see_more_opt']['sync'] ) )
 			$this->options['general']['see_more_opt']['sync'] = $this->defaults['general']['see_more_opt']['sync'];
 
+		// ── Begin app_blocking guard registration (#2272)
+		//
+		// Registered here so the guard is in place before set_status_data()
+		// (plugins_loaded:0) applies the force, and therefore before every write
+		// that could carry it. See preserve_app_blocking_preference().
+		//
+		// Anchored for tests/unit/app-blocking-quota-preservation.php: the callback
+		// is only a guard while something registers it, and without this region the
+		// whole suite stays green with both lines deleted.
+		add_filter( 'pre_update_option_cookie_notice_options', [ $this, 'preserve_app_blocking_preference' ] );
+		add_filter( 'pre_update_site_option_cookie_notice_options', [ $this, 'preserve_app_blocking_preference' ] );
+		// ── End app_blocking guard registration (#2272)
+
 		// actions
 		add_action( 'plugins_loaded', [ $this, 'set_database_version' ], 0 );
 		add_action( 'plugins_loaded', [ $this, 'set_status_data' ], 0 );
+		// ── Begin network scope hook ─────────────────────────────────
+		add_action( 'plugins_loaded', [ $this, 'enforce_network_scope' ], PHP_INT_MIN );
+		// ── End network scope hook ───────────────────────────────────
 		add_action( 'init', [ $this, 'register_shortcodes' ] );
 		add_action( 'init', [ $this, 'wpsc_add_cookie' ] );
 		add_action( 'init', [ $this, 'maybe_apply_dev_tier_override' ] );
@@ -546,8 +602,27 @@ class Cookie_Notice {
 			$status_data = array_merge( $default_data, $status_data );
 		}
 
-		if ( $status_data['threshold_exceeded'] )
+		// ── Begin app_blocking quota force (#2272)
+		//
+		// The Free-plan visit limit switches autoblocking off for the REST OF THIS
+		// REQUEST — a runtime overlay, never a change to what the admin asked for.
+		// Remember the stored value first, because every wholesale writer of
+		// $this->options['general'] would otherwise persist the forced false over it:
+		// there are nine of them, and the cheapest one needs no admin choice at all
+		// (opening the settings page runs refresh_csp_notice(), which re-saves the
+		// whole array). preserve_app_blocking_preference() is the guard that stops
+		// them; this is where it learns what to restore.
+		// Remembered ONCE. set_status_data() is re-entrant — the network save path and
+		// the React connection-change refresh both call it a second time in the same
+		// request — and by then options['general']['app_blocking'] is already the forced
+		// false, so re-reading it here would quietly overwrite the real value with it.
+		if ( $status_data['threshold_exceeded'] ) {
+			if ( $this->app_blocking_stored === null )
+				$this->app_blocking_stored = ! empty( $this->options['general']['app_blocking'] );
+
 			$this->options['general']['app_blocking'] = false;
+		}
+		// ── End app_blocking quota force (#2272)
 
 		// check status
 		$status = $this->check_status( $status_data['status'] );
@@ -571,6 +646,81 @@ class Cookie_Notice {
 		];
 
 	}
+
+	// ── Begin app_blocking preference guard (#2272)
+	/**
+	 * Keep the Free-plan quota from eating the admin's stored autoblocking preference.
+	 *
+	 * The quota force in set_status() is a RUNTIME overlay, but it lands in
+	 * $this->options['general'] — the same array nine different call sites hand
+	 * straight to update_option( 'cookie_notice_options', ... ). Any one of them
+	 * therefore writes the forced false back over what the admin actually chose, and
+	 * nothing restores it when the visits cycle resets. Reachable with no admin choice
+	 * whatsoever: opening the settings page runs refresh_csp_notice()
+	 * ( includes/settings.php ), which re-saves the whole array whenever the .htaccess
+	 * state has drifted.
+	 *
+	 * Guarding the option rather than the call sites is deliberate — a tenth writer
+	 * added later is covered for free, which patching nine of them would not be.
+	 *
+	 * Strictly protective, and narrow on purpose: it only ever turns a false back into
+	 * a true, only while the force is active in THIS request, and only when the stored
+	 * value really was true. So:
+	 *
+	 *   - "Restore defaults" (which writes app_blocking = true) is untouched.
+	 *   - A site that is not over quota is untouched — the flag is null.
+	 *   - An admin who deliberately unchecks the box WHILE over quota has the change
+	 *     discarded. That is the same contract the classic form has had since #2272
+	 *     (over quota it renders the field disabled and omits its sentinel, so
+	 *     validate_options() preserves the DB value): while the quota caps the
+	 *     feature, the stored preference is frozen, not editable.
+	 *
+	 * @param mixed $value Option value about to be written.
+	 * @return mixed
+	 */
+	public function preserve_app_blocking_preference( $value ) {
+		// Force not applied this request, or the stored preference was already false —
+		// nothing to protect either way.
+		if ( $this->app_blocking_stored !== true )
+			return $value;
+
+		// Only touch a write that actually carries the key. A payload without it
+		// falls through to the defaults on the next load, which is already `true`.
+		if ( is_array( $value ) && array_key_exists( 'app_blocking', $value ) && empty( $value['app_blocking'] ) )
+			$value['app_blocking'] = true;
+
+		return $value;
+	}
+	// ── End app_blocking preference guard (#2272)
+
+	// ── Begin blocking_is_active accessor (DEC-012)
+	/**
+	 * Is script blocking actually going to happen on this site right now?
+	 *
+	 * DEC-012 split one overloaded checkbox into two independent controls, and every
+	 * surface that answers "are we protected?" must read the AND of them — otherwise a
+	 * site with the engine switched off is still reported as protected:
+	 *
+	 *   app_blocking         posture, and quota-capped: already forced false in memory
+	 *                        by set_status() while the Free-plan limit is exceeded
+	 *   app_blocking_engine  the master switch; the widget treats huOptions.blockingEngine
+	 *                        as absolute, so off means nothing is held for anybody
+	 *
+	 * ONE accessor, deliberately, for both the render-time gates in
+	 * includes/frontend.php and every admin display surface. Blocking behaviour and the
+	 * reported state cannot then drift apart — which is the whole point of the split.
+	 *
+	 * Reads the in-memory options, so the quota cap is included: this answers "is
+	 * blocking happening", not "what did the admin ask for". For the latter use
+	 * $app_blocking_stored / the raw option.
+	 *
+	 * @return bool
+	 */
+	public function blocking_is_active() {
+		return ! empty( $this->options['general']['app_blocking'] )
+			&& ! empty( $this->options['general']['app_blocking_engine'] );
+	}
+	// ── End blocking_is_active accessor (DEC-012)
 
 	/**
 	 * Get cookie compliance status data.
@@ -610,7 +760,9 @@ class Cookie_Notice {
 	/**
 	 * CN_DEV_MODE: Apply ?cn_tier override.
 	 *
-	 * Hooked on 'init' so current_user_can() is available (it is NOT at plugins_loaded:0).
+	 * Hooked on 'init' so current_user_can() is safely resolvable. (It is available from
+	 * plugins_loaded onward — pluggable.php is required just before that hook — but not at
+	 * plugin include time, and 'init' is late enough for other plugins' auth filters.)
 	 * Overrides status_data + app_id in-memory for the current request.
 	 */
 	public function maybe_apply_dev_tier_override() {
@@ -808,6 +960,232 @@ class Cookie_Notice {
 	}
 
 	/**
+	 * May the current user make a write at this scope?
+	 *
+	 * The one definition of "a network-wide write needs a network-wide capability". Call
+	 * sites across the plugin reached one behind manage_options — a SITE-level capability
+	 * every subsite administrator holds — so each asks this instead of carrying its own rule.
+	 * None is reached by forging anything; the scope is derived honestly and the capability
+	 * in front of it was simply too low. UNFORGEABLE IS NOT AUTHORISED: several were cleared
+	 * in earlier review on the grounds that their scope could not be faked, which answers
+	 * integrity and says nothing about who is allowed to write.
+	 *
+	 * Do not enumerate the call sites, here or anywhere. Two wrong enumerations in earlier
+	 * revisions each let a door survive a review round, and a third was wrong in the very
+	 * paragraph warning against them. State the rule; let the tests count.
+	 *
+	 * DELIBERATELY NOT FILTERABLE. The plugin filters cn_manage_cookie_notice_cap to let an
+	 * integrator delegate who ADMINISTERS Cookie Notice; that is a surface decision. This is
+	 * a security gate, and one an integrator could filter down to a site capability would be
+	 * advisory. Cookie_Notice_Welcome_API::may_push_base_posture() hardcodes the same
+	 * capability for the same reason.
+	 *
+	 * NEVER CALL THIS AT PLUGIN INCLUDE TIME. current_user_can() resolves through
+	 * wp_get_current_user(), which is pluggable and not loaded while plugin files are still
+	 * being included — see enforce_network_scope()'s docblock for the full ordering.
+	 *
+	 * Callers today are admin_init or AJAX dispatch, both safely after it, except the gates
+	 * in welcome-api.php get_app_config() and get_app_analytics(), which sit on paths
+	 * reachable from set_status_data() on plugins_loaded:0. Those guard themselves with
+	 * did_action( 'admin_init' ) precisely so they never resolve the current user that early
+	 * — see their own comments.
+	 *
+	 * @param bool $network Whether the write being guarded is network-scoped.
+	 * @return bool
+	 */
+	public function can_write_at_scope( $network ) {
+		return ! $network || current_user_can( 'manage_network_options' );
+	}
+
+	/**
+	 * Is this app the one shared by every site on the network?
+	 *
+	 * AUTHORITY FOLLOWS THE APP, NOT THE ROW. is_network_options() answers "was the options
+	 * array read from the network row", which is a property of THIS request. It is not the
+	 * question a write has to ask, because the two come apart — and when they do, the remote
+	 * record every site pulls is the thing that changes.
+	 *
+	 * How they come apart, reproduced on a real multisite 2026-09-15:
+	 *
+	 *   1. global_override on. Settings::load_defaults() runs on after_setup_theme and, when
+	 *      the translate flag is set (the compiled default), writes $cn->options['general']
+	 *      into the SITE row. Under the override that array IS the network row, and app_id
+	 *      and app_key are plugin-owned fields that survive every allowlist — so every
+	 *      subsite's own row ends up naming the network's app on its FIRST request, with no
+	 *      administrator having touched anything.
+	 *   2. The override is later switched off, or the plugin is network-deactivated and
+	 *      activated per site. is_network_options() goes false.
+	 *   3. The site row still names the network's app. A subsite administrator's PATCH now
+	 *      lands on the record every other site still serves, and a gate asking
+	 *      is_network_options() waves it through.
+	 *
+	 * So ask the app. A write targeting an app OTHER SITES SERVE takes network authority,
+	 * whatever row this request happened to read.
+	 *
+	 * AND ASK IT OF REALITY, NOT OF A ROW. An earlier revision of this method asked whether
+	 * the NETWORK row named the app. That is still a row question — just a different row —
+	 * and it fails OPEN one move further on, reproduced on a real multisite 2026-09-15:
+	 * a super admin re-points or disconnects the network connection (app_id and app_key are
+	 * plugin-owned fields, so this is a first-class supported action), every site carries on
+	 * serving the OLD app, and the predicate goes blind on all of them at once.
+	 *
+	 * The only answer that cannot drift is the one taken from the sites themselves: does any
+	 * site OTHER THAN THIS ONE serve this app? The network row is kept as a fast path because
+	 * when it does name the app the answer is certainly yes, but it is never the whole answer.
+	 *
+	 * This is the one definition of that rule; may_push_base_posture() held a private second
+	 * copy and was the only thing implementing it correctly, which is how the gates that
+	 * cited it came to disagree with it.
+	 *
+	 * @param string $app_id The app the write is about to change.
+	 * @return bool
+	 */
+	public function is_network_shared_app( $app_id ) {
+		// ── Begin shared app rule ────────────────────────────────────────────
+		if ( ! is_multisite() )
+			return false;
+
+		$app_id = (string) $app_id;
+
+		if ( $app_id === '' )
+			return false;
+
+		// Fast path. If the network row names it, it is shared by definition — every site
+		// reads that row under global_override, and the row outlives the override.
+		$network_row = get_site_option( 'cookie_notice_options', [] );
+
+		if ( is_array( $network_row ) && isset( $network_row['app_id'] )
+			&& (string) $network_row['app_id'] === $app_id )
+			return true;
+
+		return $this->app_served_by_another_site( $app_id );
+		// ── End shared app rule ──────────────────────────────────────────────
+	}
+
+	/**
+	 * Does any site OTHER THAN THIS ONE serve this app?
+	 *
+	 * Asked of the sites themselves, because every stored answer to this question has drifted:
+	 * the request's own options row drifted when global_override was switched off, and the
+	 * network row drifted when the network connection was re-pointed. Sites are the only place
+	 * the truth cannot be stale, because they ARE what is served.
+	 *
+	 * NOT cached across requests, and memoised WITHIN one. A stored "no" is a window in which
+	 * the gate stands open, so nothing is persisted; but repeating the walk several times in a
+	 * single request buys nothing, so the answer is remembered for that request only.
+	 *
+	 * Do not take this as "it only runs on a mutating admin action" — an earlier revision of
+	 * this docblock claimed exactly that and it was false. Settings::load_defaults() writes the
+	 * options row on after_setup_theme, which stages a posture change, which asks this — on the
+	 * FIRST front-end request of every site. It is one-shot per site row, but it is not admin-
+	 * only, and the cost argument has to survive that.
+	 *
+	 * FAILS CLOSED above the scan limit. On a network too large to walk, every such app is
+	 * treated as shared and the change needs a super admin. That is the safe direction: a
+	 * thousand-site network is exactly where one administrator's mistake reaches furthest.
+	 * The limit is filterable, and a non-positive value falls back to the DEFAULT rather than
+	 * being honoured. Clamping it to 1 — which an earlier revision did, while claiming that
+	 * stopped a lockout — does not: with a limit of 1, any network of two or more sites is
+	 * still "too large", so every app reads as shared and every site administrator loses
+	 * control of their own. A filter returning nonsense should be ignored, not obeyed at its
+	 * least useful value.
+	 *
+	 * INSTALL-SCOPED, deliberately not network-scoped. An earlier revision pinned the site list
+	 * to the current network because the fast path reads a network option — but the question
+	 * this answers is "does any other SITE serve this app", and a site on a sibling network of
+	 * the same install serves it just as really. Pinning made that case answer false, which is
+	 * fail-OPEN, and it is the same mistake as the two predicates before it: asking about the
+	 * set that is convenient rather than the set that serves the record.
+	 *
+	 * Trashed sites are excluded. WP_Site_Query returns archived, spam and deleted sites by
+	 * default, and counting one as a sharer permanently refuses the app's only live owner with
+	 * no way to clear it.
+	 *
+	 * @param string $app_id Non-empty app id, already cast by the caller.
+	 * @return bool
+	 */
+	private function app_served_by_another_site( $app_id ) {
+		// ── Begin shared app scan ────────────────────────────────────────────
+		$current = get_current_blog_id();
+		$memo    = $app_id . '|' . $current;
+
+		if ( isset( $this->shared_app_memo[ $memo ] ) )
+			return $this->shared_app_memo[ $memo ];
+
+		$default  = 200;
+		$filtered = apply_filters( 'cn_shared_app_scan_limit', $default );
+
+		// is_numeric() before the cast, or (int) quietly turns true, an array or "abc" into 1
+		// — the one value that locks out every network of two or more sites.
+		$limit    = is_numeric( $filtered ) ? (int) $filtered : $default;
+
+		if ( $limit < 1 )
+			$limit = $default;
+		$query = [ 'archived' => 0, 'spam' => 0, 'deleted' => 0 ];
+		$total = (int) get_sites( array_merge( $query, [ 'count' => true ] ) );
+
+		if ( $total > $limit )
+			return $this->shared_app_memo[ $memo ] = true;
+
+		$shared = false;
+
+		foreach ( get_sites( array_merge( $query, [ 'fields' => 'ids', 'number' => $limit ] ) ) as $blog_id ) {
+			if ( (int) $blog_id === (int) $current )
+				continue;
+
+			$row = get_blog_option( $blog_id, 'cookie_notice_options', [] );
+
+			if ( is_array( $row ) && isset( $row['app_id'] ) && (string) $row['app_id'] === $app_id ) {
+				$shared = true;
+				break;
+			}
+		}
+
+		return $this->shared_app_memo[ $memo ] = $shared;
+		// ── End shared app scan ──────────────────────────────────────────────
+	}
+
+	/**
+	 * Why a network-scoped write was refused, and who can make it.
+	 *
+	 * "Insufficient permissions" tells someone nothing they can act on. This names the
+	 * reason (the setting is shared by every site) and the person who can help.
+	 *
+	 * Callable only after 'init' — it translates, and the textdomain loads on init (:319).
+	 * enforce_network_scope() runs earlier, on plugins_loaded, and carries an untranslated
+	 * copy of this wording rather than triggering WP's just-in-time textdomain notice.
+	 *
+	 * @return string
+	 */
+	public function network_scope_denied_message() {
+		return __( 'This setting applies to every site on the network, so only a Network Administrator (Super Admin) can change it. Please ask your network administrator to make this change.', 'cookie-notice' );
+	}
+
+	/**
+	 * Refuse a network-scoped write on screen, rather than on a blank error page.
+	 *
+	 * For a refusal that happens while an admin screen is being assembled, this is the right
+	 * shape: the screen still renders, with a standard WordPress error notice explaining why
+	 * the save did not happen and who can make it. wp_die() would be a white page for what is
+	 * an ordinary permissions outcome, and a bare return would be a settings form that
+	 * silently does nothing — which reads as a bug, and invites "fixing" the gate.
+	 *
+	 * Refusals with no screen to render into (an AJAX handler, an admin_post endpoint) use
+	 * their own idiom and carry the same wording.
+	 *
+	 * @return void
+	 */
+	public function deny_network_scope_notice() {
+		// 'error', not 'notice-error': display_notice() hardcodes "notice notice-info" and
+		// appends this, and .notice-error loses to the later .notice-info at equal specificity
+		// — so the refusal would render BLUE. div.error outranks it and renders red, which is
+		// why 'error' is what renders red. (Callers pass a mix — 'notice-success
+		// is-dismissible', 'cn-threshold error is-dismissible' — so do not read this as a
+		// house style; it is a specific CSS outcome.)
+		$this->add_notice( esc_html( $this->network_scope_denied_message() ), 'error' );
+	}
+
+	/**
 	 * Check whether the plugin is active for the entire network.
 	 *
 	 * @return bool
@@ -829,6 +1207,92 @@ class Cookie_Notice {
 	}
 
 	/**
+	 * Refuse a network-scope claim the current user cannot back.
+	 *
+	 * Hooked on 'plugins_loaded' at PHP_INT_MIN — the EARLIEST point at which the capability
+	 * can be resolved at all. All line numbers are wp-settings.php:
+	 *
+	 *   516 / 574  plugin files included — the constructor, and so the claim, runs here
+	 *   604        pluggable.php: wp_get_current_user() exists only from here on
+	 *   622        plugins_loaded  ← this hook, at PHP_INT_MIN
+	 *   697 / 749  setup_theme / after_setup_theme
+	 *   771        init
+	 *
+	 * Late enough: pluggable.php (604) precedes plugins_loaded (622), so current_user_can()
+	 * resolves. Every plugin FILE is loaded by then too (516/574), so a determine_current_user
+	 * filter registered at file-load — which is where auth plugins normally register it, and
+	 * where core's cookie auth lives via default-filters.php — is already in place.
+	 *
+	 * Early enough: PHP_INT_MIN precedes every higher-priority callback on the hook, and every
+	 * same-priority one registered later. Strictly it is not "first": a network-activated
+	 * plugin is included at 516, before a site-activated cookie-notice at 574, so one
+	 * registering PHP_INT_MIN too would run ahead of this — which only matters if it consumed
+	 * Cookie_Notice()->is_network_admin(), and nothing can, since the class does not exist
+	 * until 574.
+	 *
+	 * Early enough, and the priority is doing real work here. Consumers of
+	 * is_network_admin() begin at plugins_loaded priority 0: this class's own
+	 * set_database_version() (:451) reads it, and its result feeds legacy-upgrade branches
+	 * on the same hook that WRITE network-scoped state — includes/privacy-consent.php:243
+	 * (add_site_option) and the cache modules at priority 11, one of which
+	 * (includes/modules/breeze/breeze.php:107) writes a third-party network option.
+	 * Cookie_Notice_Settings::load_defaults() (includes/settings.php:320, guarding the
+	 * update_site_option() at :321, on after_setup_theme) is a later one. An earlier revision of this fix sat on 'init' and then on
+	 * plugins_loaded:PHP_INT_MAX, and both ran after consumers that had already written.
+	 *
+	 * SO: nothing may read is_network_admin() before this hook. At PHP_INT_MIN the only code
+	 * that can is the constructor itself, and it reads the claim solely to pick which options
+	 * array to hold in memory. It is NOT write-free — check_legacy_options() (:364, writing
+	 * at :473) runs there — but that write is a shape migration of existing DB state and never
+	 * consults the scope, so it is unaffected either way. A scope-DEPENDENT write added to the
+	 * constructor would be unvettable, and that is the invariant a new caller has to respect.
+	 *
+	 * The residual trade-off, accepted: resolving the user here both caches $current_user for
+	 * the request and fires the set_current_user action (pluggable.php:48) before any other
+	 * plugin's plugins_loaded callback. So a determine_current_user filter registered later is
+	 * not consulted; a membership or role plugin's set_current_user handler may run before its
+	 * own bootstrap; and a user_has_cap / map_meta_cap filter registered on plugins_loaded or
+	 * init is not in place either. For user_has_cap that cannot affect a genuine super admin —
+	 * WP_User::has_cap short-circuits on is_super_admin() BEFORE applying it — but map_meta_cap
+	 * runs FIRST, ahead of that short-circuit, so a filter there injecting do_not_allow would
+	 * deny even a super admin. Either way the exposure is a missing filter DENYING someone, not
+	 * granting them: a spurious 403, never a bypass. All of it is confined to claiming requests, which only this plugin's own
+	 * cookie-authenticated network-admin JS sends, and the failure direction is a visible
+	 * refusal rather than a silent bypass.
+	 *
+	 * The capability is hardcoded, deliberately. The FILTERED form
+	 * ( apply_filters( 'cn_manage_cookie_notice_cap', 'manage_options' ) ) guards the admin
+	 * SURFACE — settings.php:350 and :2605, react-admin-ajax.php:98, welcome-api.php:60 — so
+	 * an integrator can delegate who administers Cookie Notice. This is not that: a security
+	 * gate an integrator could filter down to a site capability would be advisory. Hardcoding
+	 * the capability is the norm rather than an exception here; may_push_base_posture() hardcodes
+	 * manage_network_options the same way.
+	 *
+	 * Refusing outright rather than quietly downgrading to site scope is deliberate. A
+	 * downgrade would leave the constructor's already-loaded NETWORK options being written
+	 * into a SITE row (react-admin-ajax.php save_options() seeds from $cn->options), i.e.
+	 * config bleed in the opposite direction, and it would fail silently for a super admin
+	 * whose user was somehow not resolved.
+	 *
+	 * @return void
+	 */
+	public function enforce_network_scope() {
+		// ── Begin network scope enforcement ──────────────────────────────────────
+		if ( ! $this->network_scope_claimed )
+			return;
+
+		if ( current_user_can( 'manage_network_options' ) )
+			return;
+
+		// Untranslated on purpose: this runs on plugins_loaded and the textdomain does not
+		// load until init (:319), so __() here would trip WP's just-in-time textdomain
+		// notice. Same wording as network_scope_denied_message(), which the later-running
+		// refusals use translated — keep the two in step.
+		wp_send_json_error( [ 'error' => 'This setting applies to every site on the network, so only a Network Administrator (Super Admin) can change it. Please ask your network administrator to make this change.' ], 403 );
+		// ── End network scope enforcement ────────────────────────────────────────
+	}
+
+	/**
 	 * Set network data.
 	 *
 	 * @return void
@@ -838,10 +1302,63 @@ class Cookie_Notice {
 		if ( ! function_exists( 'is_plugin_active_for_network' ) )
 			require_once( ABSPATH . '/wp-admin/includes/plugin.php' );
 
+		// ── Begin network scope claim ────────────────────────────────────────────
+		// Where "this request writes network-wide" is decided. Everything downstream reads
+		// is_network_admin() and inherits the answer: the app id and bearer token in
+		// welcome-api.php, the options row in react-admin-ajax.php, the admin-notice
+		// handlers below.
+		//
+		// admin-ajax.php never sets WP_NETWORK_ADMIN, so is_network_admin() is false even
+		// for a super admin on the Network Admin screen — hence the cn_network bypass. But
+		// cn_network is a plain POST field the browser controls, and the permission check
+		// in front of the handlers that honour it is manage_options (react-admin-ajax.php
+		// verify_request(), welcome-api.php api_request()), which every SUBSITE admin
+		// holds. Unauthorised, that let a subsite admin rewrite the network's app id and
+		// key, pointing every site on the network at their own account.
+		//
+		// THE CAPABILITY IS NOT CHECKED HERE, AND MUST NOT BE. This runs from the
+		// constructor, while wp-settings.php is still including plugin files, and
+		// current_user_can() resolves through wp_get_current_user(), which is pluggable and
+		// not loaded yet — so calling it here is a fatal "undefined function" on exactly the
+		// legitimate super-admin save it means to allow. enforce_network_scope()'s docblock
+		// carries the full load order; it is the ONE copy, so corrections land in one place.
+		// (maybe_apply_dev_tier_override() is deferred for the same family of reason.)
+		//
+		// So this only records the CLAIM. enforce_network_scope() — plugins_loaded at
+		// PHP_INT_MIN — is what refuses a claim the user cannot back.
+		//
+		// Non-AJAX network-admin page loads are not claims, and are not vetted here. WP's
+		// menu check does wp_die() before admin_init — but it enforces the capability the
+		// PLUGIN registered. That used to be manage_options, so a main-site administrator who
+		// is not a super admin reached the network settings screen and validate_network_options()
+		// wrote the network row. Closed separately: includes/settings.php:363 registers the
+		// network menu with manage_network_options, and :2622 refuses the save through
+		// can_write_at_scope().
+		//
+		// ADDING A HANDLER THAT WRITES NETWORK-WIDE? Read is_network_admin(), never the raw
+		// POST field again — a second copy of this decision is a second hole, and three of
+		// them were exactly that. is_network_admin() carries a VETTED answer from
+		// plugins_loaded:PHP_INT_MIN onward — which, since nothing on plugins_loaded can run
+		// earlier, means every hook there and after. The only unvetted window left is plugin
+		// include time: muplugins_loaded, and the constructor itself.
+		//
+		// Other network-scope deciders do not route through here, and UNFORGEABLE IS NOT
+		// AUTHORISED — each of them derived its scope honestly and still put a site-level
+		// capability in front of a network-wide write. All are now closed by
+		// can_write_at_scope(), which asks the question this gate does not:
+		//
+		//   - is_network_options() (network-active && global_override) takes no request input,
+		//     but resolves to network scope for EVERY caller while verify_request() (:98) asks
+		//     only for manage_options — includes/react-admin-ajax.php:430, :533, :585.
+		//   - handle_disable() and handle_dismiss(), includes/modules/wp-consent-api/
+		//     wp-consent-api.php:258 and :239.
+		//   - validate_network_options(), described above.
 		$cn_network = isset( $_POST['cn_network'] ) ? (int) $_POST['cn_network'] : false;
 
-		// bypass is_network_admin() to handle AJAX requests properly.
-		$this->network_admin = is_multisite() && ( is_network_admin() || ( wp_doing_ajax() && $cn_network === 1 ) );
+		$this->network_scope_claimed = is_multisite() && wp_doing_ajax() && $cn_network === 1;
+
+		$this->network_admin = is_multisite() && ( is_network_admin() || $this->network_scope_claimed );
+		// ── End network scope claim ──────────────────────────────────────────────
 
 		// check whether the plugin is active for the entire network.
 		$this->plugin_network_active = is_plugin_active_for_network( COOKIE_NOTICE_BASENAME );
@@ -1052,6 +1569,24 @@ class Cookie_Notice {
 		if ( ! current_user_can( 'manage_options' ) )
 			return;
 
+		// ── Begin network ui_mode write gate ─────────────────────────────────
+		// In network admin this persists to the NETWORK row, which every site reads under
+		// global_override — so it needs the network capability like any other network write.
+		//
+		// is_network_admin() is true for ANY /wp-admin/network/* request (core defines
+		// WP_NETWORK_ADMIN before the bootstrap), with no cn_network claim involved, so
+		// enforce_network_scope() never sees this one.
+		//
+		// Closed today by the network menu requiring manage_network_options — core's
+		// user_can_access_admin_page() denies before admin_init. But that is the MENU's
+		// capability, which cn_manage_network_cookie_notice_cap exists to let an integrator
+		// lower, and that filter is documented as governing VISIBILITY only, with saves gated
+		// separately. This write had no separate gate; now it does, so the documented promise
+		// is true of it too.
+		if ( $this->is_network_admin() && ! $this->can_write_at_scope( true ) )
+			return;
+		// ── End network ui_mode write gate ───────────────────────────────────
+
 		$requested = sanitize_key( $_GET['ui_mode'] );
 
 		if ( ! in_array( $requested, [ 'react', 'legacy' ], true ) )
@@ -1102,6 +1637,12 @@ class Cookie_Notice {
 				delete_site_option( 'cookie_notice_status' );
 				delete_site_option( 'cookie_notice_app_analytics' );
 				delete_site_option( 'cookie_notice_app_blocking' );
+				delete_site_option( 'cookie_notice_blocking_push_pending' );
+				// Network-scoped, so it needs its own delete: the per-site sweep below only
+				// reaches delete_transient(), and the network retry cooldown is written with
+				// set_site_transient(). Left behind, a reinstall inside the cooldown window
+				// has its first network retry gated by the previous install's timer.
+				delete_site_transient( 'cookie_notice_posture_push_retry' );
 				delete_site_option( 'cookie_notice_version' );
 			}
 
@@ -1138,9 +1679,11 @@ class Cookie_Notice {
 			delete_option( 'cookie_notice_status' );
 			delete_option( 'cookie_notice_app_analytics' );
 			delete_option( 'cookie_notice_app_blocking' );
+			delete_option( 'cookie_notice_blocking_push_pending' );
 			delete_option( 'cookie_notice_version' );
 
 			// delete transients if any
+			delete_transient( 'cookie_notice_posture_push_retry' );
 			delete_transient( 'cookie_notice_app_token' );
 			delete_transient( 'cookie_notice_app_quick_config' );
 			delete_transient( 'cookie_notice_app_subscriptions' );
@@ -1359,10 +1902,12 @@ class Cookie_Notice {
 			// get notice action
 			$notice_action = ! empty( $_POST['notice_action'] ) ? sanitize_key( $_POST['notice_action'] ) : 'dismiss';
 
-			$cn_network = isset( $_POST['cn_network'] ) ? (int) $_POST['cn_network'] : false;
-
-			// network?
-			$network = is_multisite() && $cn_network === 1;
+			// network? — from the claim in set_network_data(), never from $_POST directly,
+			// so this handler cannot disagree with the scope the rest of the request used.
+			// (install_plugins above already limits this handler to super admins on
+			// multisite — WP maps it that way in capabilities.php — so this is consistency,
+			// not the fix itself.)
+			$network = $this->is_network_admin();
 
 			switch ( $notice_action ) {
 				// threshold notice
@@ -1426,10 +1971,12 @@ class Cookie_Notice {
 			// get notice action
 			$notice_action = ! empty( $_POST['notice_action'] ) ? sanitize_key( $_POST['notice_action'] ) : 'dismiss';
 
-			$cn_network = isset( $_POST['cn_network'] ) ? (int) $_POST['cn_network'] : false;
-
-			// network?
-			$network = is_multisite() && $cn_network === 1;
+			// network? — from the claim in set_network_data(), never from $_POST directly,
+			// so this handler cannot disagree with the scope the rest of the request used.
+			// (install_plugins above already limits this handler to super admins on
+			// multisite — WP maps it that way in capabilities.php — so this is consistency,
+			// not the fix itself.)
+			$network = $this->is_network_admin();
 
 			switch ( $notice_action ) {
 				// delay notice

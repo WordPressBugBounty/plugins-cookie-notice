@@ -23,6 +23,23 @@ class Cookie_Notice_Welcome_API {
 		add_action( 'cookie_notice_get_app_config', [ $this, 'get_app_config' ] );
 		add_action( 'wp_ajax_cn_api_request', [ $this, 'api_request' ] );
 
+		// ── Begin base posture push registration
+		//
+		// Registered on the option WRITE so that the hook which fires is itself the target
+		// derivation — see the block comment above stage_base_posture_site(). Which method
+		// is bound to which hook IS the scope decision, so this pairing is extracted and
+		// driven by tests/unit/base-posture-push.php rather than restated there: a test that
+		// hardcoded it would keep passing with the two swapped, and a swap is the escalation.
+		//
+		// The accepted-argument counts differ because core emits the two actions with
+		// different signatures — ( $old, $value, $option ) and ( $option, $value, $old,
+		// $network_id ). Registering either with the default of 1 would hand the callback a
+		// null $value.
+		add_action( 'update_option_cookie_notice_options', [ $this, 'stage_base_posture_site' ], 10, 2 );
+		add_action( 'update_site_option_cookie_notice_options', [ $this, 'stage_base_posture_network' ], 10, 3 );
+		add_action( 'admin_init', [ $this, 'retry_base_posture_push' ] );
+		// ── End base posture push registration
+
 		// React write hooks — only register when ui_mode is "react" (#2267).
 		$ui_mode = Cookie_Notice()->options['general']['ui_mode'] ?? 'legacy';
 
@@ -88,6 +105,38 @@ class Cookie_Notice_Welcome_API {
 
 		$admin_email = ! empty( $data_token->email ) ? $data_token->email : '';
 		$app_id = $cn->options['general']['app_id'];
+
+		// ── Begin shared-app request gate ────────────────────────────────────────
+		// The capability proved above is the filtered manage_options, which every subsite
+		// administrator holds. $app_id above may name the network's shared app — see
+		// Cookie_Notice::is_network_shared_app() for the two ways that happens, only one of
+		// which is global_override being on right now.
+		//
+		// These requests MUTATE that record. 'configure' PATCHes it with config taken
+		// straight from $_POST (cn_laws[], uiBlocking, onScroll/onClick implied consent, the
+		// gpc modes), authenticating with the app's own key, so it succeeds: a subsite admin
+		// clicking Protection → Privacy Laws → Save laws could deselect gdpr for every site
+		// on the network. The subscription three are gated on the same footing; 'select_plan'
+		// is currently a bare break and changes nothing, and is listed so that stays true by
+		// gate rather than by accident.
+		//
+		// GATED HERE, ABOVE EVERY CASE, because the PATCH is the network-visible change: a
+		// gate after it would leave the platform changed and only refuse the local mirror,
+		// which is worse than none — the admin UI then shows stale config while the live
+		// banner serves the new one. An earlier revision of this fix made exactly that
+		// mistake in the react handlers.
+		//
+		// 'register' and 'login' are deliberately NOT here: they create or attach a NEW app
+		// rather than mutating the shared one, and a subsite administrator's result is
+		// written site-scoped because is_network_admin() is vetted.
+		//
+		// This list is a convenience, not the guarantee. request() gates every mutating call
+		// against the shared app at the point it is issued, so a request type added here and
+		// forgotten is still refused — which is the whole reason that choke point exists.
+		if ( in_array( $request, [ 'configure', 'select_plan', 'payment', 'use_license' ], true )
+			&& $cn->is_network_shared_app( $app_id ) && ! $cn->can_write_at_scope( true ) )
+			wp_send_json_error( [ 'error' => $cn->network_scope_denied_message() ], 403 );
+		// ── End shared-app request gate ──────────────────────────────────────────
 
 		$params = [];
 
@@ -1324,7 +1373,13 @@ class Cookie_Notice_Welcome_API {
 				// check if sync was successful
 				if ( ! empty( $status_data ) && is_array( $status_data ) && ! empty( $status_data['status'] ) && $status_data['status'] === 'active' ) {
 					// set cache purge transient to force widget to refresh
-					if ( $network_options )
+					//
+					// Network-wide only when the caller may write at that scope: api_request()
+					// is gated on manage_options, so otherwise a subsite administrator's Sync
+					// Config busts the widget cache for every site. Churn rather than
+					// escalation — the value is a timestamp and no configuration changes — but
+					// it is the same predicate in the same class.
+					if ( $network_options && $cn->can_write_at_scope( true ) )
 						set_site_transient( 'cookie_notice_config_update', time(), DAY_IN_SECONDS );
 					else
 						set_transient( 'cookie_notice_config_update', time(), DAY_IN_SECONDS );
@@ -1378,9 +1433,63 @@ class Cookie_Notice_Welcome_API {
 	 * @param array $params Parameters for the API action.
 	 * @return string|array
 	 */
-	private function request( $request = '', $params = [] ) {
+	private function request( $request = '', $params = [], $args_override = [] ) {
 		// get main instance
 		$cn = Cookie_Notice();
+
+		// ── Begin shared-app choke point ─────────────────────────────────────────
+		// THE GATE THAT CANNOT BE FORGOTTEN. Every call this plugin makes to the Cookie
+		// Compliance platform funnels through this one method, so a mutating request against
+		// an app other sites serve is refused here whatever handler issued it — including one
+		// written next year that nobody thought to gate.
+		//
+		// (One wp_remote_post() lives outside this method, in Cookie_Notice::deactivate_plugin()
+		// — a feedback form that touches no app record and is gated on install_plugins, which
+		// is super-admin-only on multisite. It is the only one; verified by sweep.)
+		//
+		// This exists because per-handler gates were the wrong structure, not merely an
+		// incomplete set: four separate review rounds each found another handler reaching the
+		// same shared Designer record, and a fifth found that a brand-new ungated handler
+		// passed the whole test suite. Enumerating the callers is what failed.
+		//
+		// SO THE LIST BELOW IS OF WHAT IS SAFE, NOT OF WHAT IS DANGEROUS, and everything else
+		// is gated. A denylist of "the mutating types" is the same enumeration bug one level
+		// down — an earlier revision listed three and missed five, including the subscription
+		// and payment types that bind a paid plan to a named AppID. Inverted, a request type
+		// added to the switch below and forgotten here is REFUSED rather than waved through,
+		// which is the failure direction we can afford.
+		//
+		// is_user_logged_in() is the discriminator, NOT did_action( 'admin_init' ): this
+		// method also runs on cron and on the app-secret-authenticated REST purge route, where
+		// there is no user at all and current_user_can() would refuse a legitimate push.
+		// Every path an ordinary administrator can reach is a logged-in one. It is the RIGHT
+		// operand so the cheap array test short-circuits first — is_user_logged_in() resolves
+		// the current user, and doing that on every read would reintroduce the very cost
+		// get_app_config()'s gate rejected it for.
+		//
+		// Refusing BEFORE the HTTP call is the point — a refusal afterwards would leave the
+		// platform already changed.
+		$cn_non_mutating = [
+			// reads
+			'get_config', 'get_analytics', 'get_cookie_consent_logs', 'get_privacy_consent_logs',
+			'list_apps', 'get_token', 'get_customer', 'get_subscriptions',
+			// bring a NEW app or session into existence rather than mutating a shared one
+			'register', 'login', 'app_create',
+		];
+
+		if ( ! in_array( $request, $cn_non_mutating, true ) && is_user_logged_in() ) {
+			$target_app_id = isset( $params['AppID'] ) && $params['AppID'] !== ''
+				? (string) $params['AppID']
+				: (string) ( isset( $cn->options['general']['app_id'] ) ? $cn->options['general']['app_id'] : '' );
+
+			if ( $cn->is_network_shared_app( $target_app_id ) && ! $cn->can_write_at_scope( true ) )
+				return (object) [
+					'status'	=> 403,
+					'message'	=> $cn->network_scope_denied_message(),
+					'error'		=> $cn->network_scope_denied_message()
+				];
+		}
+		// ── End shared-app choke point ───────────────────────────────────────────
 
 		// Self-reported client metadata — lets backend correlate cancellation
 		// with integration client (WordPress plugin, future Shopify app, etc.)
@@ -1521,6 +1630,10 @@ class Cookie_Notice_Welcome_API {
 				$api_args['headers']['app-secret-key'] = $cn->options['general']['app_key'];
 				break;
 
+			// GET /user-design-live — the PUBLISHED record, never the draft. Anything the
+			// customer has saved in the Portal but not published is deliberately not here,
+			// so a value this plugin pushed is only reflected back once it is live. See the
+			// draft/published note on patch_by_app below.
 			case 'get_config':
 				$require_app_id = true;
 				$api_url = $cn->get_url( 'designer_api', '/api/designer/user-design-live' );
@@ -1543,6 +1656,28 @@ class Cookie_Notice_Welcome_API {
 
 			// PATCH /user-design/by-app/:AppID — partial update for connected apps (#1913).
 			// AppID is pulled from params and placed in the URL; remaining params go in the body.
+			//
+			// DRAFT vs PUBLISHED — the model this plugin has to hold, because it holds none
+			// of its own. The Designer API keeps two records per app: UserDesign, a DRAFT
+			// the customer edits in the Portal, and UserDesignLive, the PUBLISHED snapshot.
+			// The widget, and get_config below, read the PUBLISHED one only.
+			//
+			// A write here lands in the draft AND is applied to the published record — but
+			// only the keys this request sent, merged onto what is already live. It does
+			// NOT publish the draft. That distinction is load-bearing: the Portal has
+			// draft-only saves (custom cookies and providers on Autoblocking; plain "Save"
+			// on Languages, which sits next to its own "Save and Publish") and tells the
+			// customer in as many words that they are not served to visitors until they
+			// press Publish Now. Publishing the draft from here, which is what this
+			// endpoint used to do, took that work live behind their back — and a pending
+			// REMOVAL of a blocking rule went live as a tracker firing before consent.
+			//
+			// One exception: an app that has never been published has no live record to
+			// apply to, so the API falls back to a full publish there. Nothing can be taken
+			// live prematurely in that case because nothing was ever live.
+			//
+			// So: send only keys this plugin owns, and do not assume a write here publishes
+			// anything else. Whatever else sits in the customer's draft stays there.
 			// Used by react_update_design(), react_apply_template(), react_apply_languages(),
 			// and the configure (laws/wizard) flow — replaces quick_config for existing apps.
 			case 'patch_by_app':
@@ -1556,10 +1691,21 @@ class Cookie_Notice_Welcome_API {
 				// Designer API /by-app endpoint uses authenticateApp middleware —
 				// expects app-id + app-secret-key headers (NOT Bearer token).
 				// Both are stored in WP options from the register/login flow.
-				$network = $cn->is_network_admin();
-				$patch_app_key = $network
-					? $cn->network_options['general']['app_key']
-					: $cn->options['general']['app_key'];
+				//
+				// A caller that knows which row its AppID came from passes the matching
+				// key and it wins. Deriving the key from is_network_admin() while the id
+				// came from somewhere else is how the two used to disagree; the 403 that
+				// produced looked like an authorisation control and was not one.
+				if ( isset( $params['AppSecretKey'] ) ) {
+					$patch_app_key = (string) $params['AppSecretKey'];
+
+					unset( $params['AppSecretKey'] );	// header, not body.
+				} else {
+					$network = $cn->is_network_admin();
+					$patch_app_key = $network
+						? $cn->network_options['general']['app_key']
+						: $cn->options['general']['app_key'];
+				}
 
 				$api_args['headers'] = array_merge(
 					$api_args['headers'],
@@ -1727,6 +1873,14 @@ class Cookie_Notice_Welcome_API {
 			else
 				$api_args['body'] = $api_params;
 		}
+
+		// ── Begin per-call transport override
+		// Applied last, and with $args_override as the RIGHT operand, so a caller with a
+		// tighter budget than the shared 60s cannot have it undone by a case above. The
+		// operand order is the whole behaviour: swapped, every override silently loses.
+		if ( ! empty( $args_override ) )
+			$api_args = array_merge( $api_args, $args_override );
+		// ── End per-call transport override
 
 		$response = wp_remote_request( $api_url, $api_args );
 
@@ -2042,6 +2196,16 @@ class Cookie_Notice_Welcome_API {
 	 * @return void
 	 */
 	public function get_app_analytics( $app_id = '', $force_update = false, $force_action = true ) {
+		// Same shape as get_app_config()'s gate, for the same reason — this writes
+		// cookie_notice_app_analytics and cookie_notice_status network-wide off the same
+		// unforgeable predicate, and cookie_notice_status carries threshold_exceeded, which
+		// the #2272 force reads to switch autoblocking off. Today it is unreachable by a
+		// manage_options-only actor only TRANSITIVELY (both non-cron callers sit behind an
+		// is_array( $app_data ) check that now fails when get_app_config() refuses), which is
+		// not a property to rely on.
+		if ( is_multisite() && Cookie_Notice()->is_network_options() && did_action( 'admin_init' ) && ! Cookie_Notice()->can_write_at_scope( true ) )
+			return;
+
 		// get main instance
 		$cn = Cookie_Notice();
 
@@ -2132,6 +2296,617 @@ class Cookie_Notice_Welcome_API {
 	}
 
 	/**
+	 * True while the base posture sync is inside its own update_option() call.
+	 *
+	 * Re-entrancy guard, not an optimisation. The sync's write re-enters get_app_config()
+	 * through validate_options() — register_setting() hooks it onto
+	 * sanitize_option_cookie_notice_options, and core runs sanitize_option() BEFORE it
+	 * reads $old_value — so the nested pass still sees the pre-write option and, without
+	 * this, recurses until memory_limit with a live Designer API GET per level.
+	 *
+	 * @var bool
+	 */
+	public $syncing_base_posture = false;
+
+	// ── Begin base posture push (plugin → Designer API)
+
+	/**
+	 * Base posture changes staged by this request, keyed by scope ( 'site' | 'network' ).
+	 *
+	 * @var array
+	 */
+	private $staged_base_posture = [];
+
+	/**
+	 * Option holding the posture change that has NOT reached the Designer API.
+	 *
+	 * Shape: [ 'app_id' => string, 'tries' => int, 'since' => int ]. While one is
+	 * outstanding get_app_config() skips the backend→plugin sync for that app, so the
+	 * authoritative pull cannot revert a local change that never landed.
+	 *
+	 * It records WHICH app is out of step, not merely that something is. A bare flag
+	 * latches across a disconnect and a reconnect: an unattended retry would then stamp
+	 * one app's posture onto whichever app the row named later, and the pull it holds off
+	 * would never adopt that app's own value.
+	 *
+	 * @var string
+	 */
+	const POSTURE_PUSH_PENDING = 'cookie_notice_blocking_push_pending';
+
+	/**
+	 * How long to wait before retrying a push the API refused or could not answer.
+	 *
+	 * @var int
+	 */
+	const POSTURE_PUSH_RETRY_COOLDOWN = 300;
+
+	/**
+	 * Transient holding that cooldown.
+	 *
+	 * @var string
+	 */
+	const POSTURE_PUSH_RETRY = 'cookie_notice_posture_push_retry';
+
+	/**
+	 * How many attempts before the backend gets its authority back.
+	 *
+	 * Retrying for ever is worse than losing the change. While a push is outstanding the
+	 * pull stops applying the platform's posture, so a site whose PATCH can never succeed
+	 * — app deleted in the Portal, key rotated, egress blocked — would ignore the backend
+	 * indefinitely and make an outbound request every cooldown until someone noticed.
+	 *
+	 * @var int
+	 */
+	const POSTURE_PUSH_MAX_TRIES = 10;
+
+	/**
+	 * How long a record may hold the pull's authority off, in seconds, whatever the cause.
+	 *
+	 * The attempt count bounds a failing API, but it only advances when an attempt is
+	 * actually MADE — and an attempt needs authority. A record left on a subsite whose
+	 * administrator lacks the capability to push it, and which no super admin visits
+	 * again, would otherwise freeze its count and suppress the backend for ever. This
+	 * bound does not care why nothing happened, which is the whole point of it. Six hours.
+	 *
+	 * @var int
+	 */
+	const POSTURE_PUSH_MAX_AGE = 21600;
+
+	/**
+	 * Transport budget for a posture push, in seconds.
+	 *
+	 * Short of the shared 60s, because this call runs on `shutdown` and WordPress does not
+	 * finish the FastCGI request before that fires — so with the Designer API unreachable
+	 * the admin's save spins for the whole budget AFTER their page has been produced.
+	 *
+	 * NOT as short as it could be, though, and the difference matters. The retry ladder
+	 * protects a push against an API that is DOWN; it does nothing for one that is merely
+	 * SLOW. Against a healthy endpoint whose p95 sits above the budget — a large design
+	 * record, a distant region — every attempt times out alike, and after
+	 * POSTURE_PUSH_MAX_TRIES the record is dropped and the admin's change is silently
+	 * replaced by the platform's. So this is set well above a normal patch_by_app and only
+	 * far enough below 60s to keep the save from hanging: a compromise, not a floor.
+	 *
+	 * @var int
+	 */
+	const POSTURE_PUSH_TIMEOUT = 15;
+
+	//
+	// The two callbacks below are registered on the option WRITE, not on any save path,
+	// and that is the whole design. Which of them fires IS the target derivation: it is
+	// the database write core actually performed, so the app row to PATCH and the
+	// capability to demand both follow from it. Never derive either from $cn->options,
+	// is_network_admin() or global_override — all three are request-shaped, and deriving
+	// the target from them is what produced three separate privilege escalations before
+	// this push was cut ( 5456b3c ). The forged cn_network=1 route this used to describe is
+	// closed — Cookie_Notice::enforce_network_scope() refuses the claim on plugins_loaded —
+	// but the reasoning stands on its own and is what keeps the remaining doors safe: a
+	// write that reaches update_site_option() by ANY route fires the NETWORK action and so
+	// demands manage_network_options, with global_override on or off. Those doors are real;
+	// see the "network scope claim" block in cookie-notice.php for the current list.
+	//
+	// Two callbacks rather than one shared: core emits these actions with DIFFERENT
+	// argument orders, so a single signature silently reads the wrong variable.
+
+	/**
+	 * Stage a base posture change written to this site's own row.
+	 *
+	 * Core fires update_option_{$option} as ( $old_value, $value, $option ).
+	 *
+	 * @param mixed $old_value
+	 * @param mixed $value
+	 *
+	 * @return void
+	 */
+	public function stage_base_posture_site( $old_value, $value ) {
+		$this->stage_base_posture( false, $old_value, $value );
+	}
+
+	/**
+	 * Stage a base posture change written to the network row.
+	 *
+	 * Core fires update_site_option_{$option} as ( $option, $value, $old_value, $network_id )
+	 * — a different order from the site action above.
+	 *
+	 * @param string $option
+	 * @param mixed  $value
+	 * @param mixed  $old_value
+	 *
+	 * @return void
+	 */
+	public function stage_base_posture_network( $option, $value, $old_value ) {
+		$this->stage_base_posture( true, $old_value, $value );
+	}
+
+	/**
+	 * Whether the current user may push this app's posture from this scope.
+	 *
+	 * The hook that fired names the ROW that was written. It does NOT name the APP, and
+	 * the two come apart: under global_override cookie-notice.php loads
+	 * $cn->options['general'] FROM the network row, app_id and app_key are plugin-owned
+	 * fields so they survive every allowlist, and the writers that persist that array
+	 * verbatim put it in the SITE row — includes/react-admin-ajax.php reads
+	 * $cn->options['general'] and calls update_option() whenever is_network_admin() is false,
+	 * which it is for an ordinary subsite administrator saving an ordinary setting. The
+	 * site action then fires carrying the NETWORK app's credentials.
+	 *
+	 * No forgery is involved and it is not an attack: it is what the Autoblocking
+	 * checkbox does on a subsite under global_override. But the record about to change is
+	 * the one every site on the network pulls, so authority has to follow the app whose
+	 * record changes, not only the row that was written.
+	 *
+	 * @param bool   $network
+	 * @param string $app_id
+	 *
+	 * @return bool
+	 */
+	private function may_push_base_posture( $network, $app_id ) {
+		if ( ! $network && is_multisite() ) {
+			$network_row = get_site_option( 'cookie_notice_options', [] );
+
+			if ( is_array( $network_row ) ) {
+				// While global_override is on the network owns configuration for every
+				// site: cookie-notice.php loads the options array FROM the network row, so
+				// a site row's posture is not even what this site serves. Pushing it is
+				// meaningless, and because several writers persist the network array
+				// verbatim into the site row it is also how a stale site copy can undo a
+				// change made at network level. Refused outright rather than escalated — a
+				// super admin changing network posture writes the NETWORK row, which fires
+				// the network action and pushes from there.
+				// Both halves, the way the constructor's options load and is_network_options() ask
+				// it. The flag alone governs nothing: a network row can still carry it
+				// after the plugin was network-deactivated and activated per site, and
+				// every site then serves its OWN row. Refusing on the flag alone made an
+				// ordinary administrator's toggle silently inert there — no push and no
+				// pending record, so the next pull quietly reinstated the backend value.
+				//
+				// The pairing belongs HERE and not on the block above. Hoisted, it also
+				// switched off the shared-app check below, which is the only thing
+				// standing between a subsite administrator and a record that every site
+				// serving that AppID pulls — the credentials outlive the network
+				// activation that put them in the row.
+				if ( ! empty( $network_row['global_override'] ) && Cookie_Notice()->is_plugin_network_active() )
+					return false;
+
+				// Override is off, but the site row can still NAME the network's app from a
+				// period when it was on. That record is shared with every site on the
+				// network, so changing it takes network authority.
+				//
+				// One definition, in Cookie_Notice::is_network_shared_app(). This used to
+				// carry a private second copy of the rule, and the gates in front of the
+				// remote PATCHes asked is_network_options() instead — so the only correct
+				// implementation of "authority follows the app" was the one nothing else
+				// called, while the comments on those gates cited it by name.
+				if ( Cookie_Notice()->is_network_shared_app( $app_id ) )
+					return current_user_can( 'manage_network_options' );
+			}
+		}
+
+		return current_user_can( $network ? 'manage_network_options' : apply_filters( 'cn_manage_cookie_notice_cap', 'manage_options' ) );
+	}
+
+	/**
+	 * Stage a posture change for the shutdown push.
+	 *
+	 * @param bool  $network
+	 * @param mixed $old_value
+	 * @param mixed $value
+	 *
+	 * @return void
+	 */
+	private function stage_base_posture( $network, $old_value, $value ) {
+		// A config pull's own write must never echo straight back to the API that sent it.
+		if ( $this->syncing_base_posture )
+			return;
+
+		if ( ! is_array( $value ) )
+			return;
+
+		// A change can only be claimed when the PREVIOUS posture was known. A row that
+		// predates this key — or is not an array at all — says nothing about what the
+		// customer chose, and reading that as `false` would push a plugin default over a
+		// posture set in the Portal. Same absent-never-overwrites rule the pull keeps in
+		// the other direction, for the same reason.
+		if ( ! is_array( $old_value ) || ! array_key_exists( 'app_blocking', $old_value ) ) {
+			if ( Cookie_Notice()->options['general']['debug_mode'] )
+				error_log( '[Cookie Notice] base posture push skipped: no stored posture to compare against, so this change is not claimed as one' );
+
+			return;
+		}
+
+		// Target and value come from the SAME array, the one core is about to persist.
+		// Splitting them is how the AppID and the app-secret-key used to disagree, and
+		// the 403 that produced was mistaken for an authorisation control. Reading the
+		// row back later would be wrong for a second reason: a disconnect clears the
+		// credentials in this same request.
+		$app_id  = isset( $value['app_id'] )  ? (string) $value['app_id']  : '';
+		$app_key = isset( $value['app_key'] ) ? (string) $value['app_key'] : '';
+
+		// Authority is resolved from the hook's scope and then from the app itself —
+		// never from a branch inside the request.
+		if ( ! $this->may_push_base_posture( $network, $app_id ) )
+			return;
+
+		// $value is post-filter: preserve_app_blocking_preference() runs on
+		// pre_update_option_* / pre_update_site_option_*, so the #2272 quota force has
+		// already been restored to the admin's stored preference by the time this reads
+		// it. That filter is therefore what keeps a forced false out of the backend
+		// record, and there is deliberately no second quota gate here to obscure it.
+		$posture = ! empty( $value['app_blocking'] );
+		$scope   = $network ? 'network' : 'site';
+
+		if ( isset( $this->staged_base_posture[ $scope ] ) ) {
+			// Several writes in one request: keep the first 'from' and the last 'to', so
+			// a value that lands back where it started is never sent.
+			$this->staged_base_posture[ $scope ]['to']      = $posture;
+			$this->staged_base_posture[ $scope ]['app_id']  = $app_id;
+			$this->staged_base_posture[ $scope ]['app_key'] = $app_key;
+
+			return;
+		}
+
+		$this->staged_base_posture[ $scope ] = [
+			'from'    => ! empty( $old_value['app_blocking'] ),
+			'to'      => $posture,
+			'app_id'  => $app_id,
+			'app_key' => $app_key
+		];
+
+		add_action( 'shutdown', [ $this, 'flush_base_posture_push' ] );
+	}
+
+	/**
+	 * Send every posture change staged by this request.
+	 *
+	 * @return void
+	 */
+	public function flush_base_posture_push() {
+		$staged = $this->staged_base_posture;
+
+		// Cleared first: a failure must not leave the request able to re-enter here.
+		$this->staged_base_posture = [];
+
+		foreach ( $staged as $scope => $change ) {
+			// Unchanged across every write in this request.
+			if ( $change['from'] === $change['to'] )
+				continue;
+
+			$this->push_base_posture( $scope === 'network', $change['app_id'], $change['app_key'], $change['to'] );
+		}
+	}
+
+	/**
+	 * PATCH one app's base posture to the Designer API.
+	 *
+	 * @param bool   $network
+	 * @param string $app_id
+	 * @param string $app_key
+	 * @param bool   $posture
+	 * @param bool   $is_retry  true when re-sending the outstanding record, false for a new change
+	 *
+	 * @return bool  whether the API accepted it
+	 */
+	private function push_base_posture( $network, $app_id, $app_key, $posture, $is_retry = false ) {
+		if ( $app_id === '' || $app_key === '' )
+			return false;
+
+		// DevMode mock IDs never reach the real API.
+		if ( $this->get_write_request_type( $app_id ) === 'devmode' )
+			return false;
+
+		$config = new stdClass();
+		$config->blocking = (bool) $posture;
+
+		$result = $this->request(
+			'patch_by_app',
+			[
+				'AppID'			=> $app_id,
+				'AppSecretKey'	=> $app_key,
+				'config'		=> $config
+			],
+			[ 'timeout' => self::POSTURE_PUSH_TIMEOUT ]
+		);
+
+		// request() ends in json_decode() with no assoc flag, so every real response is a
+		// stdClass and the only arrays are its two synthesized transport failures — an
+		// is_array() test here reports failure on success. A successful by-app PATCH is
+		// responseHelper.success(), { data, status: 200 }, carrying no i18n_msg at all, so
+		// the status is the only signal there is.
+		$sent = is_object( $result ) && isset( $result->status ) && (int) $result->status === 200;
+
+		// No design record for this app yet. The pull cannot have delivered a posture
+		// either, so there is nothing to keep in step and nothing to retry — seeding a
+		// whole design from a posture change is not this code's job.
+		if ( ! $sent && is_object( $result ) && isset( $result->i18n_msg ) && $result->i18n_msg === 'user_design_update_id_not_found' )
+			$sent = true;
+
+		if ( $sent ) {
+			$this->set_posture_push_pending( $network, null );
+
+			return true;
+		}
+
+		$outstanding = $this->posture_push_pending( $network );
+
+		// A RETRY continues the record it is retrying: the attempt count and the age both go
+		// on advancing, so both bounds actually arrive. A NEW change is a new intent and
+		// starts its own.
+		//
+		// Continuing unconditionally is what the previous round got wrong. The record is no
+		// longer filtered by age here — that moved to the pull's gate — so a change made
+		// seconds ago inherited a timestamp hours old and was born past the bound, with the
+		// very next config pull free to write the backend's stale value over it. Clearing
+		// expired records in retry_base_posture_push() does not cover it: that path returns
+		// early on wp_doing_ajax(), and the React admin's save IS an admin-ajax request, so
+		// on the plugin's primary UI the housekeeping never runs at all.
+		$continuing = ( $is_retry && $outstanding && $outstanding['app_id'] === $app_id );
+
+		$this->set_posture_push_pending( $network, [
+			'app_id'	=> $app_id,
+			// The VALUE this record owes, captured from the write that was authorised —
+			// never re-derived from the row when the retry finally runs.
+			//
+			// Re-reading the row was a privilege escalation. Staging refuses a caller
+			// without the capability, but the retry runs under whoever happens to be
+			// visiting: a subsite administrator gets a network-row write in, their own push
+			// is correctly refused, and then the next super admin to load an admin page
+			// couriers their value to the platform under super-admin authority. (Every route
+			// that made that first step possible — the forged $_POST['cn_network'], and the
+			// site-capability doors in react-admin-ajax.php, settings.php, wp-consent-api.php
+			// and get_app_config() — is now closed. This stays because the escalation shape
+			// does not depend on which door was used.) The pull cannot correct it in the
+			// meantime — this very record is holding it off — and the Designer API writes a
+			// by-app PATCH straight through to the PUBLISHED record, so the whole network
+			// stops blocking pre-consent and stays that way.
+			//
+			// The local write is pre-existing and stays out of scope here; before this
+			// subsystem it was local-only and the next pull reverted it. This is what stops
+			// it reaching the platform, and it still earns its keep now that those doors are
+			// shut: it defends the shape, not one particular way in.
+			'posture'	=> (bool) $posture,
+			'tries'		=> ( $continuing && isset( $outstanding['tries'] ) ? (int) $outstanding['tries'] : 0 ) + 1,
+			// Kept from the FIRST failure of THIS record, so the age bound measures how long
+			// the pull has been held off rather than restarting on every attempt.
+			'since'		=> $continuing && ! empty( $outstanding['since'] ) ? (int) $outstanding['since'] : time()
+		] );
+
+		return false;
+	}
+
+	/**
+	 * The outstanding posture change for one scope, or null.
+	 *
+	 * @param bool $network
+	 *
+	 * @return array|null
+	 */
+	private function posture_push_pending( $network ) {
+		$record = $network ? get_site_option( self::POSTURE_PUSH_PENDING ) : get_option( self::POSTURE_PUSH_PENDING );
+
+		return ( is_array( $record ) && ! empty( $record['app_id'] ) ) ? $record : null;
+	}
+
+	/**
+	 * Whether a record has stopped being allowed to hold the pull's authority off.
+	 *
+	 * Ages the record rather than the attempt count, because the count only advances when
+	 * an attempt is actually MADE and an attempt needs authority — so a record on a
+	 * subsite whose administrator cannot push it would otherwise freeze and suppress that
+	 * site for ever.
+	 *
+	 * A record with no timestamp cannot be aged, and one dated in the FUTURE would never
+	 * reach the bound — a clock stepped backwards by NTP or a restored snapshot is enough.
+	 * Both count as expired: failing toward "nothing pending" costs one local change
+	 * against a site that ignores the platform indefinitely.
+	 *
+	 * @param array $record
+	 *
+	 * @return bool
+	 */
+	private function posture_push_expired( $record ) {
+		if ( empty( $record['since'] ) )
+			return true;
+
+		$age = time() - (int) $record['since'];
+
+		return ( $age < 0 || $age >= self::POSTURE_PUSH_MAX_AGE );
+	}
+
+	/**
+	 * Record — or, with null, clear — the outstanding posture change for one scope.
+	 *
+	 * @param bool       $network
+	 * @param array|null $record
+	 *
+	 * @return void
+	 */
+	private function set_posture_push_pending( $network, $record ) {
+		if ( $record === null ) {
+			if ( $network )
+				delete_site_option( self::POSTURE_PUSH_PENDING );
+			else
+				delete_option( self::POSTURE_PUSH_PENDING );
+
+			return;
+		}
+
+		if ( $network )
+			update_site_option( self::POSTURE_PUSH_PENDING, $record );
+		else
+			update_option( self::POSTURE_PUSH_PENDING, $record, false );
+	}
+
+	/**
+	 * Whether THIS app has a posture change that has not reached the API.
+	 *
+	 * Asked of the app rather than of a scope, because the two do not line up: the push's
+	 * scope is the row that was written, the pull's is global_override, and under
+	 * global_override a React save persists the network array into the SITE row. Keyed by
+	 * scope, a pull could miss the very record meant to hold its authority off.
+	 *
+	 * @param string $app_id
+	 *
+	 * @return bool
+	 */
+	public function is_posture_push_pending_for( $app_id ) {
+		$app_id = (string) $app_id;
+
+		if ( $app_id === '' )
+			return false;
+
+		foreach ( [ false, true ] as $network ) {
+			$record = $this->posture_push_pending( $network );
+
+			// isset( posture ) as well: a record from before that field cannot say what it
+			// owes and the retry will drop it on sight, so it must not go on holding the
+			// pull off in the meantime — which, on the ajax path, could be a long while.
+			if ( $record && (string) $record['app_id'] === $app_id && isset( $record['posture'] ) && ! $this->posture_push_expired( $record ) )
+				return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Retry a push that failed in an earlier request.
+	 *
+	 * Without this the flag latches: the pull stops reverting the local value, but the
+	 * backend stays behind until the admin happens to toggle the setting again.
+	 *
+	 * @return void
+	 */
+	public function retry_base_posture_push() {
+		// admin_init fires on admin-ajax too, and this makes a blocking outbound call.
+		// Attaching that to a Heartbeat tick or an autosave stalls a request the user
+		// never associated with saving anything.
+		if ( wp_doing_ajax() )
+			return;
+
+		// ── Begin retry actor gate ───────────────────────────────────────
+		// admin_init fires for EVERY logged-in user who loads any admin page — a Subscriber
+		// opening /wp-admin/profile.php included. This handler can reach
+		// may_push_base_posture(), and from there Cookie_Notice::is_network_shared_app(),
+		// which walks the network's sites. A user who could never push anything was driving
+		// that walk on every page load, and because the refusal path below skips the
+		// cooldown, it repeated indefinitely — roughly two queries per site, every load,
+		// loopable at will. That is a denial-of-service the scan made possible and this
+		// handler made reachable.
+		//
+		// Nobody below manage_options can cause or authorise a posture push, so there is
+		// nothing here for them to do and no reason to spend their request finding out.
+		if ( ! current_user_can( apply_filters( 'cn_manage_cookie_notice_cap', 'manage_options' ) ) )
+			return;
+		// ── End retry actor gate ─────────────────────────────────────────
+
+		foreach ( [ true, false ] as $network ) {
+			// A single site HAS no network scope, and pretending it does is not harmless:
+			// core's get_network_option() delegates to get_option() there, so both passes
+			// address the same row, and the network pass — which can never hold
+			// manage_network_options outside multisite — would reach the expired-drop
+			// below and destroy the record before the site pass could send it.
+			if ( $network && ! is_multisite() )
+				continue;
+
+			$record = $this->posture_push_pending( $network );
+
+			if ( ! $record )
+				continue;
+
+			// Outbound, on a hot path: without this an API that is down turns every admin
+			// page load into a failing request for as long as it stays down. Per scope,
+			// and a network-wide transient ONLY for the network scope — set_site_transient()
+			// is network-global on multisite, so one shared cooldown would let a single
+			// busy subsite gate the retries of every other site on the network.
+			if ( $network ? get_site_transient( self::POSTURE_PUSH_RETRY ) : get_transient( self::POSTURE_PUSH_RETRY ) )
+				continue;
+
+			$row    = $network ? get_site_option( 'cookie_notice_options', [] ) : get_option( 'cookie_notice_options', [] );
+			$app_id = is_array( $row ) && isset( $row['app_id'] ) ? (string) $row['app_id'] : '';
+
+			// The row names a different app now — disconnected, or reconnected elsewhere.
+			// The outstanding change belonged to an app this row no longer points at, so
+			// it is moot; keeping it would stamp the old posture onto the new app AND go
+			// on holding the pull off from adopting that app's own value. Or it has simply
+			// failed often enough. Either way clear it: that is what hands the backend
+			// its authority back, and there is no other path that does.
+			$tries   = isset( $record['tries'] ) ? (int) $record['tries'] : 0;
+			$expired = $this->posture_push_expired( $record );
+
+			// A record with no posture predates that field — written by an older build and
+			// carried across the upgrade. There is no way to tell now what was authorised,
+			// and the row is exactly the source that must not be trusted, so it is dropped:
+			// that releases the pull, and the backend's own value is reinstated.
+			if ( $app_id === '' || $app_id !== $record['app_id'] || ! isset( $record['posture'] ) || $tries >= self::POSTURE_PUSH_MAX_TRIES ) {
+				if ( $tries >= self::POSTURE_PUSH_MAX_TRIES && Cookie_Notice()->options['general']['debug_mode'] )
+					error_log( '[Cookie Notice] base posture push gave up after ' . $tries . ' attempts for AppID: ' . $record['app_id'] . ' — the next config pull reinstates the stored posture' );
+
+				$this->set_posture_push_pending( $network, null );
+
+				continue;
+			}
+
+			if ( ! $this->may_push_base_posture( $network, $app_id ) ) {
+				// No authority in THIS request — a subsite administrator, say, on a record
+				// only a super admin could send. The pull is already released by the age
+				// bound, so nothing is being held off; drop the row once it is past that
+				// age so it does not sit there for ever waiting for a visitor who has the
+				// capability and may never arrive.
+				if ( $expired )
+					$this->set_posture_push_pending( $network, null );
+
+				continue;
+			}
+
+			// Armed BEFORE the call, not after. A request that dies inside the outbound
+			// timeout would otherwise leave the cooldown unset and repeat this on the very
+			// next admin page load — the thing it exists to prevent.
+			if ( $network )
+				set_site_transient( self::POSTURE_PUSH_RETRY, 1, self::POSTURE_PUSH_RETRY_COOLDOWN );
+			else
+				set_transient( self::POSTURE_PUSH_RETRY, 1, self::POSTURE_PUSH_RETRY_COOLDOWN );
+
+			// The RECORD's posture, not the row's. See where it is written for why.
+			// Credentials still come from the row: they are how this install authenticates
+			// as the app, not part of the change being delivered, and the app itself is
+			// pinned by the $app_id === $record['app_id'] test above.
+			$sent = $this->push_base_posture(
+				$network,
+				$app_id,
+				isset( $row['app_key'] ) ? (string) $row['app_key'] : '',
+				(bool) $record['posture'],
+				true
+			);
+
+			// That was an expired record's LAST attempt, so it stops here. A success has
+			// already cleared it; a failure wrote it back carrying the same stale timestamp,
+			// which would leave it holding nothing off and never ageing out.
+			if ( $expired && ! $sent )
+				$this->set_posture_push_pending( $network, null );
+		}
+	}
+	// ── End base posture push (plugin → Designer API)
+
+	/**
 	 * Get app config.
 	 *
 	 * @param string $app_id
@@ -2159,6 +2934,62 @@ class Cookie_Notice_Welcome_API {
 			$network = false;
 		}
 
+		// ── Begin network config-write gate ──────────────────────────────────────
+		// Everything below writes network-wide when $network is true —
+		// cookie_notice_app_blocking (the pre-consent blocking catalogue),
+		// cookie_notice_app_regulations, cookie_notice_options, cookie_notice_app_design and
+		// cookie_notice_status — and the cookie_notice_options write fires
+		// update_site_option_cookie_notice_options, i.e. it STAGES A NETWORK POSTURE PUSH.
+		//
+		// Several user-driven entry points reach here holding only manage_options, a
+		// site-level capability every subsite administrator has: ajax_purge_cache()
+		// (includes/settings.php:2965), rescan_scripts() (includes/react-admin-ajax.php:770),
+		// save_options() (:1404), validate_options() (includes/settings.php:2147),
+		// react_update_design(), react_apply_template(), and api_request()'s configure and
+		// sync_config. Each passes $force_update = true, which also skips the once-per-hour
+		// throttle below. react_apply_languages() does NOT reach here and is guarded at its
+		// own write instead — do not read this list as the set of things needing cover. The
+		// value written is the platform's own published config rather than anything the
+		// caller supplies, so this is a forced clobber and a staged push, not an injection —
+		// but it is still a site-level actor causing a network-wide write.
+		//
+		// Guarded HERE rather than at those call sites: get_app_config() has twelve of them
+		// plus a cron hook, the list grows, and a per-caller gate is one someone forgets.
+		//
+		// THE did_action( 'admin_init' ) CARVE-OUT IS LOAD-BEARING, not laziness. Every entry
+		// point an ORDINARY ADMINISTRATOR can drive runs at admin_init or later —
+		// admin-ajax.php fires admin_init before dispatching wp_ajax_{$action}, and admin.php
+		// fires it before any admin page body. What reaches here without it has no actor to
+		// escalate: set_status_data() during the plugins_loaded bootstrap, cron, and the REST
+		// purge route in includes/frontend.php, which is authenticated by the app secret
+		// rather than by a user and therefore has no capability to test in the first place.
+		// Refusing those would leave the network serving stale config forever.
+		//
+		// Note the carve-out is NOT "nothing after admin_init is unauthenticated" — the REST
+		// route above is a counter-example, and an earlier revision of this comment claimed
+		// otherwise. It is: where there is no user, there is nothing for a capability check to
+		// decide, and the caller is authenticated some other way.
+		//
+		// Preferred over is_user_logged_in() for a second reason: that would resolve the
+		// current user at plugins_loaded:0 on ordinary admin page loads, ahead of any
+		// determine_current_user filter registered later on that hook, and core caches the
+		// result for the whole request.
+		//
+		// A bare return matches the throttle's existing early exit directly below and the
+		// documented @return void|array — but NOT every caller tolerated it in practice: the
+		// throttle only fires when $force_update is false, and these callers all pass true,
+		// so several had never seen null. includes/settings.php:2147 needed an is_array()
+		// guard added for exactly that. The bootstrap caller in cookie-notice.php index-reads
+		// the return unguarded, and is safe because it runs before admin_init and so is never
+		// refused — if that carve-out ever changes, that caller has to be guarded first.
+		//
+		// The other set_status_data() callers (in settings.php and twice in this file) DO run
+		// at or after admin_init. They are safe for a different reason, not this one: each
+		// already sits behind a gate that proved can_write_at_scope( true ). Do not read the
+		// sentence above as covering them.
+		if ( $network && did_action( 'admin_init' ) && ! $cn->can_write_at_scope( true ) )
+			return;
+		// ── End network config-write gate ────────────────────────────────────────
 		// in global override mode allow only one cron per hour
 		if ( $allow_one_cron_per_hour && ! $force_update ) {
 			$blocking = get_site_option( 'cookie_notice_app_blocking', [] );
@@ -2343,6 +3174,132 @@ class Cookie_Notice_Welcome_API {
 					update_option( 'cookie_notice_app_regulations', $active_reg_keys );
 			}
 
+			// ── Begin base posture sync (BannerConfigJSON.blocking → app_blocking)
+			//
+			// The backend's top-level `blocking` and the WP option `app_blocking` are ONE
+			// value in two stores, not two competing sources: the option is the local
+			// materialization and this is the mapping that keeps it in step. Same shape as
+			// the regulations sync directly above (#2186), for the same reason — so the
+			// plugin and the Admin Portal stop disagreeing about a value they both own.
+			//
+			// ABSENT MUST NEVER OVERWRITE. `blocking` is net-new, so every app in the fleet
+			// sends nothing for it today; treating a missing key as `false` would switch
+			// autoblocking off site-wide on the first config pull after upgrade. isset()
+			// rejects an absent key AND an explicit null in one test, and is_bool() rejects a
+			// stringy '0'/'1' that would otherwise cast to a posture nobody chose. Only a
+			// real boolean is authoritative.
+			//
+			// The render path is deliberately NOT touched: frontend.php keeps seeding
+			// huOptions.blocking from app_blocking, which is now this synced value. That is
+			// what keeps the wire key a definite boolean on every request — it can never
+			// carry null, and no render-time read of a possibly-stale snapshot is introduced.
+			//
+			// RE-ENTRANCY. This write can re-enter itself, and unbounded. register_setting()
+			// hooks validate_options() onto sanitize_option_cookie_notice_options, and core
+			// runs sanitize_option() BEFORE it reads $old_value (wp-includes/option.php:884-885).
+			// So on a classic settings save: update_option → validate_options →
+			// get_app_config( $app_id, true, false ) → this sync → update_option → … and the
+			// nested get_option() below still returns the PRE-write value, so the change test
+			// passes again every time. $force_update = true also bypasses the one-pull-per-hour
+			// throttle, so each level makes a live Designer API GET before dying on
+			// memory_limit. Nothing in the payload terminates it: at depth 2 $input is the full
+			// options array, so app_id/app_key are still set and so is the POST sentinel.
+			//
+			// It triggers on exactly the case this feature exists for — a connected legacy-UI
+			// site whose Portal posture differs from the stored app_blocking, saving the classic
+			// form. The unit tests could not see it because they drive the extracted region
+			// directly rather than through update_option(); see tests/unit/base-posture-sync.php.
+			//
+			// NEVER write this option from inside its own sanitize filter. The re-entrancy
+			// flag below bounds the recursion, but bounding it is not enough: the depth-2
+			// validate_options() pass still runs IN FULL, with the stored DB row as $input,
+			// and that pass is destructive. Its checkbox idioms are `$input[x] = isset(
+			// $input[x] )`, and isset(false) is TRUE — so a stored `see_more_opt['sync'] =>
+			// false` flips on and fires update_option( 'wp_page_for_privacy_policy', … ),
+			// overwriting the SITE'S WordPress privacy-policy page with the plugin's stored
+			// id. Eleven more stored false values flip true for the rest of the request.
+			//
+			// And on that same path the sync does not even land: the stored row carries no
+			// app_blocking_rendered sentinel, so settings.php unsets app_blocking and the
+			// preservation loop restores the pre-sync value.
+			//
+			// doing_filter() alone does NOT cover every save: validate_network_options()
+			// (admin_init priority 9) calls validate_options() DIRECTLY rather than through
+			// the filter, so the network settings page reaches here with the hook off the
+			// stack — hence the cn-network-settings test alongside it. On that path the
+			// destructive pass above does not currently fire, but only because
+			// register_settings() runs at priority 10 and has not yet added validate_options
+			// to the sanitize filter; nothing pins that ordering, so do not rely on it.
+			//
+			// So skip entirely while a save of this option is in flight. Nothing is lost —
+			// the save is about to write the option anyway, and the posture lands on the
+			// next pull that is not inside a save: the twicedaily cron, the React admin's
+			// sync_config on mount, the purge endpoint, or the manual Pull Configuration.
+			// This is a pure narrowing; it can only ever write less, never more.
+			//
+			// The pending test is the other half of that narrowing. This sync is
+			// authoritative, so without it a push that failed to reach the API would be
+			// silently undone here: the admin's change would stand locally only until the
+			// next pull, which would reinstate the stale backend value for good. While the
+			// flag is set the local value is the newer one and the backend is the one that
+			// is behind, so the direction of authority is inverted until the retry lands.
+			if ( ! doing_filter( 'sanitize_option_cookie_notice_options' ) && ! isset( $_POST['cn-network-settings'] ) && ! $this->syncing_base_posture && ! $this->is_posture_push_pending_for( $app_id ) && ! empty( $result_raw['BannerConfigJSON'] ) && isset( $result_raw['BannerConfigJSON']->blocking ) && is_bool( $result_raw['BannerConfigJSON']->blocking ) ) {
+				$api_blocking = $result_raw['BannerConfigJSON']->blocking;
+				$wp_options   = $network ? get_site_option( 'cookie_notice_options', [] ) : get_option( 'cookie_notice_options', [] );
+
+				// Only write on a real change — a config pull runs on cron and on every admin
+				// visit, and an unconditional update_option() would fire the #2272 guard and
+				// every other pre_update filter on every pull for no reason.
+				if ( is_array( $wp_options ) && ( ! array_key_exists( 'app_blocking', $wp_options ) || (bool) $wp_options['app_blocking'] !== $api_blocking ) ) {
+					$wp_options['app_blocking'] = $api_blocking;
+
+					// #2272 COLLISION, handled here rather than discovered later.
+					// preserve_app_blocking_preference() is registered on
+					// pre_update_option_cookie_notice_options and rewrites app_blocking back
+					// to `true` on any write carrying the key while the Free-plan quota force
+					// is armed. It exists to stop the forced `false` leaking into storage, and
+					// it cannot tell that apart from a genuine new preference arriving here —
+					// so without this, a backend `false` on an over-quota site would be
+					// silently reverted to `true`.
+					//
+					// Re-point the guard at the value the backend just delivered: that IS the
+					// stored preference from now on, so the write survives and the guard goes
+					// on protecting the right value for the rest of the request. Guarded on
+					// "armed" because setting it from null would arm a guard that should stay
+					// inert and could then flip a later, legitimate save in the same request.
+					$force_armed = ( $cn->app_blocking_stored !== null );
+
+					if ( $force_armed )
+						$cn->app_blocking_stored = $api_blocking;
+					else
+						// Not armed: keep the in-memory copy consistent for the rest of this
+						// request. While the force IS armed we must leave it alone — the quota
+						// overlay outranks both the admin and the portal for this request.
+						$cn->options['general']['app_blocking'] = $api_blocking;
+
+					// Stops the re-entrancy described above: the nested pass reaches this region
+					// and skips it, so the recursion terminates at depth 2. Reset in a finally so
+					// an exception inside update_option cannot leave the sync disabled for the
+					// rest of the request.
+					//
+					// Note for whoever adds the plugin→backend push back: validate_options() IS
+					// hooked to sanitize_option_cookie_notice_options, so this write re-enters it.
+					// Any push called from there must refuse while this flag is raised, or a pull
+					// will echo itself straight back to the API that sent it.
+					$this->syncing_base_posture = true;
+
+					try {
+						if ( $network )
+							update_site_option( 'cookie_notice_options', $wp_options );
+						else
+							update_option( 'cookie_notice_options', $wp_options );
+					} finally {
+						$this->syncing_base_posture = false;
+					}
+				}
+			}
+			// ── End base posture sync (BannerConfigJSON.blocking → app_blocking)
+
 			// Cache visual design fields from Designer API response.
 			// position, bannerColor, primaryColor live in UserDesignJSON (visual design),
 			// NOT BannerConfigJSON (behavioral config). Reading from BannerConfigJSON
@@ -2443,6 +3400,26 @@ class Cookie_Notice_Welcome_API {
 		if ( empty( $app_id ) ) {
 			wp_send_json_error( [ 'error' => 'No app connected.' ] );
 		}
+
+		// ── Begin shared-app write gate ──────────────────────────────────────────
+		// THIS MUST STAY ABOVE THE PATCH. Everything below — the remote PATCH and the local
+		// mirror both — lands on the record named by $app_id, and when that is the network's
+		// app every site on the network serves the result. verify_react_request() proves only
+		// manage_options, which every subsite administrator holds.
+		//
+		// A gate placed after the remote call is worse than none: the platform has already
+		// changed, and refusing only the local write leaves the admin UI showing stale config
+		// while the live banner serves the new one. An earlier revision of this fix did
+		// exactly that.
+		//
+		// ASK THE APP, NOT THE ROW. An earlier revision asked is_network_options() here, which
+		// is false as soon as global_override is switched off — while every subsite's row
+		// still names the network's app, because load_defaults() put it there. Reproduced on
+		// a real multisite: same user, same app, this gate said allow and
+		// may_push_base_posture() said refuse. See Cookie_Notice::is_network_shared_app().
+		if ( $cn->is_network_shared_app( $app_id ) && ! $cn->can_write_at_scope( true ) )
+			wp_send_json_error( [ 'error' => $cn->network_scope_denied_message() ], 403 );
+		// ── End shared-app write gate ────────────────────────────────────────────
 
 		$template = isset( $_POST['template'] ) ? sanitize_key( $_POST['template'] ) : '';
 
@@ -2711,6 +3688,26 @@ class Cookie_Notice_Welcome_API {
 			wp_send_json_error( [ 'error' => 'No app connected.' ] );
 		}
 
+		// ── Begin shared-app write gate ──────────────────────────────────────────
+		// THIS MUST STAY ABOVE THE PATCH. Everything below — the remote PATCH and the local
+		// mirror both — lands on the record named by $app_id, and when that is the network's
+		// app every site on the network serves the result. verify_react_request() proves only
+		// manage_options, which every subsite administrator holds.
+		//
+		// A gate placed after the remote call is worse than none: the platform has already
+		// changed, and refusing only the local write leaves the admin UI showing stale config
+		// while the live banner serves the new one. An earlier revision of this fix did
+		// exactly that.
+		//
+		// ASK THE APP, NOT THE ROW. An earlier revision asked is_network_options() here, which
+		// is false as soon as global_override is switched off — while every subsite's row
+		// still names the network's app, because load_defaults() put it there. Reproduced on
+		// a real multisite: same user, same app, this gate said allow and
+		// may_push_base_posture() said refuse. See Cookie_Notice::is_network_shared_app().
+		if ( $cn->is_network_shared_app( $app_id ) && ! $cn->can_write_at_scope( true ) )
+			wp_send_json_error( [ 'error' => $cn->network_scope_denied_message() ], 403 );
+		// ── End shared-app write gate ────────────────────────────────────────────
+
 		$design_raw  = isset( $_POST['design'] )        && is_array( $_POST['design'] )        ? $_POST['design']        : [];
 		$config_raw  = isset( $_POST['config'] )        && is_array( $_POST['config'] )        ? $_POST['config']        : [];
 		$consent_raw = isset( $_POST['consentConfig'] ) && is_array( $_POST['consentConfig'] ) ? $_POST['consentConfig'] : [];
@@ -2934,6 +3931,26 @@ class Cookie_Notice_Welcome_API {
 			wp_send_json_error( [ 'error' => 'No app connected.' ] );
 		}
 
+		// ── Begin shared-app write gate ──────────────────────────────────────────
+		// THIS MUST STAY ABOVE THE PATCH. Everything below — the remote PATCH and the local
+		// mirror both — lands on the record named by $app_id, and when that is the network's
+		// app every site on the network serves the result. verify_react_request() proves only
+		// manage_options, which every subsite administrator holds.
+		//
+		// A gate placed after the remote call is worse than none: the platform has already
+		// changed, and refusing only the local write leaves the admin UI showing stale config
+		// while the live banner serves the new one. An earlier revision of this fix did
+		// exactly that.
+		//
+		// ASK THE APP, NOT THE ROW. An earlier revision asked is_network_options() here, which
+		// is false as soon as global_override is switched off — while every subsite's row
+		// still names the network's app, because load_defaults() put it there. Reproduced on
+		// a real multisite: same user, same app, this gate said allow and
+		// may_push_base_posture() said refuse. See Cookie_Notice::is_network_shared_app().
+		if ( $cn->is_network_shared_app( $app_id ) && ! $cn->can_write_at_scope( true ) )
+			wp_send_json_error( [ 'error' => $cn->network_scope_denied_message() ], 403 );
+		// ── End shared-app write gate ────────────────────────────────────────────
+
 		$languages_raw = isset( $_POST['languages'] ) && is_array( $_POST['languages'] ) ? $_POST['languages'] : [];
 
 		// Sanitize and validate language codes (2-letter ISO 639-1)
@@ -2987,6 +4004,15 @@ class Cookie_Notice_Welcome_API {
 		if ( is_object( $result ) && isset( $result->status ) && $result->status === 200 ) {
 			// Persist applied languages locally so the dashboard can reflect the real count.
 			$network = is_multisite() && $cn->is_plugin_network_active() && $cn->network_options['general']['global_override'];
+
+			// Belt to the shared-app gate at the top of this handler, which is the one that
+			// matters (it precedes the PATCH). Kept so a future path reaching this write
+			// without going through the handler entry still refuses. This handler does NOT
+			// route through get_app_config(), so that gate never covered it — an earlier
+			// revision of this fix claimed it did, which is how this write survived a round.
+			if ( $network && ! $cn->can_write_at_scope( true ) )
+				wp_send_json_error( [ 'error' => $cn->network_scope_denied_message() ], 403 );
+
 			if ( $network )
 				update_site_option( 'cookie_notice_app_languages', $languages );
 			else

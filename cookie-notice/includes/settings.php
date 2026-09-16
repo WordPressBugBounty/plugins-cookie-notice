@@ -306,8 +306,33 @@ class Cookie_Notice_Settings {
 		$cn->defaults['general']['revoke_text'] = __( 'Revoke consent', 'cookie-notice' );
 		$cn->defaults['general']['see_more_opt']['text'] = __( 'Privacy policy', 'cookie-notice' );
 
-		// set translation strings on plugin activation
-		if ( ! empty( $cn->options['general']['translate'] ) ) {
+		// ── Begin network defaults write gate ────────────────────────────────
+		// This runs on after_setup_theme, which on a network admin page happens during the
+		// bootstrap that page require_once's BEFORE it checks any capability —
+		// wp-admin/network/index.php loads admin.php on line 11 and only wp_die()s the
+		// unauthorised on line 16. So a subsite administrator who simply requests a network
+		// admin URL reaches this write, and ungated it rewrote the network row's banner text
+		// to the compiled English defaults for every site. Proven end to end: pre-fix that
+		// request got HTTP 403 from core AND still rewrote the row.
+		//
+		// after_setup_theme is well past pluggable.php, so resolving the capability here is
+		// safe — unlike at plugin-include time.
+		//
+		// GATED BEFORE THE IN-MEMORY WRITES, not just before the DB write. The six
+		// assignments below overwrite $cn->options['general'] for the rest of the request,
+		// and any wholesale writer of that array later in the same request would persist the
+		// defaults a refusal was supposed to prevent. A refusal has to leave no trace.
+		//
+		// Refused outright rather than degraded to a site write: on a network admin request
+		// get_option() resolves to the MAIN site's row, which is not this user's either. The
+		// translate flag stays set, so the write happens on the next request made by someone
+		// who may make it.
+		// The translate test comes FIRST so the capability is only resolved when there is
+		// actually a write to authorise — this is a one-shot activation flag, and resolving
+		// the current user on every network-admin page load to guard it is the same cost the
+		// choke point reorders its operands to avoid.
+		if ( ! empty( $cn->options['general']['translate'] )
+			&& ( ! $cn->is_network_admin() || $cn->can_write_at_scope( true ) ) ) {
 			$cn->options['general']['translate'] = false;
 
 			$cn->options['general']['message_text'] = $cn->defaults['general']['message_text'];
@@ -322,6 +347,7 @@ class Cookie_Notice_Settings {
 			else
 				update_option( 'cookie_notice_options', $cn->options['general'] );
 		}
+		// ── End network defaults write gate ──────────────────────────────────
 
 		// WPML >= 3.2
 		if ( defined( 'ICL_SITEPRESS_VERSION' ) && version_compare( ICL_SITEPRESS_VERSION, '3.2', '>=' ) ) {
@@ -348,6 +374,19 @@ class Cookie_Notice_Settings {
 			return;
 
 		$cap = apply_filters( 'cn_manage_cookie_notice_cap', 'manage_options' );
+
+		// The NETWORK screen saves settings every site on the network inherits — including
+		// app_id and app_key, which decide whose Cookie Compliance account receives those
+		// sites' consent records. manage_options is a site-level capability every subsite
+		// administrator holds, so registering the network page with it put that screen in
+		// front of people who cannot be allowed to save it.
+		//
+		// This filter governs VISIBILITY only. The save is gated separately by
+		// Cookie_Notice::can_write_at_scope(), which is deliberately not filterable — so
+		// restoring the menu for a delegated administrator shows them the screen and answers
+		// a visible 403 on save, never a silent no-op.
+		if ( current_action() === 'network_admin_menu' )
+			$cap = apply_filters( 'cn_manage_network_cookie_notice_cap', 'manage_network_options' );
 
 		add_menu_page( __( 'Cookie Compliance', 'cookie-notice' ), __( 'Compliance', 'cookie-notice' ), $cap, 'cookie-notice', [ $this, 'options_page' ], 'none', '99.300' );
 
@@ -789,6 +828,11 @@ class Cookie_Notice_Settings {
 						<span class="cn-toggle-heading">' . esc_html__( 'Where can I find pricing options?', 'cookie-notice' ) . '</span>
 						<span class="cn-toggle-body">' . esc_html__( 'You can learn more about the features and pricing by visiting the Cookie Compliance website here:', 'cookie-notice' ) . ' <a href="https://cookie-compliance.co/?utm_campaign=pricing+options&utm_source=wordpress&utm_medium=textlink" target="_blank">https://cookie-compliance.co</a></span>
 					</label>
+					<label for="cn-faq-5" class="cn-toggle-item">
+						<input id="cn-faq-5" type="checkbox" />
+						<span class="cn-toggle-heading">' . esc_html__( 'Can I add Cookie Compliance with an AI assistant?', 'cookie-notice' ) . '</span>
+						<span class="cn-toggle-body">' . esc_html__( 'Yes. Point an MCP-capable assistant (Claude Code, Cursor, and others) at the Cookie Compliance MCP server — no account is required to start. On WordPress, keep using this plugin for placement rather than pasting a snippet.', 'cookie-notice' ) . ' <a href="https://cookie-compliance.co/mcp/?utm_campaign=mcp+faq&utm_source=wordpress&utm_medium=textlink" target="_blank" rel="noopener noreferrer">https://cookie-compliance.co/mcp/</a></span>
+					</label>
 				</div>
 			</div>';
 
@@ -878,6 +922,8 @@ class Cookie_Notice_Settings {
 
 			// configuration section
 			add_settings_section( 'cookie_notice_configuration', esc_html__( 'Cookie Consent Settings', 'cookie-notice' ), '', 'cookie_notice_options', [ 'before_section' => '<div class="%s">', 'after_section' => '</div>', 'section_class' => 'cn-section-container misc-section' ] );
+			// Engine first, then posture: the master switch reads before the thing it gates.
+			add_settings_field( 'cn_app_blocking_engine', esc_html__( 'Script blocking engine', 'cookie-notice' ), [ $this, 'cn_app_blocking_engine' ], 'cookie_notice_options', 'cookie_notice_configuration' );
 			add_settings_field( 'cn_app_blocking', esc_html__( 'Autoblocking', 'cookie-notice' ), [ $this, 'cn_app_blocking' ], 'cookie_notice_options', 'cookie_notice_configuration' );
 			add_settings_field( 'cn_excluded_handles', esc_html__( 'Excluded Script Handles', 'cookie-notice' ), [ $this, 'cn_excluded_handles' ], 'cookie_notice_options', 'cookie_notice_configuration' );
 			add_settings_field( 'cn_sync_config', esc_html__( 'Pull Configuration', 'cookie-notice' ), [ $this, 'cn_sync_config' ], 'cookie_notice_options', 'cookie_notice_configuration' );
@@ -905,6 +951,10 @@ class Cookie_Notice_Settings {
 			add_settings_field( 'cn_see_more', esc_html__( 'Privacy policy', 'cookie-notice' ), [ $this, 'cn_see_more' ], 'cookie_notice_options', 'cookie_notice_configuration' );
 			add_settings_field( 'cn_refuse_opt', esc_html__( 'Refuse consent', 'cookie-notice' ), [ $this, 'cn_refuse_opt' ], 'cookie_notice_options', 'cookie_notice_configuration' );
 			add_settings_field( 'cn_revoke_opt', esc_html__( 'Revoke consent', 'cookie-notice' ), [ $this, 'cn_revoke_opt' ], 'cookie_notice_options', 'cookie_notice_configuration' );
+			// Engine first, then posture — same pair as the connected branch above, so
+			// the two controls are never rendered apart. Both fields carry their own
+			// sentinel, so a form that omits either one preserves its stored value.
+			add_settings_field( 'cn_app_blocking_engine', esc_html__( 'Script blocking engine', 'cookie-notice' ), [ $this, 'cn_app_blocking_engine' ], 'cookie_notice_options', 'cookie_notice_configuration' );
 			add_settings_field( 'cn_app_blocking', esc_html__( 'Autoblocking', 'cookie-notice' ), [ $this, 'cn_app_blocking' ], 'cookie_notice_options', 'cookie_notice_configuration' );
 			add_settings_field( 'cn_refuse_code', esc_html__( 'Script blocking', 'cookie-notice' ), [ $this, 'cn_refuse_code' ], 'cookie_notice_options', 'cookie_notice_configuration' );
 			add_settings_field( 'cn_pro_features_locked', esc_html__( 'Pro Features', 'cookie-notice' ), [ $this, 'cn_pro_features_locked' ], 'cookie_notice_options', 'cookie_notice_configuration' );
@@ -1017,12 +1067,36 @@ class Cookie_Notice_Settings {
 		// get threshold status
 		$threshold_exceeded = $cn->threshold_exceeded();
 
+		// ── Begin autoblocking status row (DEC-012)
+		//
+		// This row used to print "Active" on every connected site whatever the settings
+		// said — it read only get_status() and threshold_exceeded(), never app_blocking —
+		// and when the quota WAS exceeded it swapped the CSS class to cn-pending while
+		// leaving the literal word "Active". So a site with autoblocking switched off was
+		// told, on the settings page, that it was blocking.
+		//
+		// Report the effective state instead: the AND of both controls, quota included,
+		// via the one accessor every other surface now uses.
+		if ( $threshold_exceeded ) {
+			// Quota cap — temporary, and the field's own description says why.
+			$blocking_status_class = 'cn-pending';
+			$blocking_status_label = __( 'Paused', 'cookie-notice' );
+		} elseif ( $cn->blocking_is_active() ) {
+			$blocking_status_class = 'cn-active';
+			$blocking_status_label = __( 'Active', 'cookie-notice' );
+		} else {
+			// Either control off — the admin's own choice, not a fault.
+			$blocking_status_class = 'cn-inactive';
+			$blocking_status_label = __( 'Off', 'cookie-notice' );
+		}
+		// ── End autoblocking status row (DEC-012)
+
 		switch ( $app_status ) {
 			case 'active':
 				echo '
 				<div id="cn_app_status">
 					<div class="cn_compliance_status"><span class="cn-status-label">' . esc_html__( 'Consent Banner', 'cookie-notice' ) . '</span>: <span class="cn-status cn-active"><span class="cn-icon"></span> ' . esc_html__( 'Active', 'cookie-notice' ) . '</span></div>
-					<div class="cn_compliance_status"><span class="cn-status-label">' . esc_html__( 'Autoblocking', 'cookie-notice' ) . '</span>: <span class="cn-status ' . ( $threshold_exceeded ? 'cn-pending' : 'cn-active' ) . '"><span class="cn-icon"></span> ' . esc_html__( 'Active', 'cookie-notice' ) . '</span></div>
+					<div class="cn_compliance_status"><span class="cn-status-label">' . esc_html__( 'Autoblocking', 'cookie-notice' ) . '</span>: <span class="cn-status ' . esc_attr( $blocking_status_class ) . '"><span class="cn-icon"></span> ' . esc_html( $blocking_status_label ) . '</span></div>
 					<div class="cn_compliance_status"><span class="cn-status-label">' . esc_html__( 'Cookie Categories', 'cookie-notice' ) . '</span>: <span class="cn-status cn-active"><span class="cn-icon"></span> ' . esc_html__( 'Active', 'cookie-notice' ) . '</span></div>
 					<div class="cn_compliance_status"><span class="cn-status-label">' . esc_html__( 'Cookie Consent Storage', 'cookie-notice' ) . '</span>: <span class="cn-status cn-active"><span class="cn-icon"></span> ' . esc_html__( 'Active', 'cookie-notice' ) . '</span></div>
 				</div>
@@ -1149,7 +1223,42 @@ class Cookie_Notice_Settings {
 	}
 
 	/**
-	 * App autoblocking option.
+	 * Script blocking engine option — the master switch (DEC-012).
+	 *
+	 * Separate from cn_app_blocking() below, which is the POSTURE. This one answers
+	 * whether Cookie Compliance may touch the site's scripts at all; the widget treats
+	 * huOptions.blockingEngine as absolute, so off means nothing is held for anybody.
+	 *
+	 * The sentinel is emitted UNCONDITIONALLY, and that exactly matches this field
+	 * having no disabled() condition — the Free-plan quota caps the posture, never the
+	 * engine. Keeping "sentinel emitted" and "value submittable" the same predicate is
+	 * the whole #2272 contract: a sentinel without a submittable field persists false
+	 * on every save, and a submittable field without a sentinel is inert (a checked box
+	 * posts the string '1', which multi_array_merge()'s type-strict test discards
+	 * against a bool default).
+	 *
+	 * @return void
+	 */
+	public function cn_app_blocking_engine() {
+		// get main instance
+		$cn = Cookie_Notice();
+
+		echo '
+		<div id="cn_app_blocking_engine">
+			<label>' .
+			'<input type="hidden" name="cookie_notice_options[app_blocking_engine_rendered]" value="1" />' .
+			'<input type="checkbox" name="cookie_notice_options[app_blocking_engine]" value="1" ' . checked( true, $cn->options['general']['app_blocking_engine'], false ) . ' />' . esc_html__( 'Allow Cookie Compliance to block scripts on this site.', 'cookie-notice' ) . '</label>
+			<p class="description">' . esc_html__( 'The master switch. Turn this off and Cookie Compliance never touches your scripts — nothing is blocked for any visitor, in any region, regardless of privacy signals. Leave it on unless you handle script blocking yourself.', 'cookie-notice' ) . '</p>
+		</div>';
+	}
+
+	/**
+	 * App autoblocking option — the POSTURE (DEC-012).
+	 *
+	 * Deliberately NOT rendered disabled when the engine is off. A second disabled()
+	 * condition without a matching condition on the sentinel above would recreate
+	 * #2272 and destroy this stored preference on every save; the explanatory note
+	 * says the same thing without touching what is stored.
 	 *
 	 * @return void
 	 */
@@ -1158,12 +1267,15 @@ class Cookie_Notice_Settings {
 		$cn = Cookie_Notice();
 
 		$threshold_exceeded = $cn->threshold_exceeded();
+		$engine_off         = empty( $cn->options['general']['app_blocking_engine'] );
 
 		echo '
 		<div id="cn_app_blocking"' . ( $threshold_exceeded ? ' class="cn-option-disabled"' : '' ) . '>
 			<label>' .
 			( ! $threshold_exceeded ? '<input type="hidden" name="cookie_notice_options[app_blocking_rendered]" value="1" />' : '' ) .
-			'<input type="checkbox" name="cookie_notice_options[app_blocking]" value="1" ' . checked( true, $cn->options['general']['app_blocking'], false ) . ' ' . disabled( $threshold_exceeded, true, false ) . ' />' . esc_html__( 'Enable to automatically block 3rd party scripts before user consent is set.', 'cookie-notice' ) . '</label>' .
+			'<input type="checkbox" name="cookie_notice_options[app_blocking]" value="1" ' . checked( true, $cn->options['general']['app_blocking'], false ) . ' ' . disabled( $threshold_exceeded, true, false ) . ' />' . esc_html__( 'Enable to automatically block 3rd party scripts before user consent is set.', 'cookie-notice' ) . '</label>
+			<p class="description">' . esc_html__( 'Block before consent. Holds third-party scripts until the visitor makes a choice. With this off, scripts load immediately; once the visitor chooses, their choice is enforced either way.', 'cookie-notice' ) . '</p>' .
+			( $engine_off ? '<p class="description"><span class="cn-warning">*</span> ' . esc_html__( 'No effect while the script blocking engine is off.', 'cookie-notice' ) . '</p>' : '' ) .
 			( $threshold_exceeded ? '<p class="description"><span class="cn-warning">*</span> ' . esc_html__( 'This option has been temporarily disabled because your website has reached the usage limit for the Cookie Compliance Free Plan. It will become available again when the current visits cycle resets or you upgrade your website to a Professional plan.', 'cookie-notice' ) . '</p>' : '' ) .
 		'</div>';
 	}
@@ -2060,7 +2172,7 @@ class Cookie_Notice_Settings {
 			if ( ! empty( $input['app_id'] ) && ! empty( $input['app_key'] ) ) {
 				$app_data = $cn->welcome_api->get_app_config( $input['app_id'], true, false );
 
-				if ( $cn->check_status( $app_data['status'] ) === 'active' && $cn->options['general']['app_id'] !== $input['app_id'] ) {
+				if ( is_array( $app_data ) && isset( $app_data['status'] ) && $cn->check_status( $app_data['status'] ) === 'active' && $cn->options['general']['app_id'] !== $input['app_id'] ) {
 					// get_app_analytics requires fresh app data
 					$this->analytics_app_data = [
 						'id'	=> $input['app_id'],
@@ -2088,11 +2200,42 @@ class Cookie_Notice_Settings {
 				// Checkbox was rendered and enabled — honour the submitted value (absent = unchecked = false).
 				$input['app_blocking'] = isset( $input['app_blocking'] ) && ! $cn->threshold_exceeded();
 			} else {
-				// Checkbox not rendered (network admin, global_override sub-site) or threshold
-				// exceeded (disabled) — preserve the DB value via the preservation loop below.
+				// Sentinel absent, which means one of two things. Either the field was
+				// never rendered — the Cookie Consent Settings section is registered only
+				// while the compliance status is active — or the quota suppressed it,
+				// since cn_app_blocking() emits the sentinel only when the threshold is
+				// not exceeded. Preserve the DB value via the preservation loop below.
+				//
+				// Not the network-admin or global_override screens: cn-options-disabled
+				// is styling only ( opacity + pointer-events, css/admin.css:105-115 ), so
+				// those forms render the sentinel and submit it like any other.
 				unset( $input['app_blocking'] );
 			}
 			unset( $input['app_blocking_rendered'] );
+
+			// ── Begin app_blocking_engine sentinel (DEC-012, #2272 pattern)
+			//
+			// Same contract as app_blocking above, and for the same reason: without a
+			// sentinel this control is either inert or destructive, and destructive is
+			// much the worse of the two here — blockingEngine: false is absolute in the
+			// widget, with no post-boot writer to undo it.
+			//
+			// The one difference is the predicate. cn_app_blocking_engine() has no
+			// disabled() condition (the Free-plan quota caps the posture, not the
+			// engine), so it emits its sentinel unconditionally. A missing sentinel can
+			// therefore only mean the field was not rendered at all: the Cookie Consent
+			// Settings section is registered only while the compliance status is active,
+			// and any future form that omits the field lands here too. Preserve the
+			// stored value via the #2153 preservation loop in those cases.
+			if ( isset( $input['app_blocking_engine_rendered'] ) ) {
+				// Rendered and enabled — honour the submitted value (absent = unchecked = false).
+				$input['app_blocking_engine'] = isset( $input['app_blocking_engine'] );
+			} else {
+				// Not rendered — preserve the DB value.
+				unset( $input['app_blocking_engine'] );
+			}
+			unset( $input['app_blocking_engine_rendered'] );
+			// ── End app_blocking_engine sentinel (DEC-012, #2272 pattern)
 
 			// excluded script handles
 			$input['excluded_handles'] = isset( $input['excluded_handles'] )
@@ -2493,6 +2636,21 @@ class Cookie_Notice_Settings {
 
 		// global network page?
 		if ( $cn->is_network_admin() && isset( $_POST['cn-network-settings'] ) ) {
+			// This branch update_site_option()s the whole network row below, from
+			// $_POST['cookie_notice_options'] via validate_options() — app_id and app_key
+			// included. The capability check above is the filtered manage_options, which
+			// every subsite administrator holds, so it cannot be what guards this.
+			//
+			// A notice rather than a bare return: a settings form that silently does nothing
+			// reads as a bug, and the obvious "fix" for a bug like that is to loosen the gate
+			// again. A notice rather than wp_die(): this runs while the screen is being
+			// assembled, so the refusal can be explained in place instead of on a white page.
+			if ( ! $cn->can_write_at_scope( true ) ) {
+				$cn->deny_network_scope_notice();
+
+				return;
+			}
+
 			// network settings
 			if ( ! empty( $_POST['cookie_notice_options'] ) && check_admin_referer( 'cookie_notice_options-options', '_wpnonce' ) !== false ) {
 				if ( isset( $_POST['save_cookie_notice_options'] ) ) {
@@ -2828,6 +2986,18 @@ class Cookie_Notice_Settings {
 		// check capability
 		if ( ! current_user_can( apply_filters( 'cn_manage_cookie_notice_cap', 'manage_options' ) ) )
 			exit;
+
+		// ── Begin purge scope gate ───────────────────────────────────────────
+		// Say so rather than succeeding at nothing. Under global_override the config this
+		// purges and the transient the front end reads are BOTH network-scoped, so for an
+		// administrator without the network capability every step below is a no-op:
+		// get_app_config() returns early, and the site transient written instead is one
+		// Cookie_Notice_Frontend never reads in that mode. Reporting success for that is the
+		// silent-no-op this branch refuses everywhere else — it reads as a bug, and the
+		// obvious "fix" for a bug like that is to loosen the gate.
+		if ( Cookie_Notice()->is_network_options() && ! Cookie_Notice()->can_write_at_scope( true ) )
+			wp_send_json_error( [ 'error' => Cookie_Notice()->network_scope_denied_message() ], 403 );
+		// ── End purge scope gate ─────────────────────────────────────────────
 
 		// request for new config data
 		Cookie_Notice()->welcome_api->get_app_config( '', true );

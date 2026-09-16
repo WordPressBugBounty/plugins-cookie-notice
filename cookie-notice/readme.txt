@@ -1,14 +1,14 @@
 === Cookie Compliance for WordPress – Cookie Consent, GDPR & CCPA ===
 Contributors: humanityco
-Tags: gdpr, ccpa, cookies, consent, privacy, gpc, google-consent-mode
+Tags: gdpr, ccpa, cookies, consent, privacy, gpc, google-consent-mode, wp-consent-api
 Requires at least: 4.9.6
 Requires PHP: 7.4
 Tested up to: 7.0
-Stable tag: 3.1.9
+Stable tag: 3.1.10
 License: MIT License
 License URI: http://opensource.org/licenses/MIT
 
-Consent management platform for WordPress — GDPR, CCPA & ePrivacy cookie consent, autoblocking, consent records, Google Consent Mode v2 & GPC.
+Consent management platform for WordPress — GDPR, CCPA & ePrivacy consent, autoblocking, Google/Microsoft Consent Mode, GPC & WP Consent API.
 
 == Description ==
 
@@ -34,6 +34,7 @@ Cookie Compliance for WordPress provides a simple, customizable website banner t
 * WordPress Privacy Policy page synchronization
 * WPML and Polylang compatible
 * SEO friendly
+* <strong>WP Consent API integration</strong> registers Cookie Compliance as the active Consent Management Platform under the [WP Consent API](https://wordpress.org/plugins/wp-consent-api/) when that free companion plugin is active — no account required — so cooperative plugins such as WooCommerce, Google Site Kit, Burst Statistics, WP Statistics, AddToAny and Pixel Manager for WooCommerce automatically gate themselves on the consent your visitors give in the banner.
 
 ## Connected mode (this plugin + the Cookie Compliance dashboard)
 
@@ -55,6 +56,9 @@ Signed in to Cookie Compliance, on a free or paid plan, you get access to the mo
 * <strong>Automatic script blocking</strong> blocks all non-essential cookie scripts and iFrames by default and <em>complies with valid consent rules under GDPR and other data protection laws</em>; in order to be compliant, your site must record visitor consent before setting or sending cookies.
 * <strong>Google Consent Mode v2</strong> ensures that your website can still gather valuable insights and perform effectively while respecting users' privacy preferences by <em>dynamically adjusting the behavior of Google services (ad_storage, analytics_storage, ad_user_data, ad_personalization) according to user consent.</em>
 * <strong>Facebook Consent Mode</strong> allows your website to <em>measure the impact of your ads on Facebook</em>, track website activities and conversions and automatically deliver ads to Facebook if the user has agreed to.
+* <strong>Microsoft Consent Mode</strong> holds Microsoft advertising (UET) signals until a visitor consents, then applies their choice automatically — the same way Google and Facebook consent modes do.
+* <strong>Global Privacy Control (GPC) & Do Not Track</strong> automatically applies a visitor's browser-level opt-out signal to the Marketing category as soon as the banner can read it — no visitor interaction required.
+* <strong>WP Consent API integration</strong> registers Cookie Compliance as the active Consent Management Platform under the [WP Consent API](https://wordpress.org/plugins/wp-consent-api/) — in Banner Only mode or connected — when that free companion plugin is active, so cooperative plugins such as WooCommerce, Google Site Kit, Burst Statistics, WP Statistics, AddToAny and Pixel Manager for WooCommerce automatically gate themselves on the consent your visitors give in the banner, with no extra configuration.
 * <strong>Consent record storage</strong> automatically stores a record of each consent and makes these records available for export. <em>Complies with proof-of-consent requirements prescribed under GDPR and other data protection laws.</em>
 * <strong>Multilingual support</strong> automatically translates all banner text strings and allows you to provide custom translations for every text field to ensure visitors get a consistent consent experience.
 * <strong>Multidomain management</strong> allows you to manage additional Free or Professional domains under a single account and enables you to customize banner configuration and design for each domain independently.
@@ -197,6 +201,9 @@ No. Banner Only mode DOES NOT include technical compliance features such as auto
 = Does Connected mode make my site fully compliant with GDPR and US Privacy Laws? =
 Yes! Signed in to Cookie Compliance, you get technical compliance features to meet requirements for over 100 countries and legal jurisdictions.
 
+= Can I add Cookie Compliance with an AI assistant? =
+Yes. Point an MCP-capable assistant (Claude Code, Cursor, and others) at https://mcp.cookie-compliance.co/mcp — no account is required to start. On WordPress, keep using this plugin for placement rather than pasting a snippet. Details: https://cookie-compliance.co/mcp/
+
 == Screenshots ==
 
 1. Cookie Compliance for WordPress — Notice settings, Banner Only mode
@@ -205,6 +212,13 @@ Yes! Signed in to Cookie Compliance, you get technical compliance features to me
 4. Cookie Compliance settings
 
 == Changelog ==
+
+= 3.1.10 =
+* New: Two controls over script blocking on the Configuration tab, where there was one. "Autoblocking" keeps its existing job — holding third-party scripts until a visitor chooses. The new "Script blocking engine" switch turns Cookie Compliance's blocking off entirely, for every visitor and every region, if you'd rather handle it yourself or with another tool. Both are on by default, so nothing changes unless you want it to.
+* Fix: On sites connected to a Cookie Compliance account, a second publish made within about two minutes of the first now reaches your site promptly — handy when you're adjusting settings and republishing to check the result. What you publish has always been saved correctly; this shortens the wait for the site to pick it up. Affects 3.1.3 through 3.1.9, and complements the more frequent scheduled check added in 3.1.9.
+* Fix: On WordPress multisite networks, the settings every site shares — your Cookie Compliance account, banner and blocking list — are now protected, so only a Network Administrator can change them and the whole network stays on the right account. Sites with their own separate account keep full control, and single-site installs are unaffected.
+* Fix: On Free-plan sites that reach their monthly visit limit, your Autoblocking choice is now remembered while blocking is paused, and applies again the moment the next cycle begins — including if you save other settings in the meantime.
+* Fix: On Free-plan sites, the visit-limit alert now appears only once autoblocking has actually paused — so it no longer warns that scripts may be firing while your Autoblocking setting still reads "On".
 
 = 3.1.9 =
 * Fix: On sites that honour Global Privacy Control or Do Not Track, a visitor's opt-out is now applied as soon as the banner can act on it, instead of waiting for your settings to load.
