@@ -187,6 +187,9 @@ class Cookie_Notice_Privacy_Consent {
 		}
 
 		// include modules
+		// Base classes first — every module below extends one of them.
+		include_once( COOKIE_NOTICE_PATH . '/includes/modules/privacy-consent-module.php' );
+
 		include_once( COOKIE_NOTICE_PATH . '/includes/modules/wordpress/privacy-consent.php' );
 		include_once( COOKIE_NOTICE_PATH . '/includes/modules/contact-form-7/privacy-consent.php' );
 		include_once( COOKIE_NOTICE_PATH . '/includes/modules/mailchimp/privacy-consent.php' );

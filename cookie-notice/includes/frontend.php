@@ -751,11 +751,17 @@ class Cookie_Notice_Frontend {
 			// synchronously where the Google consent default is authored, to suppress
 			// region scoping for a visitor who has already opted out.
 			//
-			// ── Why ONLY these three, when geolocation / geolocationRules / regulations
-			// / consentLevel are read in the same window and would fix more ──
+			// ── Why these three are UNCONDITIONAL, when the four posture keys in the
+			// block below are gated on how old the snapshot is ──
 			//
-			// Those four can WIDEN a consent grant, and banner_config is a snapshot that
-			// can be stale: the config pull is a twicedaily WP-Cron event, and the
+			// These three have no fail-open direction: no value of them releases a script
+			// or upgrades a signal. A stale `false` or an absent key is exactly today's
+			// behaviour, and a stale `true` over-suppresses. So they need no freshness
+			// bound and are seeded whenever they are present.
+			//
+			// The other four — geolocation / geolocationRules / regulations / consentLevel
+			// — can WIDEN a consent grant, and banner_config is a snapshot that can be
+			// stale: the config pull is a twicedaily WP-Cron event, and the
 			// server-to-server purge that normally refreshes it on publish
 			// (rest_purge_cache, below) does not exist before plugin 3.1.3 and is
 			// best-effort even after. A customer who tightens a rule — say lgpd from
@@ -763,14 +769,12 @@ class Cookie_Notice_Frontend {
 			// would keep serving the OLD posture on pageview 1 until the snapshot
 			// catches up, emitting a gtag consent default that grants analytics for
 			// their region. That command cannot be retracted, and the widget replays it
-			// verbatim after the live config has already landed. Neither window emits
-			// that grant today. So those four wait for a freshness bound.
+			// verbatim after the live config has already landed. So those four carry a
+			// freshness bound — see the Posture seeding block below, which is where it
+			// now lives.
 			//
-			// These three have no such direction: there is no value of them that releases a
-			// script or upgrades a signal. A stale `false` or an absent key is exactly
-			// today's behaviour.
-			//
-			// A stale `true` over-suppresses, which is the safe direction — but do NOT read
+			// Back to those three. A stale `true` on gpcSupportMode over-suppresses, which is
+			// the safe direction — but do NOT read
 			// that as "confined to the cold window". When the silent path fires it calls
 			// saveConsent(), persisting a level-1 `source:'gpc'` record and cookie. So an
 			// owner who switches GPC OFF in the portal keeps auto-recording consent for every
@@ -819,6 +823,143 @@ class Cookie_Notice_Frontend {
 					$options['config'] = ! empty( $options['config'] ) && is_array( $options['config'] ) ? array_merge( $options['config'], $seeded ) : $seeded;
 			}
 			// ── End Browser Signal seeding (huOptions.config)
+
+			// Seed the posture settings so the cold pageview decides on the site's real
+			// config instead of the widget's empty defaults.
+			//
+			// The gap: optOutRegionCodes (Web Channel src/blocking.js) returns [] unless
+			// config.geolocation === true, and the geolocation-update handler
+			// (src/events.js) skips the whole region matrix on the same condition. Both
+			// default FALSE in the widget, so on a cold pageview NO region rule is
+			// evaluated at all — the visitor is judged on the top-level posture alone,
+			// whatever the customer configured per region.
+			//
+			// That cuts both ways, which is the part worth writing down because an
+			// earlier read of this only saw one side:
+			//
+			//   - not seeding can UNDER-block. events.js sets options.blocking to
+			//     whatever the matched rule says, either direction. A geolocation-on site
+			//     whose top-level blocking is false but whose matched rule says true runs
+			//     permissive on pageview 1 and blocks on every later one.
+			//   - seeding can OVER-grant two ways, and an earlier draft named only the
+			//     second. (a) N1: the same events.js assignment above runs on the
+			//     geolocation-update the save-session response fires, BEFORE the live
+			//     config lands. An owner who tightened a rule — say ccpa from
+			//     blocking:false to true six hours ago — has a stale-but-under-12h
+			//     snapshot, so we seed the OLD matrix and a Californian's first pageview
+			//     releases scripts that today stay held until the live config arrives.
+			//     (b) N2: optOutRegionCodes collects a region ONLY where
+			//     rule.blocking === false, so the Google consent default it feeds can add
+			//     grants and never remove them, and a gtag consent/default command cannot
+			//     be retracted.
+			//
+			// The freshness bound is what makes the second case bounded rather than
+			// open-ended. Past it we seed nothing here and the cold pageview keeps
+			// exactly today's behaviour — no region rule, top-level posture only. So the
+			// failure mode of an unreachable site is the status quo, never something new.
+			//
+			// 12 hours EQUALS one config-pull interval (welcome-api.php check_cron registers
+			// twicedaily for an active app) — which is not the same as aligning with it.
+			// The next pull is due at last-run + 12h, so every cycle ends with a window
+			// where the snapshot has aged past the bound and the refresh has not landed,
+			// as long as the cron is late. That dilutes the seed on a quiet site; it does
+			// not endanger one, because past the bound we seed nothing.
+			//
+			// It is deliberately tight: the primary
+			// freshness mechanism is the publish-time purge, which reaches a healthy
+			// 3.1.3+ site in seconds and leaves this bound governing only the tail. A
+			// site that trips it loses the fix, not its safety.
+			//
+			// Pull time is the RIGHT clock here, unlike the case in L-044: the question
+			// this asks is "when did we last hear from the API", not "when was the config
+			// computed". Do not re-litigate it into the payload's own clock.
+			//
+			// ⚠️ The two blocks must not come apart. Seeding posture while dropping a
+			// PRESENT gpcSupportMode would fire a region grant at a visitor who has
+			// already opted out — the exact failure this whole area removed. The signal
+			// block above is unconditional, so a fresh snapshot seeds both and a stale
+			// one seeds only the signals, which is inert (no region command exists for
+			// them to suppress). Never make the signal block conditional on anything the
+			// posture block is conditional on.
+			//
+			// Per-key presence, same rule as above: banner_config is a snapshot of the
+			// same /user-design-live response the widget fetches, so an absent key here
+			// means the widget receives nothing for it either and falls back to its own
+			// default. Absent stays absent; do not invent one.
+			// ── Begin Posture seeding (huOptions.config)
+			$posture_config = ! empty( $blocking['banner_config'] ) && is_array( $blocking['banner_config'] ) ? $blocking['banner_config'] : [];
+
+			// strtotime() on the stored stamp, compared against GMT — the same shape
+			// welcome-api.php already uses for its own lastUpdated comparisons. A missing
+			// or unparseable stamp is treated as stale, not as fresh.
+			$pulled_at = ! empty( $blocking['lastUpdated'] ) ? strtotime( $blocking['lastUpdated'] ) : false;
+			$now       = current_time( 'timestamp', true );
+
+			// A FUTURE stamp is stale, not fresh. It does not mean "recent": a server clock
+			// three days ahead writes a stamp three days ahead, and once NTP corrects the
+			// clock every later read computes a NEGATIVE age, which passes any upper bound —
+			// so the snapshot would read fresh for three days. On a site where WP-Cron never
+			// fires, nothing rewrites the stamp and the bound is defeated outright, on
+			// exactly the population it exists to protect.
+			$age       = $pulled_at !== false ? $now - $pulled_at : false;
+			$is_fresh  = $age !== false && $age >= 0 && $age < 12 * HOUR_IN_SECONDS;
+
+			if ( $is_fresh && ! empty( $posture_config ) ) {
+				$seeded = [];
+
+				// bool in the widget schema; sanitize( 'bool', ... ) replaces a
+				// non-boolean with the fallback, and once seeded that fallback is the
+				// seeded value itself, so cast rather than pass through.
+				//
+				// geolocation is NOT a peer of the other three — it is the master switch that
+				// makes the widget consume geolocationRules/regulations at all. Seeding it TRUE
+				// without a matrix beside it is the one combination that is worse than seeding
+				// nothing: index.js falls through to its LEGACY branch and builds the matrix from
+				// the widget's own constants, where geolocationUSblocking and
+				// geolocationORblocking are both false — so a site with autoblocking ON hands
+				// options.blocking = false to every US and rest-of-world visitor on the cold
+				// pageview, decided by defaults that have nothing to do with that site.
+				//
+				// So a TRUE is seeded only when a USABLE matrix and its regulations travel with it.
+				// A FALSE is unconditional: it switches the matrix off and cannot reach the legacy
+				// branch.
+				//
+				// Match the WIDGET's condition, not a weaker proxy for it. index.js takes the new
+				// branch only on `geolocationRules.length > 0 && !isEmpty(regulations)`, so an empty
+				// rules array, or rules with no regulations beside them, both fall to LEGACY just as
+				// an absent matrix does. An earlier version of this guard tested only isset+is_array
+				// and so closed the absent case while leaving those two open — while the comment
+				// above claimed all three were shut. setOptions merges per property, so an unseeded
+				// regulations stays the widget default {}, and isEmpty({}) is true.
+				if ( isset( $posture_config['geolocation'] ) ) {
+					$geo_on     = (bool) $posture_config['geolocation'];
+					$has_matrix = ! empty( $posture_config['geolocationRules'] ) && is_array( $posture_config['geolocationRules'] )
+						&& ! empty( $posture_config['regulations'] ) && is_array( $posture_config['regulations'] );
+
+					if ( ! $geo_on || $has_matrix )
+						$seeded['geolocation'] = $geo_on;
+				}
+
+				// int in the widget schema. Decides WHAT a region command grants —
+				// inert at 1, grants at >= 2.
+				if ( isset( $posture_config['consentLevel'] ) )
+					$seeded['consentLevel'] = (int) $posture_config['consentLevel'];
+
+				// Structural values, seeded verbatim: the plugin holds no copy of the
+				// rule shape and must not grow one. Designer API injects the default
+				// 8-rule matrix into the RESPONSE whenever geolocation is on, and
+				// banner_config is that response — so there is nothing to default here
+				// and doing so would be a second source of truth for the matrix.
+				// A legitimate empty array is a real value and is seeded as one.
+				foreach ( ['geolocationRules', 'regulations'] as $structural_key ) {
+					if ( isset( $posture_config[$structural_key] ) && is_array( $posture_config[$structural_key] ) )
+						$seeded[$structural_key] = $posture_config[$structural_key];
+				}
+
+				if ( ! empty( $seeded ) )
+					$options['config'] = ! empty( $options['config'] ) && is_array( $options['config'] ) ? array_merge( $options['config'], $seeded ) : $seeded;
+			}
+			// ── End Posture seeding (huOptions.config)
 		}
 
 		if ( isset( $_GET['cn_preview'] ) && $_GET['cn_preview'] === '1' && current_user_can( 'manage_options' ) ) {
@@ -960,9 +1101,7 @@ class Cookie_Notice_Frontend {
 
 		// #2266: position is API-owned — read from cookie_notice_app_design for connected sites.
 		// Falls back to cookie_notice_options["general"]["position"] for disconnected/legacy-only installs.
-		$app_design      = $cn->is_network_options()
-			? get_site_option( 'cookie_notice_app_design', [] )
-			: get_option( 'cookie_notice_app_design', [] );
+		$app_design      = Cookie_Notice_Store::get( 'cookie_notice_app_design', [], $cn->is_network_options() );
 		$banner_position = ! empty( $app_design['position'] )
 			? sanitize_key( $app_design['position'] )
 			: ( $cn->options['general']['position'] ?? 'bottom' );
@@ -1173,9 +1312,7 @@ class Cookie_Notice_Frontend {
 		// #2266: position is API-owned — read from cookie_notice_app_design for connected sites.
 		// Falls back to cookie_notice_options["general"]["position"] for disconnected/legacy-only installs.
 		// (Same resolution as add_cookie_notice() — duplicated here because this is a separate WP hook.)
-		$app_design      = $cn->is_network_options()
-			? get_site_option( 'cookie_notice_app_design', [] )
-			: get_option( 'cookie_notice_app_design', [] );
+		$app_design      = Cookie_Notice_Store::get( 'cookie_notice_app_design', [], $cn->is_network_options() );
 		$banner_position = ! empty( $app_design['position'] )
 			? sanitize_key( $app_design['position'] )
 			: ( $cn->options['general']['position'] ?? 'bottom' );
@@ -1402,7 +1539,7 @@ class Cookie_Notice_Frontend {
 		// nobody.
 		$cooldown    = 120;
 		$now         = current_time( 'timestamp', true );
-		$cooldown_at = $creds['network'] ? get_site_transient( 'cookie_notice_purge_cooldown' ) : get_transient( 'cookie_notice_purge_cooldown' );
+		$cooldown_at = Cookie_Notice_Store::get_transient( 'cookie_notice_purge_cooldown', $creds['network'] );
 
 		if ( $cooldown_at !== false ) {
 			// Land the event just past expiry so it cannot re-enter the cooldown it is
@@ -1423,10 +1560,7 @@ class Cookie_Notice_Frontend {
 		}
 		// ── End purge cooldown coalescing
 
-		if ( $creds['network'] )
-			set_site_transient( 'cookie_notice_purge_cooldown', $now, $cooldown );
-		else
-			set_transient( 'cookie_notice_purge_cooldown', $now, $cooldown );
+		Cookie_Notice_Store::set_transient( 'cookie_notice_purge_cooldown', $now, $cooldown, $creds['network'] );
 
 		$this->apply_purge( $creds['app_id'] );
 

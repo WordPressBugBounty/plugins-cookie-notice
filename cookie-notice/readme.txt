@@ -4,7 +4,7 @@ Tags: gdpr, ccpa, cookies, consent, privacy, gpc, google-consent-mode, wp-consen
 Requires at least: 4.9.6
 Requires PHP: 7.4
 Tested up to: 7.0
-Stable tag: 3.1.10
+Stable tag: 3.1.11
 License: MIT License
 License URI: http://opensource.org/licenses/MIT
 
@@ -212,6 +212,10 @@ Yes. Point an MCP-capable assistant (Claude Code, Cursor, and others) at https:/
 4. Cookie Compliance settings
 
 == Changelog ==
+
+= 3.1.11 =
+* Fix: Region-specific (geolocation) rules now apply from a visitor's very first pageview, not just after the plugin's next scheduled refresh — as long as your settings synced within the last 12 hours.
+* Fix: Free-plan sites now show their real 1,000 visits/month allowance right away instead of 0 right after reconnecting an account or switching back from a paid plan.
 
 = 3.1.10 =
 * New: Two controls over script blocking on the Configuration tab, where there was one. "Autoblocking" keeps its existing job — holding third-party scripts until a visitor chooses. The new "Script blocking engine" switch turns Cookie Compliance's blocking off entirely, for every visitor and every region, if you'd rather handle it yourself or with another tool. Both are on by default, so nothing changes unless you want it to.

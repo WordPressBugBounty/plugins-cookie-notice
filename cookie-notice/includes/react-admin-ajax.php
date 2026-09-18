@@ -115,14 +115,30 @@ class Cookie_Notice_React_Admin_Ajax {
 		// ⚠️ Multisite pattern: use site_option ONLY when network-active with global_override.
 		// Do NOT simplify to is_multisite() alone — pattern matches welcome-api.php get_app_config().
 		$network       = $cn->is_network_options();
-		$analytics_raw = $network
-			? get_site_option( 'cookie_notice_app_analytics', [] )
-			: get_option( 'cookie_notice_app_analytics', [] );
+		$analytics_raw = Cookie_Notice_Store::get( 'cookie_notice_app_analytics', [], $network );
 
 		// --- Cycle usage (visits vs threshold) ---
 		// Read from cached analytics option; CN_DEV_MODE overrides for UI testing.
-		$visits    = ! empty( $analytics_raw['cycleUsage']->visits ) ? (int) $analytics_raw['cycleUsage']->visits : 0;
-		$threshold = ! empty( $analytics_raw['cycleUsage']->threshold ) ? (int) $analytics_raw['cycleUsage']->threshold : 0;
+		// Object vs array vs root-only threshold: see read_cycle_usage_counters().
+		$counters  = $cn->welcome_api->read_cycle_usage_counters( $analytics_raw );
+		$visits    = $counters['visits'];
+		$threshold = $counters['threshold'];
+
+		// Free plan with no readable cap: empty cache, a Pro leftover after
+		// paid→free (VisitThreshold NULL sanitises to 0), or a reconnect whose
+		// analytics cron has not run. App-id changes already force a pull in
+		// save_options(); plan changes do not. Skip when CN_DEV_MODE is driving
+		// the counters, so ?cn_usage=0 stays a real zero for UI testing.
+		$dev_usage = defined( 'CN_DEV_MODE' ) && CN_DEV_MODE && isset( $_POST['cn_usage'] );
+		$app_id    = isset( $cn->options['general']['app_id'] ) ? $cn->options['general']['app_id'] : '';
+
+		if ( ! $dev_usage && $cn->get_subscription() === 'basic' && $app_id !== '' && $threshold <= 0 ) {
+			$cn->welcome_api->get_app_analytics( $app_id, true, false );
+			$analytics_raw = Cookie_Notice_Store::get( 'cookie_notice_app_analytics', [], $network );
+			$counters      = $cn->welcome_api->read_cycle_usage_counters( $analytics_raw );
+			$visits        = $counters['visits'];
+			$threshold     = $counters['threshold'];
+		}
 
 		// CN_DEV_MODE: honour cn_usage=0-100 (forwarded as POST field by fetchDashboard
 		// since admin-ajax.php is a POST endpoint and $_GET params from the page URL
@@ -174,32 +190,24 @@ class Cookie_Notice_React_Admin_Ajax {
 		// Regulations saved locally by cn_api_request?configure action.
 		// Exposed here so Protection.jsx LAWS card can display them without a
 		// Designer API round-trip. (#1897)
-		$reg_keys     = $network
-			? get_site_option( 'cookie_notice_app_regulations', [] )
-			: get_option( 'cookie_notice_app_regulations', [] );
+		$reg_keys     = Cookie_Notice_Store::get( 'cookie_notice_app_regulations', [], $network );
 		$regulations  = array_fill_keys( (array) $reg_keys, true );
 
 		// Language codes saved locally by react_apply_languages() on successful API write. (#1966)
 		// Always includes 'en' (default) + any additional codes the user configured.
-		$saved_languages = $network
-			? get_site_option( 'cookie_notice_app_languages', [] )
-			: get_option( 'cookie_notice_app_languages', [] );
+		$saved_languages = Cookie_Notice_Store::get( 'cookie_notice_app_languages', [], $network );
 		$language = array_values( array_unique( array_merge( [ 'en' ], (array) $saved_languages ) ) );
 
 		// Platform account email from login token (#2168).
 		// Stored in cookie_notice_app_token transient as ->email after successful login.
 		// Used in PortalBridgeModal to tell the user which email to sign in with.
 		// Returns empty string when not connected (token not set or expired).
-		$data_token    = $network
-			? get_site_transient( 'cookie_notice_app_token' )
-			: get_transient( 'cookie_notice_app_token' );
+		$data_token    = Cookie_Notice_Store::get_transient( 'cookie_notice_app_token', $network );
 		$account_email = ! empty( $data_token->email ) ? sanitize_email( $data_token->email ) : '';
 
 		// Banner design fields cached by get_app_config() — React computes
 		// the active template on the fly by matching against PRESETS.
-		$design = $network
-			? get_site_option( 'cookie_notice_app_design', [] )
-			: get_option( 'cookie_notice_app_design', [] );
+		$design = Cookie_Notice_Store::get( 'cookie_notice_app_design', [], $network );
 
 		wp_send_json_success( [
 			'analytics'        => [
@@ -242,9 +250,7 @@ class Cookie_Notice_React_Admin_Ajax {
 
 		// ⚠️ Same multisite pattern as get_dashboard() — see comment there.
 		$network  = $cn->is_network_options();
-		$blocking = $network
-			? get_site_option( 'cookie_notice_app_blocking', [] )
-			: get_option( 'cookie_notice_app_blocking', [] );
+		$blocking = Cookie_Notice_Store::get( 'cookie_notice_app_blocking', [], $network );
 
 		wp_send_json_success( $this->build_blocking_response( $blocking ) );
 	}
@@ -379,9 +385,7 @@ class Cookie_Notice_React_Admin_Ajax {
 			if ( ! $cn->can_write_at_scope( $network ) )
 				wp_send_json_error( [ 'error' => $cn->network_scope_denied_message() ], 403 );
 
-			$blocking = $network
-				? get_site_option( 'cookie_notice_app_blocking', [] )
-				: get_option( 'cookie_notice_app_blocking', [] );
+			$blocking = Cookie_Notice_Store::get( 'cookie_notice_app_blocking', [], $network );
 
 			if ( empty( $blocking ) || ! isset( $blocking['providers'] ) ) {
 				wp_send_json_error( [ 'error' => 'No blocking configuration found.' ] );
@@ -426,11 +430,7 @@ class Cookie_Notice_React_Admin_Ajax {
 			}
 
 			// Save back.
-			if ( $network ) {
-				update_site_option( 'cookie_notice_app_blocking', $blocking );
-			} else {
-				update_option( 'cookie_notice_app_blocking', $blocking );
-			}
+			Cookie_Notice_Store::set( 'cookie_notice_app_blocking', $blocking, $network );
 		}
 
 		if ( $operation === 'add' ) {
@@ -460,9 +460,7 @@ class Cookie_Notice_React_Admin_Ajax {
 			if ( ! $cn->can_write_at_scope( $network ) )
 				wp_send_json_error( [ 'error' => $cn->network_scope_denied_message() ], 403 );
 
-			$blocking = $network
-				? get_site_option( 'cookie_notice_app_blocking', [] )
-				: get_option( 'cookie_notice_app_blocking', [] );
+			$blocking = Cookie_Notice_Store::get( 'cookie_notice_app_blocking', [], $network );
 
 			if ( ! is_array( $blocking ) ) {
 				$blocking = [];
@@ -529,11 +527,7 @@ class Cookie_Notice_React_Admin_Ajax {
 				];
 			}
 
-			if ( $network ) {
-				update_site_option( 'cookie_notice_app_blocking', $blocking );
-			} else {
-				update_option( 'cookie_notice_app_blocking', $blocking );
-			}
+			Cookie_Notice_Store::set( 'cookie_notice_app_blocking', $blocking, $network );
 
 			wp_send_json_success( [
 				'message'     => 'Script provider added.',
@@ -559,9 +553,7 @@ class Cookie_Notice_React_Admin_Ajax {
 			if ( ! $cn->can_write_at_scope( $network ) )
 				wp_send_json_error( [ 'error' => $cn->network_scope_denied_message() ], 403 );
 
-			$blocking = $network
-				? get_site_option( 'cookie_notice_app_blocking', [] )
-				: get_option( 'cookie_notice_app_blocking', [] );
+			$blocking = Cookie_Notice_Store::get( 'cookie_notice_app_blocking', [], $network );
 
 			if ( empty( $blocking ) || ! isset( $blocking['providers'] ) ) {
 				wp_send_json_error( [ 'error' => 'No blocking configuration found.' ] );
@@ -581,11 +573,7 @@ class Cookie_Notice_React_Admin_Ajax {
 				} ) );
 			}
 
-			if ( $network ) {
-				update_site_option( 'cookie_notice_app_blocking', $blocking );
-			} else {
-				update_option( 'cookie_notice_app_blocking', $blocking );
-			}
+			Cookie_Notice_Store::set( 'cookie_notice_app_blocking', $blocking, $network );
 
 			wp_send_json_success( [ 'message' => 'Script provider removed.' ] );
 		}
@@ -771,9 +759,7 @@ class Cookie_Notice_React_Admin_Ajax {
 
 		// Re-read the now-updated local cache and return it.
 		$network  = $cn->is_network_options();
-		$blocking = $network
-			? get_site_option( 'cookie_notice_app_blocking', [] )
-			: get_option( 'cookie_notice_app_blocking', [] );
+		$blocking = Cookie_Notice_Store::get( 'cookie_notice_app_blocking', [], $network );
 
 		// CN_DEV_MODE: inject sample trackers when the real scan returns empty,
 		// so the UI can be tested without real third-party scripts on the page.
@@ -1609,9 +1595,7 @@ class Cookie_Notice_React_Admin_Ajax {
 	private function get_level_labels() {
 		$cn      = Cookie_Notice();
 		$network = $cn->is_network_options();
-		$design  = $network
-			? get_site_option( 'cookie_notice_app_design', [] )
-			: get_option( 'cookie_notice_app_design', [] );
+		$design  = Cookie_Notice_Store::get( 'cookie_notice_app_design', [], $network );
 
 		return [
 			'level1' => ! empty( $design['levelNameText_1'] ) ? $design['levelNameText_1'] : 'Private',

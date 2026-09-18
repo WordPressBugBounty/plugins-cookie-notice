@@ -145,9 +145,7 @@ class Cookie_Notice_Welcome_API {
 				$subscriptionID = isset( $_POST['subscriptionID'] ) ? (int) $_POST['subscriptionID'] : 0;
 
 				// security: validate subscriptionID is in the session allowlist set during login
-				$allowed_subs = $network
-					? get_site_transient( 'cookie_notice_app_subscriptions' )
-					: get_transient( 'cookie_notice_app_subscriptions' );
+				$allowed_subs = Cookie_Notice_Store::get_transient( 'cookie_notice_app_subscriptions', $network );
 
 				$allowed_ids = is_array( $allowed_subs ) ? array_column( $allowed_subs, 'subscriptionid' ) : [];
 
@@ -173,29 +171,16 @@ class Cookie_Notice_Welcome_API {
 				// update WP subscription tier to 'pro' (mirrors the payment case)
 				$status_data = $cn->defaults['data'];
 
-				if ( $network ) {
-					$status_data = get_site_option( 'cookie_notice_status', $status_data );
-					$status_data['subscription'] = 'pro';
+				$status_data = Cookie_Notice_Store::get( 'cookie_notice_status', $status_data, $network );
+				$status_data['subscription'] = 'pro';
 
-					// get activation timestamp
-					$timestamp = $cn->get_cc_activation_datetime();
+				// get activation timestamp
+				$timestamp = $cn->get_cc_activation_datetime();
 
-					// update activation timestamp only for new cookie compliance activations
-					$status_data['activation_datetime'] = $timestamp === 0 ? time() : $timestamp;
+				// update activation timestamp only for new cookie compliance activations
+				$status_data['activation_datetime'] = $timestamp === 0 ? time() : $timestamp;
 
-					update_site_option( 'cookie_notice_status', $status_data );
-				} else {
-					$status_data = get_option( 'cookie_notice_status', $status_data );
-					$status_data['subscription'] = 'pro';
-
-					// get activation timestamp
-					$timestamp = $cn->get_cc_activation_datetime();
-
-					// update activation timestamp only for new cookie compliance activations
-					$status_data['activation_datetime'] = $timestamp === 0 ? time() : $timestamp;
-
-					update_option( 'cookie_notice_status', $status_data );
-				}
+				Cookie_Notice_Store::set( 'cookie_notice_status', $status_data, $network );
 
 				// License assignment (use_license): do not CLEAR setup_wizard_complete on
 				// existing sites — that would send already-configured domains back to
@@ -204,14 +189,8 @@ class Cookie_Notice_Welcome_API {
 				// For brand-new domains the option was never written, so the wizard would
 				// fire unnecessarily for existing subscribers assigning a new slot.
 				// Set the flag only if it hasn't been set before — new domain case.
-				if ( $network ) {
-					if ( ! get_site_option( 'cookie_notice_setup_wizard_complete', false ) ) {
-						update_site_option( 'cookie_notice_setup_wizard_complete', true );
-					}
-				} else {
-					if ( ! get_option( 'cookie_notice_setup_wizard_complete', false ) ) {
-						update_option( 'cookie_notice_setup_wizard_complete', true );
-					}
+				if ( ! Cookie_Notice_Store::get( 'cookie_notice_setup_wizard_complete', false, $network ) ) {
+					Cookie_Notice_Store::set( 'cookie_notice_setup_wizard_complete', true, $network );
 				}
 
 				$response = $result;
@@ -388,29 +367,16 @@ class Cookie_Notice_Welcome_API {
 				$status_data = $cn->defaults['data'];
 
 				// update app status
-				if ( $network ) {
-					$status_data = get_site_option( 'cookie_notice_status', $status_data );
-					$status_data['subscription'] = 'pro';
+				$status_data = Cookie_Notice_Store::get( 'cookie_notice_status', $status_data, $network );
+				$status_data['subscription'] = 'pro';
 
-					// get activation timestamp
-					$timestamp = $cn->get_cc_activation_datetime();
+				// get activation timestamp
+				$timestamp = $cn->get_cc_activation_datetime();
 
-					// update activation timestamp only for new cookie compliance activations
-					$status_data['activation_datetime'] = $timestamp === 0 ? time() : $timestamp;
+				// update activation timestamp only for new cookie compliance activations
+				$status_data['activation_datetime'] = $timestamp === 0 ? time() : $timestamp;
 
-					update_site_option( 'cookie_notice_status', $status_data );
-				} else {
-					$status_data = get_option( 'cookie_notice_status', $status_data );
-					$status_data['subscription'] = 'pro';
-
-					// get activation timestamp
-					$timestamp = $cn->get_cc_activation_datetime();
-
-					// update activation timestamp only for new cookie compliance activations
-					$status_data['activation_datetime'] = $timestamp === 0 ? time() : $timestamp;
-
-					update_option( 'cookie_notice_status', $status_data );
-				}
+				Cookie_Notice_Store::set( 'cookie_notice_status', $status_data, $network );
 
 				// Only show FirstRunSetup if the user has never completed it.
 				// Free→Pro upgrades: the wizard was already done — don't clear the flag
@@ -847,9 +813,7 @@ class Cookie_Notice_Welcome_API {
 				//   If WP options were cleared (e.g. reset), fall back to API-side SubscriptionType
 				// - brand-new domain: always starts as 'basic' (free by default, payment upgrades it)
 				if ( $app_was_preexisting ) {
-					$existing_status = $network
-						? get_site_option( 'cookie_notice_status', $cn->defaults['data'] )
-						: get_option( 'cookie_notice_status', $cn->defaults['data'] );
+					$existing_status = Cookie_Notice_Store::get( 'cookie_notice_status', $cn->defaults['data'], $network );
 
 					$subscription_tier = ! empty( $existing_status['subscription'] ) && in_array( $existing_status['subscription'], [ 'basic', 'pro' ], true )
 						? $existing_status['subscription']
@@ -883,7 +847,7 @@ class Cookie_Notice_Welcome_API {
 				if ( ! $app_was_preexisting ) {
 					// Apply pre-configure settings from transient (mirrors register flow).
 					// Transient is set by the configure wizard when the user hasn't yet connected.
-					$app_config = $network ? get_site_transient( 'cookie_notice_app_quick_config' ) : get_transient( 'cookie_notice_app_quick_config' );
+					$app_config = Cookie_Notice_Store::get_transient( 'cookie_notice_app_quick_config', $network );
 
 					// create quick config
 					$params = ! empty( $app_config ) && is_array( $app_config ) ? $app_config : [];
@@ -1157,9 +1121,7 @@ class Cookie_Notice_Welcome_API {
 							// in ComplianceBehavior.jsx surfaces the compliance gap and the
 							// upgrade CTA points the customer to Pro.
 							if ( $has_ccpa_us ) {
-								$existing_blocking = $network
-									? get_site_option( 'cookie_notice_app_blocking', [] )
-									: get_option( 'cookie_notice_app_blocking', [] );
+								$existing_blocking = Cookie_Notice_Store::get( 'cookie_notice_app_blocking', [], $network );
 								$existing_gpc = ! empty( $existing_blocking['banner_config']['gpcSupportMode'] );
 								$is_pro       = $cn->get_subscription() === 'pro';
 
@@ -2080,6 +2042,78 @@ class Cookie_Notice_Welcome_API {
 	}
 
 	/**
+	 * Pull a cycleUsage node out of an AnalyticsData blob, whatever shape it arrived in.
+	 *
+	 * get_config keeps AnalyticsData as an object through map_deep; some caches and
+	 * the get_analytics option round-trip hand it over as an array. Callers that
+	 * only test is_object() silently drop a perfectly good snapshot.
+	 *
+	 * @param object|array|null $analytics
+	 * @return object|null  Normalized cycleUsage, or null when the node is absent.
+	 */
+	private function cycle_usage_from_analytics_data( $analytics ) {
+		if ( is_array( $analytics ) )
+			$analytics = (object) $analytics;
+
+		if ( ! is_object( $analytics ) || ! isset( $analytics->cycleUsage ) )
+			return null;
+
+		return $this->normalize_cycle_usage( $analytics->cycleUsage );
+	}
+
+	/**
+	 * Read visit counters from a stored analytics option (or an AnalyticsData blob).
+	 *
+	 * Three shapes all occur in production and previously collapsed to 0:
+	 *
+	 *   1. cycleUsage as a stdClass (get_config / a PHP-serialized option)
+	 *   2. cycleUsage as an array (get_analytics casts $response->data to array
+	 *      first; Redis/JSON object-caches do the same on the way back out)
+	 *   3. cycleUsage absent, VisitThreshold stamped only at the blob root
+	 *      (`AnalyticsData.threshold`) — Designer API does this when the Daywise
+	 *      job has not yet materialised a cycleUsage node
+	 *
+	 * React interpolates `{sessionTotal}` from this number. Returning 0 for a
+	 * Free plan is what painted "Free protects up to 0 visits/month" until a
+	 * later refresh happened to hit a readable snapshot.
+	 *
+	 * Does NOT invent a Free-plan default. A real 0/null threshold is Pro
+	 * (unlimited) and must stay 0 so nothing arms.
+	 *
+	 * @param array|object|null $analytics  cookie_notice_app_analytics value
+	 * @return array{visits:int,threshold:int}
+	 */
+	public function read_cycle_usage_counters( $analytics ) {
+		if ( is_object( $analytics ) )
+			$analytics = get_object_vars( $analytics );
+
+		if ( ! is_array( $analytics ) )
+			$analytics = [];
+
+		$usage = $this->normalize_cycle_usage( isset( $analytics['cycleUsage'] ) ? $analytics['cycleUsage'] : null );
+
+		// isset, not empty(): visits arrives as the string "0" (live payload) and
+		// empty("0") is true in PHP, which would throw a real zero away if we
+		// ever needed to tell "zero" from "missing". (int) "0" is 0 either way.
+		$visits = isset( $usage->visits ) ? (int) $usage->visits : 0;
+
+		$threshold = 0;
+
+		if ( isset( $usage->threshold ) && $usage->threshold !== null && $usage->threshold !== '' )
+			$threshold = (int) $usage->threshold;
+
+		// Designer API stamps plan.VisitThreshold on the blob root even when
+		// cycleUsage itself is missing. See userDesignLive.controller.ts.
+		if ( $threshold <= 0 && isset( $analytics['threshold'] ) && $analytics['threshold'] !== null && $analytics['threshold'] !== '' )
+			$threshold = (int) $analytics['threshold'];
+
+		return [
+			'visits'    => $visits,
+			'threshold' => $threshold,
+		];
+	}
+
+	/**
 	 * Age of a cycleUsage snapshot, in hours, from the payload's own clock.
 	 *
 	 * Reads cycleUsage.fetch_time — when the number was COMPUTED — not our
@@ -2251,6 +2285,9 @@ class Cookie_Notice_Welcome_API {
 
 			// add time updated
 			$result['lastUpdated'] = date( 'Y-m-d H:i:s', current_time( 'timestamp', true ) );
+			// Lets a later config pull refuse to merge this blob onto a different app
+			// (reconnect / app-id swap). Absent on blobs written before this stamp.
+			$result['appId'] = $app_id;
 
 			// get default status data
 			$status_data = $cn->defaults['data'];
@@ -2701,7 +2738,7 @@ class Cookie_Notice_Welcome_API {
 	 * @return array|null
 	 */
 	private function posture_push_pending( $network ) {
-		$record = $network ? get_site_option( self::POSTURE_PUSH_PENDING ) : get_option( self::POSTURE_PUSH_PENDING );
+		$record = Cookie_Notice_Store::get( self::POSTURE_PUSH_PENDING, false, $network );
 
 		return ( is_array( $record ) && ! empty( $record['app_id'] ) ) ? $record : null;
 	}
@@ -2837,10 +2874,10 @@ class Cookie_Notice_Welcome_API {
 			// and a network-wide transient ONLY for the network scope — set_site_transient()
 			// is network-global on multisite, so one shared cooldown would let a single
 			// busy subsite gate the retries of every other site on the network.
-			if ( $network ? get_site_transient( self::POSTURE_PUSH_RETRY ) : get_transient( self::POSTURE_PUSH_RETRY ) )
+			if ( Cookie_Notice_Store::get_transient( self::POSTURE_PUSH_RETRY, $network ) )
 				continue;
 
-			$row    = $network ? get_site_option( 'cookie_notice_options', [] ) : get_option( 'cookie_notice_options', [] );
+			$row    = Cookie_Notice_Store::get( 'cookie_notice_options', [], $network );
 			$app_id = is_array( $row ) && isset( $row['app_id'] ) ? (string) $row['app_id'] : '';
 
 			// The row names a different app now — disconnected, or reconnected elsewhere.
@@ -3073,19 +3110,57 @@ class Cookie_Notice_Welcome_API {
 			// else (incl. absent/null) resolves to v1 in get_banner_channel().
 			$status_data['widget_version'] = ! empty( $result_raw['WidgetVersion'] ) ? sanitize_key( $result_raw['WidgetVersion'] ) : '';
 
-			if ( $status_data['subscription'] === 'basic' ) {
-				// Usage rides the SAME response as SubscriptionType above, so read it
-				// from there. Reading it instead from the separately-refreshed
-				// cookie_notice_app_analytics option is what let the two disagree: the
-				// plan came back fresh from this call while the visit count came from a
-				// cache the hourly cron had not caught up on, so a domain moved Free ->
-				// Pro kept enforcing the old app's threshold (HS#47302). One response
-				// cannot contradict itself.
-				$analytics = isset( $result_raw['AnalyticsData'] ) ? $result_raw['AnalyticsData'] : null;
-				$cycle_usage = is_object( $analytics ) && isset( $analytics->cycleUsage ) ? $analytics->cycleUsage : null;
+			// Usage rides the SAME response as SubscriptionType above. Reading it
+			// instead from the separately-refreshed cookie_notice_app_analytics
+			// option is what let the two disagree: the plan came back fresh from
+			// this call while the visit count came from a cache the hourly cron
+			// had not caught up on, so a domain moved Free -> Pro kept enforcing
+			// the old app's threshold (HS#47302). One response cannot contradict
+			// itself.
+			$analytics   = isset( $result_raw['AnalyticsData'] ) ? $result_raw['AnalyticsData'] : null;
+			$cycle_usage = $this->cycle_usage_from_analytics_data( $analytics );
 
-				if ( $cycle_usage !== null )
-					$status_data['threshold_exceeded'] = $this->evaluate_threshold_exceeded( $cycle_usage );
+			if ( $status_data['subscription'] === 'basic' && $cycle_usage !== null )
+				$status_data['threshold_exceeded'] = $this->evaluate_threshold_exceeded( $cycle_usage );
+
+			// The React dashboard still reads cookie_notice_app_analytics, which
+			// is otherwise filled only by the hourly get_app_analytics cron (WP
+			// pseudo-cron — unbounded on a quiet site). This call already has
+			// cycleUsage.threshold stamped from the live plan, so merge it into
+			// that option without wiping consentActivities / thirtyDaysUsage.
+			// Otherwise the first admin paint interpolates threshold 0 ("Free
+			// protects up to 0 visits/month") until a later refresh happens to
+			// land after the cron.
+			if ( $cycle_usage !== null && class_exists( 'Cookie_Notice_Store' ) ) {
+				$analytics_opt = Cookie_Notice_Store::get( 'cookie_notice_app_analytics', [], $network );
+
+				if ( ! is_array( $analytics_opt ) )
+					$analytics_opt = [];
+
+				// Reconnect / app-id swap: the stored blob (consentActivities,
+				// thirtyDaysUsage) belongs to the previous app. Merge would show
+				// the new plan's cap against the old app's visit counts. A blob
+				// with no appId predates the stamp — treat as same-app so the
+				// first pull after upgrade does not wipe a healthy cache.
+				$stored_app = isset( $analytics_opt['appId'] ) ? (string) $analytics_opt['appId'] : '';
+
+				if ( $stored_app !== '' && $stored_app !== (string) $app_id )
+					$analytics_opt = [];
+
+				$analytics_opt['appId']      = $app_id;
+				$analytics_opt['cycleUsage'] = $cycle_usage;
+
+				$root_threshold = null;
+
+				if ( is_object( $analytics ) && isset( $analytics->threshold ) )
+					$root_threshold = $analytics->threshold;
+				elseif ( is_array( $analytics ) && isset( $analytics['threshold'] ) )
+					$root_threshold = $analytics['threshold'];
+
+				if ( $root_threshold !== null )
+					$analytics_opt['threshold'] = $root_threshold;
+
+				Cookie_Notice_Store::set( 'cookie_notice_app_analytics', $analytics_opt, $network, false );
 			}
 
 			// process blocking data
@@ -3245,7 +3320,7 @@ class Cookie_Notice_Welcome_API {
 			// is behind, so the direction of authority is inverted until the retry lands.
 			if ( ! doing_filter( 'sanitize_option_cookie_notice_options' ) && ! isset( $_POST['cn-network-settings'] ) && ! $this->syncing_base_posture && ! $this->is_posture_push_pending_for( $app_id ) && ! empty( $result_raw['BannerConfigJSON'] ) && isset( $result_raw['BannerConfigJSON']->blocking ) && is_bool( $result_raw['BannerConfigJSON']->blocking ) ) {
 				$api_blocking = $result_raw['BannerConfigJSON']->blocking;
-				$wp_options   = $network ? get_site_option( 'cookie_notice_options', [] ) : get_option( 'cookie_notice_options', [] );
+				$wp_options   = Cookie_Notice_Store::get( 'cookie_notice_options', [], $network );
 
 				// Only write on a real change — a config pull runs on cron and on every admin
 				// visit, and an unconditional update_option() would fire the #2272 guard and
@@ -3547,9 +3622,7 @@ class Cookie_Notice_Welcome_API {
 
 			// Merge visual design fields (position, displayType, colors) from preset.
 			// #2265: API-owned fields write to cookie_notice_app_design only — never cookie_notice_options.
-			$existing_design = $network
-				? get_site_option( 'cookie_notice_app_design', [] )
-				: get_option( 'cookie_notice_app_design', [] );
+			$existing_design = Cookie_Notice_Store::get( 'cookie_notice_app_design', [], $network );
 
 			$updated_design = array_merge( $existing_design, [
 				'position'     => $preset['position'],
@@ -3584,9 +3657,7 @@ class Cookie_Notice_Welcome_API {
 			$network = $cn->is_network_admin();
 
 			// Merge visual design fields (position, displayType, colors) from preset.
-			$existing_design = $network
-				? get_site_option( 'cookie_notice_app_design', [] )
-				: get_option( 'cookie_notice_app_design', [] );
+			$existing_design = Cookie_Notice_Store::get( 'cookie_notice_app_design', [], $network );
 
 			$updated_design = array_merge( $existing_design, [
 				'position'     => $preset['position'],
@@ -3821,9 +3892,7 @@ class Cookie_Notice_Welcome_API {
 				$config->gpcSupportMode = $incoming_gpc;
 			} else {
 				// Free + setting to true: only honor if already true (grandfather).
-				$existing_blocking = $cn->is_network_options()
-					? get_site_option( 'cookie_notice_app_blocking', [] )
-					: get_option( 'cookie_notice_app_blocking', [] );
+				$existing_blocking = Cookie_Notice_Store::get( 'cookie_notice_app_blocking', [], $cn->is_network_options() );
 				if ( ! empty( $existing_blocking['banner_config']['gpcSupportMode'] ) )
 					$config->gpcSupportMode = true;
 				// else: silently strip — UI gate should have prevented this anyway.

@@ -10,31 +10,21 @@ if ( ! defined( 'ABSPATH' ) )
  *
  * @class Cookie_Notice_Modules_WordPress_Privacy_Consent
  */
-class Cookie_Notice_Modules_WordPress_Privacy_Consent {
+class Cookie_Notice_Modules_WordPress_Privacy_Consent extends Cookie_Notice_Privacy_Consent_Module {
 
-	private $defaults = [
-		'wp_registration_form'	=> [
-			'status'	=> true
-		],
-		'wp_comment_form'	=> [
-			'status'	=> true
-		]
-	];
-	private $source = [];
 	private $comment_form_active = false;
 	private $comment_passed_validation = false;
 	private $comment_validation = false;
 
 	/**
-	 * Class constructor.
+	 * Build the source descriptor.
 	 *
-	 * @return void
+	 * @param object $cn
+	 *
+	 * @return array
 	 */
-	public function __construct() {
-		// get main instance
-		$cn = Cookie_Notice();
-
-		$this->source = [
+	protected function define_source( $cn ) {
+		return [
 			'name'			=> __( 'WordPress', 'cookie-notice' ),
 			'id'			=> 'wordpress',
 			'id_type'		=> 'string',
@@ -85,17 +75,16 @@ class Cookie_Notice_Modules_WordPress_Privacy_Consent {
 				]
 			]
 		];
+	}
 
-		// register source
-		$cn->privacy_consent->add_instance( $this, $this->source['id'] );
-		$cn->privacy_consent->add_source( $this->source );
-
-		add_action( 'admin_init', [ $this, 'register_source' ] );
-
-		// check compliance status
-		if ( $cn->get_status() !== 'active' )
-			return;
-
+	/**
+	 * Attach the integration's own hooks.
+	 *
+	 * @param object $cn
+	 *
+	 * @return void
+	 */
+	protected function register_hooks( $cn ) {
 		// comments
 		add_action( 'comment_form', [ $this, 'comment_form' ] );
 		add_action( 'comment_post', [ $this, 'comment_post' ], 10, 3 );
@@ -105,38 +94,6 @@ class Cookie_Notice_Modules_WordPress_Privacy_Consent {
 		// registration
 		add_action( 'register_form', [ $this, 'register_form' ] );
 		add_filter( 'registration_errors', [ $this, 'registration_errors' ], PHP_INT_MAX, 3 );
-	}
-
-	/**
-	 * Register source.
-	 *
-	 * @return void
-	 */
-	public function register_source() {
-		register_setting(
-			'cookie_notice_privacy_consent_wordpress',
-			'cookie_notice_privacy_consent_wordpress',
-			[
-				'type' => 'array'
-			]
-		);
-	}
-
-	/**
-	 * Validate source.
-	 *
-	 * @param array $input
-	 *
-	 * @return array
-	 */
-	public function validate( $input ) {
-		// get main instance
-		$cn = Cookie_Notice();
-
-		$input['wordpress_active'] = isset( $input['wordpress_active'] );
-		$input['wordpress_active_type'] = isset( $input['wordpress_active_type'] ) && array_key_exists( $input['wordpress_active_type'], $cn->privacy_consent->form_active_types ) ? $input['wordpress_active_type'] : $cn->defaults['privacy_consent']['wordpress_active_type'];
-
-		return $input;
 	}
 
 	/**

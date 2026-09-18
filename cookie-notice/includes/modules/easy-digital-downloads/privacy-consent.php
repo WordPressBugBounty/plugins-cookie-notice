@@ -10,28 +10,17 @@ if ( ! defined( 'ABSPATH' ) )
  *
  * @class Cookie_Notice_Modules_EasyDigitalDownloads_Privacy_Consent
  */
-class Cookie_Notice_Modules_EasyDigitalDownloads_Privacy_Consent {
-
-	private $defaults = [
-		'edd_registration_form'	=> [
-			'status'	=> false
-		],
-		'edd_checkout_form'	=> [
-			'status'	=> false
-		]
-	];
-	private $source = [];
+class Cookie_Notice_Modules_EasyDigitalDownloads_Privacy_Consent extends Cookie_Notice_Privacy_Consent_Module {
 
 	/**
-	 * Class constructor.
+	 * Build the source descriptor.
 	 *
-	 * @return void
+	 * @param object $cn
+	 *
+	 * @return array
 	 */
-	public function __construct() {
-		// get main instance
-		$cn = Cookie_Notice();
-
-		$this->source = [
+	protected function define_source( $cn ) {
+		return [
 			'name'			=> __( 'Easy Digital Downloads', 'cookie-notice' ),
 			'id'			=> 'easydigitaldownloads',
 			'id_type'		=> 'string',
@@ -87,17 +76,16 @@ class Cookie_Notice_Modules_EasyDigitalDownloads_Privacy_Consent {
 				]
 			]
 		];
+	}
 
-		// register source
-		$cn->privacy_consent->add_instance( $this, $this->source['id'] );
-		$cn->privacy_consent->add_source( $this->source );
-
-		add_action( 'admin_init', [ $this, 'register_source' ] );
-
-		// check compliance status
-		if ( $cn->get_status() !== 'active' )
-			return;
-
+	/**
+	 * Attach the integration's own hooks.
+	 *
+	 * @param object $cn
+	 *
+	 * @return void
+	 */
+	protected function register_hooks( $cn ) {
 		// registration
 		add_action( 'edd_register_form_fields_after', [ $this, 'registration_form_classic' ] );
 		add_filter( 'render_block', [ $this, 'registration_form_blocks' ], 10, 2 );
@@ -107,38 +95,6 @@ class Cookie_Notice_Modules_EasyDigitalDownloads_Privacy_Consent {
 		add_action( 'edd_checkout_form_bottom', [ $this, 'checkout_form_classic' ] );
 		add_filter( 'render_block', [ $this, 'checkout_form_blocks' ], 10, 2 );
 		add_action( 'edd_built_order', [ $this, 'checkout_new_order' ], 10, 2 );
-	}
-
-	/**
-	 * Register source.
-	 *
-	 * @return void
-	 */
-	public function register_source() {
-		register_setting(
-			'cookie_notice_privacy_consent_easydigitaldownloads',
-			'cookie_notice_privacy_consent_easydigitaldownloads',
-			[
-				'type' => 'array'
-			]
-		);
-	}
-
-	/**
-	 * Validate source.
-	 *
-	 * @param array $input
-	 *
-	 * @return array
-	 */
-	public function validate( $input ) {
-		// get main instance
-		$cn = Cookie_Notice();
-
-		$input['easydigitaldownloads_active'] = isset( $input['easydigitaldownloads_active'] );
-		$input['easydigitaldownloads_active_type'] = isset( $input['easydigitaldownloads_active_type'] ) && array_key_exists( $input['easydigitaldownloads_active_type'], $cn->privacy_consent->form_active_types ) ? $input['easydigitaldownloads_active_type'] : $cn->defaults['privacy_consent']['easydigitaldownloads_active_type'];
-
-		return $input;
 	}
 
 	/**

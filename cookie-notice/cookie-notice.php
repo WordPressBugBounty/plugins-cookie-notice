@@ -2,7 +2,7 @@
 /*
 Plugin Name: Cookie Compliance for WordPress – Cookie Consent, GDPR & CCPA
 Description: Cookie Compliance for WordPress (formerly "Compliance by Hu-manity.co" / "Cookie Notice") — the WordPress component of Cookie Compliance, the consent management platform by Hu-manity.co. Cookie consent banner, pre-consent script blocking, Google Consent Mode v2, WP Consent API integration, and consent records for GDPR, CCPA and global data privacy laws.
-Version: 3.1.10
+Version: 3.1.11
 Author: Hu-manity.co
 Author URI: https://hu-manity.co/
 Plugin URI: https://cookie-compliance.co/
@@ -219,7 +219,7 @@ class Cookie_Notice {
 			'threshold_exceeded'	=> false,
 			'activation_datetime'	=> 0
 		],
-		'version'	=> '3.1.10'
+		'version'	=> '3.1.11'
 	];
 
 	/**
@@ -1370,6 +1370,8 @@ class Cookie_Notice {
 	 * @return void
 	 */
 	private function includes() {
+		// First — every other include may reach for it, and it depends on nothing.
+		include_once( COOKIE_NOTICE_PATH . 'includes/store.php' );
 		include_once( COOKIE_NOTICE_PATH . 'includes/bot-detect.php' );
 		include_once( COOKIE_NOTICE_PATH . 'includes/dashboard.php' );
 		include_once( COOKIE_NOTICE_PATH . 'includes/frontend.php' );
@@ -1799,10 +1801,15 @@ class Cookie_Notice {
 
 			// show threshold limit warning
 			if ( ! empty( $analytics ) && $allow_notice ) {
+				$counters = $this->welcome_api->read_cycle_usage_counters( $analytics );
+				$end_raw  = is_object( $analytics['cycleUsage'] ?? null )
+					? ( $analytics['cycleUsage']->endDate ?? null )
+					: ( is_array( $analytics['cycleUsage'] ?? null ) ? ( $analytics['cycleUsage']['endDate'] ?? null ) : null );
+
 				// cycle usage data
 				$cycle_usage = [
-					'threshold'		=> ! empty( $analytics['cycleUsage']->threshold ) ? (int) $analytics['cycleUsage']->threshold : 0,
-					'end_date'		=> ! empty( $analytics['cycleUsage']->endDate ) ? date_create_from_format( '!Y-m-d', $analytics['cycleUsage']->endDate ) : date_create_from_format( 'Y-m-d H:i:s', current_time( 'mysql', true ) )
+					'threshold'		=> $counters['threshold'],
+					'end_date'		=> ! empty( $end_raw ) ? date_create_from_format( '!Y-m-d', $end_raw ) : date_create_from_format( 'Y-m-d H:i:s', current_time( 'mysql', true ) )
 				];
 
 				// if threshold in use

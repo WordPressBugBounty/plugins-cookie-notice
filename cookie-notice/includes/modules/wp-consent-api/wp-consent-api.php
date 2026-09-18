@@ -116,9 +116,7 @@ class Cookie_Notice_Modules_WP_Consent_API {
 	 * @return bool
 	 */
 	public function is_enabled() {
-		$options = Cookie_Notice()->is_plugin_network_active()
-			? get_site_option( 'cookie_notice_options', [] )
-			: get_option( 'cookie_notice_options', [] );
+		$options = Cookie_Notice_Store::get( 'cookie_notice_options', [], Cookie_Notice()->is_plugin_network_active() );
 
 		$option_enabled = ! is_array( $options ) || ! isset( $options['wp_consent_api'] ) || (bool) $options['wp_consent_api'];
 
@@ -152,9 +150,7 @@ class Cookie_Notice_Modules_WP_Consent_API {
 		if ( ! $this->is_enabled() )
 			return '';
 
-		$regulations = Cookie_Notice()->is_plugin_network_active()
-			? get_site_option( 'cookie_notice_app_regulations', [] )
-			: get_option( 'cookie_notice_app_regulations', [] );
+		$regulations = Cookie_Notice_Store::get( 'cookie_notice_app_regulations', [], Cookie_Notice()->is_plugin_network_active() );
 
 		if ( ! is_array( $regulations ) || empty( $regulations ) )
 			return '';
@@ -271,9 +267,7 @@ class Cookie_Notice_Modules_WP_Consent_API {
 		if ( ! Cookie_Notice()->can_write_at_scope( $network ) )
 			wp_die( esc_html( Cookie_Notice()->network_scope_denied_message() ), '', [ 'response' => 403 ] );
 
-		$options = $network
-			? get_site_option( 'cookie_notice_options', [] )
-			: get_option( 'cookie_notice_options', [] );
+		$options = Cookie_Notice_Store::get( 'cookie_notice_options', [], $network );
 
 		if ( ! is_array( $options ) )
 			$options = [];

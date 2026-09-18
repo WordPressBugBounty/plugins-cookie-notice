@@ -2093,7 +2093,7 @@ class Cookie_Notice_Settings {
 		}
 
 		$network = $cn->is_network_admin();
-		$cached  = $network ? get_site_transient( 'cookie_notice_csp_check' ) : get_transient( 'cookie_notice_csp_check' );
+		$cached  = Cookie_Notice_Store::get_transient( 'cookie_notice_csp_check', $network );
 
 		if ( ! $force && $cached !== false )
 			return $cached === '1';
@@ -2592,9 +2592,7 @@ class Cookie_Notice_Settings {
 			// on every legacy form save. See #2153.
 			// Re-read from DB here (not from constructor snapshot) to avoid overwriting concurrent
 			// React changes made in another tab after this page loaded. See #2181.
-			$current_db_options = $is_network
-				? (array) get_site_option( 'cookie_notice_options', [] )
-				: (array) get_option( 'cookie_notice_options', [] );
+			$current_db_options = (array) Cookie_Notice_Store::get( 'cookie_notice_options', [], $is_network );
 			foreach ( $current_db_options as $key => $value ) {
 				if ( ! array_key_exists( $key, $input ) ) {
 					$input[ $key ] = $value;
@@ -2607,14 +2605,8 @@ class Cookie_Notice_Settings {
 
 			add_settings_error( 'cn_cookie_notice_options', 'reset_cookie_notice_options', esc_html__( 'Settings restored to defaults.', 'cookie-notice' ), 'updated' );
 
-			// network area?
-			if ( $is_network ) {
-				// set app data
-				update_site_option( 'cookie_notice_status', $cn->defaults['data'] );
-			} else {
-				// set app data
-				update_option( 'cookie_notice_status', $cn->defaults['data'] );
-			}
+			// set app data
+			Cookie_Notice_Store::set( 'cookie_notice_status', $cn->defaults['data'], $is_network );
 		}
 
 		do_action( 'cn_configuration_updated', 'settings', $input );
@@ -2830,23 +2822,17 @@ class Cookie_Notice_Settings {
 					'devMode'            => defined( 'CN_DEV_MODE' ) && CN_DEV_MODE && current_user_can( 'manage_options' ),
 					'welcomeDismissedAt'      => get_option( 'cookie_notice_welcome_dismissed', '' ),
 					'setupWizardComplete'     => (bool) get_option( 'cookie_notice_setup_wizard_complete', false ),
-					'selectedLaws'       => $cn->is_network_admin()
-						? get_site_option( 'cookie_notice_app_regulations', [] )
-						: get_option( 'cookie_notice_app_regulations', [] ),
+					'selectedLaws'       => Cookie_Notice_Store::get( 'cookie_notice_app_regulations', [], $cn->is_network_admin() ),
 					'wpPages'            => array_map( function( $p ) {
 						return [ 'id' => $p->ID, 'title' => $p->post_title ];
 					}, get_pages( [ 'sort_column' => 'post_title' ] ) ?: [] ),
 				'siteLocale'         => get_locale(),
 				'detectedPlugins'    => cn_detect_active_plugins(),
-				'bannerDesign'       => $is_network
-					? get_site_option( 'cookie_notice_app_design', [] )
-					: get_option( 'cookie_notice_app_design', [] ),
+				'bannerDesign'       => Cookie_Notice_Store::get( 'cookie_notice_app_design', [], $is_network ),
 				'displayType'        => $cn->options['general']['displayType'] ?? 'floating',
 				'appUrl'             => Cookie_Notice()->get_url( 'host' ),
 				'lastSynced'         => ( function() use ( $is_network ) {
-					$blocking = $is_network
-						? get_site_option( 'cookie_notice_app_blocking', [] )
-						: get_option( 'cookie_notice_app_blocking', [] );
+					$blocking = Cookie_Notice_Store::get( 'cookie_notice_app_blocking', [], $is_network );
 					return ! empty( $blocking['lastUpdated'] ) ? $blocking['lastUpdated'] : '';
 				} )(),
 				'purgeNonce'         => wp_create_nonce( 'cn-purge-cache' ),

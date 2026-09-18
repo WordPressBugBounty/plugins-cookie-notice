@@ -151,9 +151,7 @@ class Cookie_Notice_Modules_GravityForms {
 	 * @return array
 	 */
 	private static function get_blocking_data() {
-		$blocking = Cookie_Notice()->is_network_options()
-			? get_site_option( 'cookie_notice_app_blocking' )
-			: get_option( 'cookie_notice_app_blocking' );
+		$blocking = Cookie_Notice_Store::get( 'cookie_notice_app_blocking', false, Cookie_Notice()->is_network_options() );
 
 		return is_array( $blocking ) ? $blocking : [];
 	}

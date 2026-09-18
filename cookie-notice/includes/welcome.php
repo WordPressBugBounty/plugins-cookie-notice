@@ -129,7 +129,7 @@ class Cookie_Notice_Welcome {
 			'network'			=> $network,
 			'nonce'				=> wp_create_nonce( 'cookie-notice-welcome' ),
 			'cnNonce'			=> wp_create_nonce( 'cookie-notice-welcome' ),
-			'initModal'			=> $network ? get_site_transient( 'cn_show_welcome' ) : get_transient( 'cn_show_welcome' ), // welcome modal
+			'initModal'			=> Cookie_Notice_Store::get_transient( 'cn_show_welcome', $network ), // welcome modal
 			'error'				=> esc_html__( 'Unexpected error occurred. Please try again later.', 'cookie-notice' ),
 			'statusPassed'		=> esc_html__( 'Passed', 'cookie-notice' ),
 			'statusFailed'		=> esc_html__( 'Failed', 'cookie-notice' ),
@@ -146,10 +146,7 @@ class Cookie_Notice_Welcome {
 		];
 
 		// delete the show modal transient
-		if ( $network )
-			delete_site_transient( 'cn_show_welcome' );
-		else
-			delete_transient( 'cn_show_welcome' );
+		Cookie_Notice_Store::delete_transient( 'cn_show_welcome', $network );
 
 		wp_add_inline_script( 'cookie-notice-welcome', 'var cnWelcomeArgs = ' . wp_json_encode( $script_data ) . ";\n", 'before' );
 

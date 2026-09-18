@@ -10,30 +10,20 @@ if ( ! defined( 'ABSPATH' ) )
  *
  * @class Cookie_Notice_Modules_WooCommerce_Privacy_Consent
  */
-class Cookie_Notice_Modules_WooCommerce_Privacy_Consent {
+class Cookie_Notice_Modules_WooCommerce_Privacy_Consent extends Cookie_Notice_Privacy_Consent_Module {
 
-	private $defaults = [
-		'wc_registration_form'	=> [
-			'status'	=> false
-		],
-		'wc_checkout_form'	=> [
-			'status'	=> false
-		]
-	];
-	private $source = [];
 	private $registration_started = false;
 	private $registration_ended = false;
 
 	/**
-	 * Class constructor.
+	 * Build the source descriptor.
 	 *
-	 * @return void
+	 * @param object $cn
+	 *
+	 * @return array
 	 */
-	public function __construct() {
-		// get main instance
-		$cn = Cookie_Notice();
-
-		$this->source = [
+	protected function define_source( $cn ) {
+		return [
 			'name'			=> __( 'WooCommerce', 'cookie-notice' ),
 			'id'			=> 'woocommerce',
 			'id_type'		=> 'string',
@@ -89,17 +79,16 @@ class Cookie_Notice_Modules_WooCommerce_Privacy_Consent {
 				]
 			]
 		];
+	}
 
-		// register source
-		$cn->privacy_consent->add_instance( $this, $this->source['id'] );
-		$cn->privacy_consent->add_source( $this->source );
-
-		add_action( 'admin_init', [ $this, 'register_source' ] );
-
-		// check compliance status
-		if ( $cn->get_status() !== 'active' )
-			return;
-
+	/**
+	 * Attach the integration's own hooks.
+	 *
+	 * @param object $cn
+	 *
+	 * @return void
+	 */
+	protected function register_hooks( $cn ) {
 		// registration
 		add_action( 'woocommerce_register_form', [ $this, 'register_form' ] );
 		add_action( 'wp_loaded', [ $this, 'registration_end' ], 21 );
@@ -110,39 +99,6 @@ class Cookie_Notice_Modules_WooCommerce_Privacy_Consent {
 		add_action( 'woocommerce_new_order', [ $this, 'checkout_new_order' ], 10, 2 );
 		add_action( 'woocommerce_checkout_after_order_review', [ $this, 'checkout_form_classic' ] );
 		add_filter( 'render_block', [ $this, 'checkout_form_blocks' ], 10, 2 );
-	}
-
-	/**
-	 * Register source.
-	 *
-	 * @return void
-	 */
-	public function register_source() {
-		register_setting(
-			'cookie_notice_privacy_consent_woocommerce',
-			'cookie_notice_privacy_consent_woocommerce',
-			[
-				'type' => 'array'
-			]
-		);
-	}
-
-	/**
-	 * Validate source.
-	 *
-	 * @param array $input
-	 *
-	 * @return array
-	 */
-	public function validate( $input ) {
-		// get main instance
-		$cn = Cookie_Notice();
-
-		$input['woocommerce_active'] = isset( $input['woocommerce_active'] );
-		$input['woocommerce_active_type'] = isset( $input['woocommerce_active_type'] ) && array_key_exists( $input['woocommerce_active_type'], $cn->privacy_consent->form_active_types ) ? $input['woocommerce_active_type'] : $cn->defaults['privacy_consent']['woocommerce_active_type'];
-
-
-		return $input;
 	}
 
 	/**

@@ -95,6 +95,7 @@ class Cookie_Notice_Dashboard {
 		$cycle_usage = ! empty( $analytics['cycleUsage'] ) ? $analytics['cycleUsage'] : null;
 		$age_hours   = $cn->welcome_api->cycle_usage_age_hours( $cycle_usage );
 		$is_fresh    = $cn->welcome_api->cycle_usage_is_fresh( $cycle_usage );
+		$counters    = $cn->welcome_api->read_cycle_usage_counters( $analytics );
 
 		if ( $age_hours === null )
 			$age_label = esc_html__( 'unknown — payload carried no fetch_time', 'cookie-notice' );
@@ -123,8 +124,8 @@ class Cookie_Notice_Dashboard {
 				'label'	=> esc_html__( 'Cycle visits / threshold', 'cookie-notice' ),
 				'value'	=> sprintf(
 					'%s / %s',
-					! empty( $cycle_usage->visits ) ? (int) $cycle_usage->visits : 0,
-					! empty( $cycle_usage->threshold ) ? (int) $cycle_usage->threshold : esc_html__( 'unlimited', 'cookie-notice' )
+					$counters['visits'],
+					$counters['threshold'] > 0 ? $counters['threshold'] : esc_html__( 'unlimited', 'cookie-notice' )
 				)
 			],
 			'cn_usage_age' => [
@@ -463,9 +464,10 @@ class Cookie_Notice_Dashboard {
 		$microsoft_cm = ! empty( $blocking['microsoft_consent_default'] ) && is_array( $blocking['microsoft_consent_default'] );
 		$gpc          = ! empty( $blocking['gpc_support'] );
 
-		// usage
-		$threshold = ! empty( $analytics['cycleUsage']->threshold ) ? (int) $analytics['cycleUsage']->threshold : 0;
-		$visits    = ! empty( $analytics['cycleUsage']->visits ) ? (int) $analytics['cycleUsage']->visits : 0;
+		// usage — object vs array vs root-only threshold: see read_cycle_usage_counters()
+		$counters  = $cn->welcome_api->read_cycle_usage_counters( $analytics );
+		$threshold = $counters['threshold'];
+		$visits    = $counters['visits'];
 
 		if ( $threshold > 0 && $visits > $threshold )
 			$visits = $threshold;

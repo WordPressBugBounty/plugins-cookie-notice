@@ -10,21 +10,24 @@ if ( ! defined( 'ABSPATH' ) )
  *
  * @class Cookie_Notice_Modules_WPForms_Privacy_Consent
  */
-class Cookie_Notice_Modules_WPForms_Privacy_Consent {
-
-	private $defaults = [];
-	private $source = [];
+class Cookie_Notice_Modules_WPForms_Privacy_Consent extends Cookie_Notice_Privacy_Consent_Post_Type_Module {
 
 	/**
-	 * Class constructor.
+	 * Forms are stored as posts of this type.
 	 *
-	 * @return void
+	 * @var string
 	 */
-	public function __construct() {
-		// get main instance
-		$cn = Cookie_Notice();
+	protected $post_type = 'wpforms';
 
-		$this->source = [
+	/**
+	 * Build the source descriptor.
+	 *
+	 * @param object $cn
+	 *
+	 * @return array
+	 */
+	protected function define_source( $cn ) {
+		return [
 			'name'			=> __( 'WPForms', 'cookie-notice' ),
 			'id'			=> 'wpforms',
 			'id_type'		=> 'integer',
@@ -34,112 +37,18 @@ class Cookie_Notice_Modules_WPForms_Privacy_Consent {
 			'status_type'	=> $cn->options['privacy_consent']['wpforms_active_type'],
 			'forms'			=> []
 		];
-
-		// register source
-		$cn->privacy_consent->add_instance( $this, $this->source['id'] );
-		$cn->privacy_consent->add_source( $this->source );
-
-		add_action( 'admin_init', [ $this, 'register_source' ] );
-
-		// check compliance status
-		if ( $cn->get_status() !== 'active' )
-			return;
-
-		// forms
-		add_action( 'wpforms_frontend_output', [ $this, 'wpforms_shortcode' ], 19, 5 );
 	}
 
 	/**
-	 * Register source.
+	 * Attach the integration's own hooks.
+	 *
+	 * @param object $cn
 	 *
 	 * @return void
 	 */
-	public function register_source() {
-		register_setting(
-			'cookie_notice_privacy_consent_wpforms',
-			'cookie_notice_privacy_consent_wpforms',
-			[
-				'type' => 'array'
-			]
-		);
-	}
-
-	/**
-	 * Validate source.
-	 *
-	 * @param array $input
-	 *
-	 * @return array
-	 */
-	public function validate( $input ) {
-		// get main instance
-		$cn = Cookie_Notice();
-
-		$input['wpforms_active'] = isset( $input['wpforms_active'] );
-		$input['wpforms_active_type'] = isset( $input['wpforms_active_type'] ) && array_key_exists( $input['wpforms_active_type'], $cn->privacy_consent->form_active_types ) ? $input['wpforms_active_type'] : $cn->defaults['privacy_consent']['wpforms_active_type'];
-
-		return $input;
-	}
-
-	/**
-	 * Check whether form exists.
-	 *
-	 * @param int $form_id
-	 *
-	 * @return bool
-	 */
-	public function form_exists( $form_id ) {
-		$query = new WP_Query( [
-			'p'				=> $form_id,
-			'post_status'	=> 'publish',
-			'post_type'		=> 'wpforms',
-			'fields'		=> 'ids',
-			'no_found_rows'	=> true
-		] );
-
-		return $query->have_posts();
-	}
-
-	/**
-	 * Get forms.
-	 *
-	 * @param array $args
-	 *
-	 * @return array
-	 */
-	public function get_forms( $args ) {
-		// get only published forms
-		$query = new WP_Query( [
-			'post_status'		=> 'publish',
-			'post_type'			=> 'wpforms',
-			'order'				=> $args['order'],
-			'orderby'			=> $args['orderby'],
-			'fields'			=> 'all',
-			'posts_per_page'	=> 10,
-			'no_found_rows'		=> false,
-			'paged'				=> $args['page'],
-			's'					=> $args['search']
-		] );
-
-		$forms = [];
-
-		// any forms?
-		if ( ! empty( $query->posts ) ) {
-			foreach ( $query->posts as $post ) {
-				$forms[] = [
-					'id'		=> $post->ID,
-					'title'		=> $post->post_title,
-					'date'		=> $post->post_date,
-					'fields'	=> []
-				];
-			}
-		}
-
-		return [
-			'forms'		=> $forms,
-			'total'		=> $query->found_posts,
-			'max_pages'	=> $query->max_num_pages
-		];
+	protected function register_hooks( $cn ) {
+		// forms
+		add_action( 'wpforms_frontend_output', [ $this, 'wpforms_shortcode' ], 19, 5 );
 	}
 
 	/**
