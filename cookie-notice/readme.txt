@@ -4,7 +4,7 @@ Tags: gdpr, ccpa, cookies, consent, privacy, gpc, google-consent-mode, wp-consen
 Requires at least: 4.9.6
 Requires PHP: 7.4
 Tested up to: 7.0
-Stable tag: 3.1.11
+Stable tag: 3.1.12
 License: MIT License
 License URI: http://opensource.org/licenses/MIT
 
@@ -199,7 +199,7 @@ Yes. Cookie Compliance is one product, and this plugin is its WordPress componen
 No. Banner Only mode DOES NOT include technical compliance features such as automatic script blocking, consent purpose categories, or consent record storage. Those need the plugin signed in to Cookie Compliance.
 
 = Does Connected mode make my site fully compliant with GDPR and US Privacy Laws? =
-Yes! Signed in to Cookie Compliance, you get technical compliance features to meet requirements for over 100 countries and legal jurisdictions.
+Not by itself — it gives you what you need to configure it that way. Signed in to Cookie Compliance you get the technical compliance features — automatic script blocking, consent purpose categories and consent record storage — covering requirements for over 100 countries and legal jurisdictions. Whether your site is fully compliant depends on how you configure them and on how your site uses personal data.
 
 = Can I add Cookie Compliance with an AI assistant? =
 Yes. Point an MCP-capable assistant (Claude Code, Cursor, and others) at https://mcp.cookie-compliance.co/mcp — no account is required to start. On WordPress, keep using this plugin for placement rather than pasting a snippet. Details: https://cookie-compliance.co/mcp/
@@ -212,6 +212,16 @@ Yes. Point an MCP-capable assistant (Claude Code, Cursor, and others) at https:/
 4. Cookie Compliance settings
 
 == Changelog ==
+
+= 3.1.12 =
+* Improvement: Your site stays connected and protected through a brief network or server problem, rather than waiting for the next scheduled check to recover.
+* Improvement: Banner settings from your account hold steady between checks.
+* Improvement: On multisite networks where the plugin is network-activated but each site keeps its own account, the WP Consent API integration follows that site's own selected privacy laws.
+* Improvement: On multisite networks, your privacy laws, banner design, visit figures and consent records show up consistently across every screen, and visit-limit warnings reach each site.
+* Improvement: On the Consent Logs screen, records that cannot be loaded are now reported as such instead of appearing as an empty list, and the CSV export does the same — a log with no entries and a log that could not be reached no longer look alike.
+* Improvement: Upgrading to a paid plan now waits for the payment to be confirmed before reporting it. A declined card, or a network problem during checkout, is reported plainly with the reason — previously the upgrade could appear to have gone through and then revert. Connecting a site and adding billing details confirm their result the same way.
+* Improvement: Forms protected by Gravity Forms reCAPTCHA wait for reCAPTCHA to finish loading after a visitor accepts cookies, so the form submits without a reload.
+* Improvement: The Compliance dashboard reports what it can see — which protections are switched on. Turning Autoblocking off is no longer flagged where your selected laws permit it, and a switched-off script blocking engine is called out clearly.
 
 = 3.1.11 =
 * Fix: Region-specific (geolocation) rules now apply from a visitor's very first pageview, not just after the plugin's next scheduled refresh — as long as your settings synced within the last 12 hours.

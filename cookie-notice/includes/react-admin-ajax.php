@@ -316,7 +316,29 @@ class Cookie_Notice_React_Admin_Ajax {
 		// Single API call for the full date range (Transactional API handles range via EndDate).
 		$raw = $cn->welcome_api->get_cookie_consent_logs( $start_date, $end_date );
 
-		if ( ! is_array( $raw ) || empty( $raw ) ) {
+		// An unreachable platform, or an error message from it, is NOT an empty log.
+		// Both used to land in the branch below and answer wp_send_json_success with
+		// zero records — on the screen an admin uses to demonstrate consent to a
+		// regulator.
+		//
+		// Phrased as "require the SAFE shape", not "reject the known-bad ones". An
+		// is_wp_error||is_string list is only as complete as the shapes someone thought
+		// of, and the producer assigns $result->error and $result->data verbatim, so an
+		// object in either field would walk straight past a denylist into the success
+		// branch. A log is an array or it is not a log.
+		if ( ! is_array( $raw ) ) {
+			if ( is_wp_error( $raw ) )
+				$message = $raw->get_error_message();
+			elseif ( is_string( $raw ) && $raw !== '' )
+				$message = $raw;
+			else
+				$message = __( 'We could not load your consent records. Please try again in a moment.', 'cookie-notice' );
+
+			wp_send_json_error( [ 'error' => $message ] );
+			return;
+		}
+
+		if ( empty( $raw ) ) {
 			wp_send_json_success( [
 				'logs'             => [],
 				'total'            => 0,
@@ -711,7 +733,21 @@ class Cookie_Notice_React_Admin_Ajax {
 
 		$raw = $cn->welcome_api->get_cookie_consent_logs( $start_date, $end_date );
 
-		if ( ! is_array( $raw ) || empty( $raw ) ) {
+		// Same on export, and worse: a CSV of zero rows handed to someone answering a
+		// DSAR looks like an answer. Same safe-shape phrasing as the table above.
+		if ( ! is_array( $raw ) ) {
+			if ( is_wp_error( $raw ) )
+				$message = $raw->get_error_message();
+			elseif ( is_string( $raw ) && $raw !== '' )
+				$message = $raw;
+			else
+				$message = __( 'We could not load your consent records. Please try again in a moment.', 'cookie-notice' );
+
+			wp_send_json_error( [ 'error' => $message ] );
+			return;
+		}
+
+		if ( empty( $raw ) ) {
 			wp_send_json_success( [ 'csv' => '', 'count' => 0 ] );
 			return;
 		}
@@ -858,8 +894,11 @@ class Cookie_Notice_React_Admin_Ajax {
 
 			if ( ! empty( $test_email ) && ! empty( $test_password ) ) {
 				// Login to get a Bearer token, then delete the app.
-				$welcome_api = Cookie_Notice()->welcome;
-				$login_result = $welcome_api->request( 'login', [
+				// ->welcome_api, not ->welcome: the latter is Cookie_Notice_Welcome and has
+				// no request(). And dev_request(), not request(), which is private. Both
+				// faults were fatals, so this cleanup never ran.
+				$welcome_api = Cookie_Notice()->welcome_api;
+				$login_result = $welcome_api->dev_request( 'login', [
 					'AdminID'  => $test_email,
 					'Password' => $test_password,
 				] );
@@ -869,7 +908,7 @@ class Cookie_Notice_React_Admin_Ajax {
 					// $data_token->token so the shape must match what login normally stores.
 					set_transient( 'cookie_notice_app_token', $login_result->data, HOUR_IN_SECONDS );
 
-					$delete_result = $welcome_api->request( 'app_delete', [
+					$delete_result = $welcome_api->dev_request( 'app_delete', [
 						'AppID' => $current_app_id,
 					] );
 

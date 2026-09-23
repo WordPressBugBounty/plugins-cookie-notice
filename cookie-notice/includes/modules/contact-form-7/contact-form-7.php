@@ -38,7 +38,7 @@ class Cookie_Notice_Modules_ContactForm7 {
 		// register new script
 		wp_register_script(
 			'wpcf7-recaptcha',
-			COOKIE_NOTICE_URL . '/includes/modules/contact-form-7/recaptcha.js',
+			COOKIE_NOTICE_URL . '/includes/modules/contact-form-7/consent-defer.js',
 			[
 				'google-recaptcha',
 				'wp-polyfill'

@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) )
  * Copy for the dashboard widget lives in includes/notifications.json so it
  * stays centrally editable (same source the React topBar/sidebar use).
  *
- * @param string $state Scorecard state: banner_only|free_under|free_near|free_over|pro.
+ * @param string $state Scorecard state: banner_only|engine_off|posture_gap|free_under|free_near|free_over|pro.
  * @return array|null Highest-priority matching wpDashboard rule, or null.
  */
 function cn_get_dashboard_notification( $state ) {
@@ -86,11 +86,11 @@ class Cookie_Notice_Dashboard {
 		// get main instance
 		$cn = Cookie_Notice();
 
-		// analytics scope (mirrors the widget's network-aware read)
-		if ( is_multisite() && $cn->is_network_admin() && $cn->is_plugin_network_active() && $cn->network_options['general']['global_override'] )
-			$analytics = get_site_option( 'cookie_notice_app_analytics', [] );
-		else
-			$analytics = get_option( 'cookie_notice_app_analytics', [] );
+		// is_network_options(), like every other reader of a get_app_config() row —
+		// see the analytics row scope note in get_signals(). The hand-spelled
+		// predicate here carried a surplus is_network_admin() conjunct, so a subsite
+		// read a row the pull never writes and every counter came back 0.
+		$analytics = Cookie_Notice_Store::get( 'cookie_notice_app_analytics', [], $cn->is_network_options() );
 
 		$cycle_usage = ! empty( $analytics['cycleUsage'] ) ? $analytics['cycleUsage'] : null;
 		$age_hours   = $cn->welcome_api->cycle_usage_age_hours( $cycle_usage );
@@ -260,11 +260,11 @@ class Cookie_Notice_Dashboard {
 		$chartdata = [];
 
 		if ( $active ) {
-			// analytics scope (network-aware)
-			if ( is_multisite() && $cn->is_network_admin() && $cn->is_plugin_network_active() && $cn->network_options['general']['global_override'] )
-				$analytics = get_site_option( 'cookie_notice_app_analytics', [] );
-			else
-				$analytics = get_option( 'cookie_notice_app_analytics', [] );
+			// is_network_options(), like every other reader of a get_app_config() row —
+			// see the analytics row scope note in get_signals(). The hand-spelled
+			// predicate here carried a surplus is_network_admin() conjunct, so a subsite
+			// read a row the pull never writes and every counter came back 0.
+			$analytics = Cookie_Notice_Store::get( 'cookie_notice_app_analytics', [], $cn->is_network_options() );
 
 			$line_options = [
 				'maintainAspectRatio'	=> false,
@@ -432,11 +432,28 @@ class Cookie_Notice_Dashboard {
 	protected function get_signals() {
 		$cn = Cookie_Notice();
 
-		// analytics scope (network-aware, mirrors enqueue logic)
-		if ( is_multisite() && $cn->is_network_admin() && $cn->is_plugin_network_active() && $cn->network_options['general']['global_override'] )
-			$analytics = get_site_option( 'cookie_notice_app_analytics', [] );
-		else
-			$analytics = get_option( 'cookie_notice_app_analytics', [] );
+		// ── Begin analytics row scope ────────────────────────────────────────
+		// is_network_options(), like every other reader of a get_app_config() row.
+		//
+		// This used to spell the predicate out by hand AND add an is_network_admin()
+		// conjunct that does not belong: `is_multisite() && is_network_admin() &&
+		// is_plugin_network_active() && global_override`. The surplus term is the bug —
+		// is_network_options() is the other three — and it made the answer depend on
+		// WHICH SCREEN was being rendered rather than on how the plugin is configured.
+		//
+		// cookie_notice_app_analytics is written by get_app_config() and
+		// get_app_analytics() under is_network_options(). So on a network-activated
+		// multisite with global_override ON, this read from a SUBSITE dashboard
+		// (wp_dashboard_setup fires there too) went to the site row, which the pull
+		// never writes: threshold 0, visits 0, threshold_used 0. Box 6 then rendered
+		// "0 / 0 visits" with a "Go unlimited →" CTA — the regression 8265ec5 exists to
+		// keep out — and free_near became unreachable, so a subsite at 85% of its quota
+		// got no warning at all.
+		//
+		// The blocking row four lines below always used is_network_options() correctly,
+		// which is what made this readable as deliberate.
+		$analytics = Cookie_Notice_Store::get( 'cookie_notice_app_analytics', [], $cn->is_network_options() );
+		// ── End analytics row scope ──────────────────────────────────────────
 
 		// blocking option scope (mirrors frontend.php is_network_options)
 		if ( method_exists( $cn, 'is_network_options' ) && $cn->is_network_options() )
@@ -452,11 +469,54 @@ class Cookie_Notice_Dashboard {
 		$app_id       = ! empty( $cn->options['general']['app_id'] ) ? $cn->options['general']['app_id'] : '';
 		$tier         = $cn->get_subscription();
 		$exceeded     = (bool) $cn->threshold_exceeded();
-		// Effective state, not the raw posture option: the AND of app_blocking and
+		// Effective state, NOT the raw posture option: the AND of app_blocking and
 		// app_blocking_engine (DEC-012), with the Free-plan quota cap already applied.
 		// Feeds the "Script blocking" scorecard box and the gap count, so a site whose
 		// engine is off must not be graded as protected.
-		$app_blocking = $cn->blocking_is_active();
+		//
+		// Named blocking_active, not app_blocking. It used to carry the option's name
+		// while holding the AND of two options, so the key that looked like the posture
+		// setting was the only one that wasn't it — which is exactly the confusion the
+		// DEC-012 split exists to end. app_blocking means posture and nothing else now,
+		// and it travels below under that meaning.
+		$blocking_active = $cn->blocking_is_active();
+
+		// ── Begin regime-aware blocking signals ──────────────────────────────
+		// The AND above answers "is blocking happening". It cannot answer "is that a
+		// PROBLEM", and since DEC-012 those are different questions:
+		//
+		//   engine off   nothing is held for anybody, whatever the geo rule or privacy
+		//                signal (the widget treats blockingEngine as absolute). A gap
+		//                under every regime.
+		//   posture off  default-allow before the visitor chooses. A gap only where the
+		//                site's own selected laws require prior consent — under
+		//                CCPA/OTHERUS/PIPEDA this is the INTENDED model, and reporting
+		//                it as exposure tells a lawful site it is broken.
+		//
+		// So the two are carried separately alongside the regime. Do not collapse them
+		// back into the AND for anything that renders a verdict.
+		//
+		// NOTE these are the IN-MEMORY options, which is not the same as the admin's
+		// stored preference: set_status() rewrites options['general']['app_blocking']
+		// to false for the rest of the request whenever the Free quota is exceeded (the
+		// app_blocking quota force in cookie-notice.php). So on a Free site at its
+		// limit, $blocking_posture reads false even though the admin never touched it.
+		//
+		// Every consumer below therefore tests $s['exceeded'] BEFORE reaching a posture
+		// branch, so the quota case is claimed by the quota message and never blamed on
+		// a setting. If you need what the admin actually chose, the unforced value is
+		// $cn->app_blocking_stored — not this.
+		//
+		// The engine is not quota-capped (DEC-011: it is the master switch, and the
+		// quota pauses protection rather than revoking the capability), so
+		// $blocking_engine is the stored value either way.
+		$blocking_engine  = ! empty( $cn->options['general']['app_blocking_engine'] );
+		$blocking_posture = ! empty( $cn->options['general']['app_blocking'] );
+
+		// 'optin' | 'optout' | '' — and '' means NO BASIS TO JUDGE, not "no law
+		// applies". Everything downstream must render it as silence.
+		$regime = $cn->get_consent_regime();
+		// ── End regime-aware blocking signals ────────────────────────────────
 
 		// consent modes are ON only when configured as a non-empty array
 		$google_cm    = ! empty( $blocking['google_consent_default'] )    && is_array( $blocking['google_consent_default'] );
@@ -514,7 +574,15 @@ class Cookie_Notice_Dashboard {
 
 					if ( $ov >= 100 ) {
 						$exceeded     = true;
-						$app_blocking = false;
+							// Both, so the demo matches what the quota force really does:
+						// it zeroes the POSTURE option in memory and leaves the engine
+						// alone. Setting only the derived value would demo a shape that
+						// cannot occur. (This read $app_blocking until the signal was
+						// renamed to $blocking_active, at which point it silently
+						// assigned to a variable nothing consumed and ?cn_usage=100
+						// stopped demoing blocking-off at all.)
+						$blocking_active  = false;
+						$blocking_posture = false;
 					}
 				}
 			}
@@ -525,7 +593,14 @@ class Cookie_Notice_Dashboard {
 			'app_id'         => $app_id,
 			'tier'           => $tier,
 			'exceeded'       => $exceeded,
-			'app_blocking'   => $app_blocking,
+			// blocking_active = is blocking happening (posture AND engine, quota applied)
+			// blocking_posture = the app_blocking option, which since DEC-012 means
+			//                    posture and only posture
+			// blocking_engine  = the app_blocking_engine option, the master switch
+			'blocking_active'   => $blocking_active,
+			'blocking_posture'  => $blocking_posture,
+			'blocking_engine'   => $blocking_engine,
+			'regime'            => $regime,
 			'google_cm'      => $google_cm,
 			'facebook_cm'    => $facebook_cm,
 			'microsoft_cm'   => $microsoft_cm,
@@ -543,15 +618,55 @@ class Cookie_Notice_Dashboard {
 	 * Derive the single lifecycle state from the signals.
 	 *
 	 * @param array $s
-	 * @return string banner_only|free_under|free_near|free_over|pro
+	 * @return string banner_only|engine_off|posture_gap|free_under|free_near|free_over|pro
 	 */
 	protected function derive_state( $s ) {
 		// ── Begin dashboard lifecycle state (DEC-012) ────────────────────────
 		if ( ! $s['connected'] || $s['app_id'] === '' )
 			return 'banner_only';
 
-		if ( $s['tier'] === 'pro' )
+		// ── Begin blocking-gap states ────────────────────────────────────────
+		// These exist because the card used to headline "Fully protected — Everything's
+		// on. Nothing to do." directly above a Script blocking box reading "Off ·
+		// Exposed". It contradicted itself on one screen.
+		//
+		// TWO states, not one, because the causes are not equally bad and one message
+		// cannot be true for both:
+		//
+		//   engine off   nothing is held for anybody, whatever the geo rule or privacy
+		//                signal. A gap under every regime and on every plan.
+		//   posture off  default-allow before the visitor chooses. A gap ONLY where the
+		//                site's own selected laws require prior consent.
+		//
+		// The regime test is `=== 'optin'`, never `!== 'optout'`. get_consent_regime()
+		// returns '' for a site that has picked no laws, and '' means we have no basis
+		// to judge — a negated test would invent a verdict about a site that has simply
+		// not finished setting up.
+		//
+		// ENGINE OFF IS CHECKED FIRST, ABOVE TIER. An earlier revision gated both of
+		// these on tier === 'pro', on the reasoning that Free sites "fall through to the
+		// quota states, which already headline the loss of protection". That is true of
+		// free_over and false of the other two: a Free site with the engine off and low
+		// usage returned free_under, whose headline reads "Blocking is on, with gaps to
+		// close" — directly above a box reading "Off · Nothing is held". Same
+		// self-contradiction, one plan over.
+		//
+		// It also outranks free_over deliberately. When the admin has switched the
+		// engine off, "Protection paused — limit reached · Upgrade to restore
+		// protection" is worse than merely redundant: upgrading would not restore
+		// anything, because the quota is not why blocking stopped.
+		if ( ! $s['blocking_engine'] )
+			return 'engine_off';
+
+		// Pro is decided on tier and must not reach the quota states below — a Pro plan
+		// has no threshold, so any exceeded/usage shape reaching here is spurious.
+		if ( $s['tier'] === 'pro' ) {
+			if ( ! $s['blocking_posture'] && $s['regime'] === 'optin' )
+				return 'posture_gap';
+
 			return 'pro';
+		}
+		// ── End blocking-gap states ──────────────────────────────────────────
 
 		// The PLUGIN'S VERDICT, never the counters. threshold_exceeded() refuses to arm
 		// without a real threshold — a Pro plan has none — and fails OPEN when it cannot
@@ -571,6 +686,15 @@ class Cookie_Notice_Dashboard {
 		// is in the top bar, where it falls through to the plain upsell.
 		if ( $s['threshold_used'] >= 70 && $s['threshold_used'] < 100 )
 			return 'free_near';
+
+		// Free sites get the posture gap too — the law does not care which plan you are
+		// on. Placed AFTER the quota states on purpose, and that ordering is the whole
+		// safety of it: the Free quota force rewrites in-memory app_blocking to false
+		// (see the app_blocking quota force in cookie-notice.php), so a site that is
+		// merely over its limit reads as posture-off here. Checking this first would
+		// blame the admin for a setting they never touched.
+		if ( ! $s['blocking_posture'] && $s['regime'] === 'optin' )
+			return 'posture_gap';
 
 		return 'free_under';
 		// ── End dashboard lifecycle state (DEC-012) ──────────────────────────
@@ -602,15 +726,70 @@ class Cookie_Notice_Dashboard {
 			'pill'   => [ 'label' => __( 'Active', 'cookie-notice' ), 'cls' => 'ok' ]
 		];
 
+		// ── Begin script blocking box ────────────────────────────────────────
 		// 2. Script blocking
-		if ( $state === 'banner_only' || ! $s['app_blocking'] ) {
+		//
+		// The pill states what WE observe, never what it means for the customer legally.
+		// It used to read "Compliant" / "Exposed", which certified a legal position off
+		// a checkbox — on a row that, elsewhere on this card, also appears next to
+		// "Visit limit · Unlimited". We cannot know their theme, their other plugins,
+		// their jurisdiction or whether one of their own scripts breaks ours, so the
+		// verdict was never ours to issue. The headline carries the warning; this box
+		// carries the fact.
+		//
+		// Three distinct off-shapes, because one message cannot be true for all of them:
+		// not connected at all, engine off (nothing held for anybody), and posture
+		// default-allow with the engine still enforcing after a decline or a GPC signal.
+		// The old single branch called all three "Off · Firing before consent", which is
+		// wrong for the third — and on an opt-out site that third shape is the LAWFUL
+		// model, so the card was telling a correctly-configured customer they were
+		// exposed.
+		if ( $state === 'banner_only' || ! $s['blocking_active'] ) {
+			if ( $state === 'banner_only' ) {
+				$value  = __( 'Off', 'cookie-notice' );
+				$sub    = esc_html__( 'Not connected', 'cookie-notice' );
+				$pill   = __( 'Not blocking', 'cookie-notice' );
+				$status = 'crit';
+			} elseif ( ! $s['blocking_engine'] ) {
+				$value  = __( 'Off', 'cookie-notice' );
+				$sub    = esc_html__( 'Nothing is held', 'cookie-notice' );
+				$pill   = __( 'Not blocking', 'cookie-notice' );
+				$status = 'crit';
+			} elseif ( $s['tier'] !== 'pro' && $s['exceeded'] ) {
+				// QUOTA, NOT A CHOICE — and this branch MUST stay above the posture one.
+				// The Free quota force rewrites in-memory app_blocking to false (see the
+				// app_blocking quota force in cookie-notice.php), so a site that has
+				// merely hit its limit is indistinguishable from one whose admin set a
+				// default-allow posture. An earlier revision had no such branch, and a
+				// Free site over its limit therefore fell into the posture case and
+				// rendered a GREEN box — "Default allow", green dot, green pill — under
+				// a red "Protection paused — limit reached" hero.
+				$value  = __( 'Off', 'cookie-notice' );
+				$sub    = esc_html__( 'Limit reached', 'cookie-notice' );
+				$pill   = __( 'Paused', 'cookie-notice' );
+				$status = 'crit';
+			} else {
+				// Posture, by the admin's own choice. Severity follows the site's OWN
+				// selected laws: a gap under an opt-in regime, the intended behaviour
+				// under an opt-out one. An unset regime ('') is not graded — we have no
+				// basis to judge, and inventing one is the same overclaim inverted.
+				//
+				// The pill differs here too. "Not blocking" is false in this shape: the
+				// engine is on and scripts ARE held once someone declines or sends a GPC
+				// signal, which is exactly what the sub-label says one line down.
+				$value  = __( 'Default allow', 'cookie-notice' );
+				$sub    = esc_html__( 'Held after a decline', 'cookie-notice' );
+				$pill   = __( 'Default allow', 'cookie-notice' );
+				$status = $s['regime'] === 'optin' ? 'warn' : 'ok';
+			}
+
 			$boxes[] = [
 				'title'  => __( 'Script blocking', 'cookie-notice' ),
-				'status' => 'crit',
-				'value'  => __( 'Off', 'cookie-notice' ),
-				'value_cls' => $state === 'free_over' ? 'crit' : 'off',
-				'sub'    => esc_html__( 'Firing before consent', 'cookie-notice' ),
-				'pill'   => [ 'label' => __( 'Exposed', 'cookie-notice' ), 'cls' => 'crit' ]
+				'status' => $status,
+				'value'  => $value,
+				'value_cls' => $status === 'crit' ? 'crit' : 'off',
+				'sub'    => $sub,
+				'pill'   => [ 'label' => $pill, 'cls' => $status ]
 			];
 		} elseif ( $state === 'free_near' ) {
 			$boxes[] = [
@@ -625,11 +804,40 @@ class Cookie_Notice_Dashboard {
 				'title'  => __( 'Script blocking', 'cookie-notice' ),
 				'status' => 'ok',
 				'value'  => __( 'On', 'cookie-notice' ),
-				'pill'   => [ 'label' => __( 'Compliant', 'cookie-notice' ), 'cls' => 'ok' ]
+				'pill'   => [ 'label' => __( 'On', 'cookie-notice' ), 'cls' => 'ok' ]
 			];
 		}
+		// ── End script blocking box ──────────────────────────────────────────
 
-		// 3. Google Consent Mode
+		// ── Begin google consent mode box ────────────────────────────────────
+		// 3. Google Consent Mode — reports whether a consent map is CONFIGURED, and
+		// nothing else. Two things were wrong here and they compounded.
+		//
+		// It never read $s['google_cm'], the signal computed for it, so it reported
+		// "v2 active" to every connected site including one that has configured no map
+		// at all. frontend.php only emits the signals when google_consent_default is a
+		// non-empty array, which is exactly what google_cm says, so the box was
+		// certifying a feature that was not running.
+		//
+		// And it keyed severity off $state. derive_state() returns engine_off BEFORE
+		// free_over, so a Free site both over quota and with the blocking engine off
+		// never reported free_over and fell through to the green branch: turning the
+		// master switch OFF moved this box from crit to ok. "Greener as it gets worse",
+		// the same inversion the visit-limit box carries a comment about, one box over.
+		//
+		// The quota branches are gone rather than re-keyed to $s['exceeded'], because
+		// their claim was false in the other direction too. Google Consent Mode is a
+		// Free-tier feature and is NOT quota-gated — welcome-api.php says so at the
+		// write, citing Designer API logic.service.ts::downgradeLiveDefaults: only
+		// Facebook and Microsoft are Pro-only, and signals cost nothing to serve, so a
+		// site over its visit quota keeps telling Google what the visitor chose. So
+		// "Signals stopped" and "Stops at limit" described something that does not
+		// happen.
+		//
+		// Nor does this box follow the blocking engine, unlike the GPC box below. The
+		// engine decides whether scripts are HELD; Consent Mode reports what the visitor
+		// chose to whatever does run. Those are different questions and the seeding in
+		// frontend.php gates on neither the engine nor the quota.
 		if ( $state === 'banner_only' ) {
 			$boxes[] = [
 				'title'  => __( 'Google Consent Mode', 'cookie-notice' ),
@@ -637,38 +845,49 @@ class Cookie_Notice_Dashboard {
 				'value'  => __( 'Off', 'cookie-notice' ),
 				'pill'   => [ 'label' => __( 'Inactive', 'cookie-notice' ), 'cls' => 'off' ]
 			];
-		} elseif ( $state === 'free_over' ) {
+		} elseif ( ! $s['google_cm'] ) {
+			// Not configured is not a failure — plenty of sites run no Google tags at
+			// all — so this is neutral, not a warning.
 			$boxes[] = [
 				'title'  => __( 'Google Consent Mode', 'cookie-notice' ),
-				'status' => 'crit',
+				'status' => 'off',
 				'value'  => __( 'Off', 'cookie-notice' ),
-				'sub'    => esc_html__( 'Signals stopped', 'cookie-notice' ),
-				'pill'   => [ 'label' => __( 'Stopped', 'cookie-notice' ), 'cls' => 'crit' ]
-			];
-		} elseif ( $state === 'free_near' ) {
-			$boxes[] = [
-				'title'  => __( 'Google Consent Mode', 'cookie-notice' ),
-				'status' => 'warn',
-				'value'  => __( 'v2 · at risk', 'cookie-notice' ),
-				'sub'    => esc_html__( 'Stops at limit', 'cookie-notice' ),
-				'pill'   => [ 'label' => __( 'Ends soon', 'cookie-notice' ), 'cls' => 'warn' ]
+				'pill'   => [ 'label' => __( 'Not configured', 'cookie-notice' ), 'cls' => 'off' ]
 			];
 		} else {
 			$boxes[] = [
 				'title'  => __( 'Google Consent Mode', 'cookie-notice' ),
 				'status' => 'ok',
 				'value'  => __( 'v2 active', 'cookie-notice' ),
-				'pill'   => [ 'label' => __( 'Compliant', 'cookie-notice' ), 'cls' => 'ok' ]
+				'pill'   => [ 'label' => __( 'On', 'cookie-notice' ), 'cls' => 'ok' ]
 			];
 		}
+		// ── End google consent mode box ──────────────────────────────────────
 
-		// 4. Meta & Microsoft — green only for Pro with a mode configured
-		if ( $state === 'pro' && ( $s['facebook_cm'] || $s['microsoft_cm'] ) ) {
+		// ── Begin plan-scoped boxes ──────────────────────────────────────────
+		// Boxes 4 and 6 ask a PLAN question — "is this customer paying?" — so they read
+		// the tier, never the state. $state was a faithful plan proxy only while 'pro'
+		// was the single Pro state; DEC-012 added engine_off and posture_gap, both of
+		// which a Pro customer reaches, and then `$state === 'pro'` started answering
+		// "no" about people who pay. build_hero() was given is_pro for exactly this and
+		// these were missed, so a Pro site with the blocking engine off rendered an
+		// upgrade pitch here and a "0 / 0 visits" bar in box 6.
+		//
+		// Do NOT repair this by adding the two new names to the comparison. That is the
+		// patch this class already survived once — 8265ec5 fixed "never show 0 as the
+		// visit cap" in the Site Health row and the React bar, and four days later new
+		// states re-opened it in the scorecard — and it breaks again on state number
+		// eight. The tier is the question; ask the tier.
+
+		// 4. Meta & Microsoft — green only for a paying plan with a mode configured.
+		// Consent-mode signalling reports what the visitor chose; it does not depend on
+		// the blocking engine, so this stays green with the engine off.
+		if ( $s['tier'] === 'pro' && ( $s['facebook_cm'] || $s['microsoft_cm'] ) ) {
 			$boxes[] = [
 				'title'  => __( 'Meta & Microsoft', 'cookie-notice' ),
 				'status' => 'ok',
 				'value'  => __( 'On', 'cookie-notice' ),
-				'pill'   => [ 'label' => __( 'Compliant', 'cookie-notice' ), 'cls' => 'ok' ]
+				'pill'   => [ 'label' => __( 'On', 'cookie-notice' ), 'cls' => 'ok' ]
 			];
 		} elseif ( $state === 'banner_only' ) {
 			$boxes[] = [
@@ -696,20 +915,61 @@ class Cookie_Notice_Dashboard {
 				'value'  => __( 'Off', 'cookie-notice' ),
 				'pill'   => [ 'label' => __( 'Inactive', 'cookie-notice' ), 'cls' => 'off' ]
 			];
-		} elseif ( $state === 'free_over' ) {
+		} elseif ( ! $s['blocking_engine'] || ( $s['tier'] !== 'pro' && $s['exceeded'] ) ) {
+			// ── Begin GPC box engine gate ────────────────────────────────────
+			// This box is NOT plan-scoped, and that is the difference between it and
+			// boxes 4 and 6. Honouring Global Privacy Control means HOLDING scripts for
+			// a visitor who sends the signal, and app_blocking_engine off means nothing
+			// is held for anybody, in any region, whatever the visitor sends. So the
+			// answer here follows the engine and not the tier: a Pro site with the
+			// engine off is not honouring GPC, and printing "Honored · On" over it
+			// asserts we are doing something legally required that we are not doing.
+			//
+			// BOTH conditions in one branch, and neither may be `$state`. An earlier
+			// revision had the quota case above as `$state === 'free_over'` and the
+			// engine case below it. derive_state() returns the FIRST state that applies
+			// and engine_off outranks free_over, so a Free site that was over quota AND
+			// had the engine off never reported free_over and was answered by the engine
+			// branch instead. Be precise about what that was: the severity it produced
+			// was the SAME warn this branch produces, so no site ever rendered wrongly
+			// because of it — the fix is that the box now says what it means. Asking
+			// $state is asking a lossy summary to re-answer a question it was derived
+			// from, and it only stays correct while derive_state()'s ordering does. Ask
+			// the signals: $s['exceeded'] is the quota verdict, $s['blocking_engine'] the
+			// master switch.
+			//
+			// The quota half is tier-guarded, exactly as the script-blocking box above
+			// is. threshold_exceeded() is a raw read of the stored platform row and is
+			// not plan-gated anywhere in the plugin, so a Pro site carrying a stale or
+			// spurious flag — left over from a Free period, or a platform quirk — would
+			// otherwise be told "Not honored · Off" about a plan that has no threshold
+			// to exceed. derive_state() is careful about this for the same reason (see
+			// its "Pro is decided on tier" note); reading the signal directly means
+			// carrying that care here rather than inheriting it.
+			//
+			// Severity follows WHY nothing is held, because the two have different
+			// remedies and the hero already carries the headline. Quota is crit: it is
+			// the harsher message and the one with an upgrade path. Engine-off is warn,
+			// since the hero is already crit in that state (engine_off in $pres) and a
+			// second red box repeats it without adding anything.
+			// ── End GPC box engine gate ──────────────────────────────────────
+			$engine_off = ! $s['blocking_engine'];
+
 			$boxes[] = [
 				'title'  => __( 'GPC signal', 'cookie-notice' ),
-				'status' => 'crit',
+				'status' => $engine_off ? 'warn' : 'crit',
 				'value'  => __( 'Off', 'cookie-notice' ),
-				'sub'    => esc_html__( 'Not honored', 'cookie-notice' ),
-				'pill'   => [ 'label' => __( 'Off', 'cookie-notice' ), 'cls' => 'crit' ]
+				'sub'    => $engine_off
+					? esc_html__( 'Nothing is held', 'cookie-notice' )
+					: esc_html__( 'Not honored', 'cookie-notice' ),
+				'pill'   => [ 'label' => __( 'Off', 'cookie-notice' ), 'cls' => $engine_off ? 'warn' : 'crit' ]
 			];
-		} elseif ( $state === 'pro' || $s['gpc'] ) {
+		} elseif ( $s['tier'] === 'pro' || $s['gpc'] ) {
 			$boxes[] = [
 				'title'  => __( 'GPC signal', 'cookie-notice' ),
 				'status' => 'ok',
 				'value'  => __( 'Honored', 'cookie-notice' ),
-				'pill'   => [ 'label' => __( 'Compliant', 'cookie-notice' ), 'cls' => 'ok' ]
+				'pill'   => [ 'label' => __( 'On', 'cookie-notice' ), 'cls' => 'ok' ]
 			];
 		} else {
 			$boxes[] = [
@@ -731,21 +991,33 @@ class Cookie_Notice_Dashboard {
 				'value'  => '—',
 				'pill'   => [ 'label' => __( 'Inactive', 'cookie-notice' ), 'cls' => 'off' ]
 			];
-		} elseif ( $state === 'pro' ) {
+		} elseif ( $s['tier'] === 'pro' ) {
+			// Plan-scoped, per the plan-scoped boxes note above box 4. A Pro plan carries
+			// no threshold, so $s['threshold'] is 0 here — reaching the else branch would
+			// render "0 / 0 visits" under a "Go unlimited →" CTA to someone who already is.
 			$boxes[] = [
 				'title'  => __( 'Visit limit', 'cookie-notice' ),
 				'status' => 'ok',
 				'value'  => __( 'Unlimited', 'cookie-notice' ),
-				'pill'   => [ 'label' => __( 'Compliant', 'cookie-notice' ), 'cls' => 'ok' ]
+				'pill'   => [ 'label' => __( 'On', 'cookie-notice' ), 'cls' => 'ok' ]
 			];
 		} else {
 			// ── Begin visit-limit box severity ───────────────────────────────
-			// This box reports USAGE, so its severity follows the counters — unlike the
-			// hero, which reports PROTECTION and so follows the verdict. Keying it off the
-			// state alone inverts at the boundary: a site whose snapshot reads 100% while
-			// the verdict is still open lands on free_under, and the bar would go GREEN at
-			// 100% having been amber at 99.99%. Greener as it gets worse.
-			$status = $state === 'free_over' ? 'crit' : ( $s['threshold_used'] >= 70 ? 'warn' : 'ok' );
+			// Crit follows the VERDICT; warn and ok follow the counters. Both halves are
+			// load-bearing and neither can do the other's job.
+			//
+			// Counters alone would invert at the boundary: a site whose snapshot reads
+			// 100% while the verdict is still open would go GREEN at 100% having been
+			// amber at 99.99%. Greener as it gets worse.
+			//
+			// The verdict half must read $s['exceeded'] and NOT `$state === 'free_over'`.
+			// derive_state() returns the FIRST state that applies and engine_off outranks
+			// free_over deliberately, so a Free site that is both over its limit and has
+			// the engine off never reports free_over — and this line rendered amber at
+			// 100%. The state answers "what is the single worst thing about this site";
+			// this box asks "is the quota verdict armed", which is a different question
+			// with its own signal.
+			$status = $s['exceeded'] ? 'crit' : ( $s['threshold_used'] >= 70 ? 'warn' : 'ok' );
 			// ── End visit-limit box severity ─────────────────────────────────
 			$usage_str = sprintf(
 				/* translators: 1: visits used, 2: visit threshold */
@@ -788,9 +1060,31 @@ class Cookie_Notice_Dashboard {
 			'free_under'  => [ 'hero' => 'ok',   'gap' => 'neutral' ],
 			'free_near'   => [ 'hero' => 'warn', 'gap' => 'warn' ],
 			'free_over'   => [ 'hero' => 'crit', 'gap' => 'crit', 'danger' => true ],
-			'pro'         => [ 'hero' => 'ok',   'gap' => 'good', 'is_pro' => true ]
+			'pro'         => [ 'hero' => 'ok',   'gap' => 'good', 'is_pro' => true ],
+			// Reachable on ANY plan, so no is_pro here — it is resolved from the tier
+			// below instead. 'crit' for engine_off: nothing is held for anybody, which
+			// is the same loss of protection as free_over. 'warn' for posture_gap: the
+			// engine is still enforcing after a decline or a GPC signal, so it is a
+			// narrower gap, and it is a setting the admin chose rather than a limit
+			// imposed on them.
+			'engine_off'  => [ 'hero' => 'crit', 'gap' => 'crit' ],
+			'posture_gap' => [ 'hero' => 'warn', 'gap' => 'warn' ]
 		];
 		$p = isset( $pres[ $state ] ) ? $pres[ $state ] : $pres['free_under'];
+
+		// is_pro gates the upsell block, so for the two states that are reachable on
+		// EITHER plan it must follow the plan rather than the state — otherwise a Pro
+		// customer whose engine is off is shown an upgrade pitch.
+		//
+		// SCOPED TO THOSE TWO STATES, not applied globally. banner_only fires on
+		// `! connected || app_id === ''`, while tier comes from the PERSISTED
+		// subscription, which the failed-pull guard deliberately keeps. So a Pro
+		// customer whose platform answered status='' is banner_only AND tier=pro, and a
+		// blanket rule would demote that card's prominent "Connect free to activate
+		// protection" button to a small footer link — on the one card whose headline is
+		// "Your banner shows — but nothing is blocked".
+		if ( in_array( $state, [ 'engine_off', 'posture_gap' ], true ) )
+			$p['is_pro'] = $s['tier'] === 'pro';
 
 		// Copy from notifications.json (wpDashboard slot), with token interpolation.
 		$rule = cn_get_dashboard_notification( $state );

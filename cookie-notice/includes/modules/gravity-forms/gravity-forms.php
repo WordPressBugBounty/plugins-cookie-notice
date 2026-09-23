@@ -142,7 +142,7 @@ class Cookie_Notice_Modules_GravityForms {
 	 * @return string
 	 */
 	private static function controller_path() {
-		return COOKIE_NOTICE_PATH . 'includes/modules/gravity-forms/recaptcha.js';
+		return COOKIE_NOTICE_PATH . 'includes/modules/gravity-forms/consent-defer.js';
 	}
 
 	/**
@@ -351,7 +351,7 @@ class Cookie_Notice_Modules_GravityForms {
 
 		wp_enqueue_script(
 			self::HANDLE_CONTROLLER,
-			COOKIE_NOTICE_URL . '/includes/modules/gravity-forms/recaptcha.js',
+			COOKIE_NOTICE_URL . '/includes/modules/gravity-forms/consent-defer.js',
 			[],
 			Cookie_Notice()->defaults['version'],
 			true

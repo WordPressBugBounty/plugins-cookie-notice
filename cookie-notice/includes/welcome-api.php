@@ -276,6 +276,23 @@ class Cookie_Notice_Welcome_API {
 					]
 				);
 
+				// ── Begin get_customer unreachable guard ─────────────────────────
+				// Same family as the list_apps -> app_create defect. `! empty( $result->id )`
+				// is false on an array, so an UNREACHABLE platform was read as "this
+				// customer does not exist" and the else branch created one — a second
+				// Braintree customer record against the account, non-idempotent and not
+				// undoable from here, off a transient blip.
+				//
+				// "Did not answer" and "answered no" are different, and only one of them
+				// justifies a create.
+				if ( ! is_object( $result ) ) {
+					$response = [
+						'error' => __( 'We could not reach Cookie Compliance to look up your billing details. Please try again.', 'cookie-notice' )
+					];
+					break;
+				}
+				// ── End get_customer unreachable guard ───────────────────────────
+
 				// user found?
 				if ( ! empty( $result->id ) ) {
 					$customer = $result;
@@ -358,11 +375,60 @@ class Cookie_Notice_Welcome_API {
 					]
 				);
 
-				// subscription assigned?
-				if ( ! empty( $subscription->error ) ) {
-					$response = $subscription->error;
+				// ── Begin create_subscription success gate ───────────────────────
+				// THE MONEY PATH. Nothing here may report an upgrade this code did not
+				// watch the platform confirm, and nothing here may tell the customer what
+				// happened to their card — because this is the call that moves it.
+				//
+				// Which call takes the money: create_customer and create_payment_method
+				// only VAULT (Account API braintree.controller.ts — gateway.customer.create
+				// and gateway.paymentMethod.create, neither with verifyCard). It is
+				// gateway.subscription.create, the call above, that bills — its result
+				// carries subscription.transactions[0], which licensePayment.service.ts
+				// persists as the transaction id and amount.
+				//
+				// ONE POSITIVE GATE, not a list of negative ones. Every failure shape this
+				// endpoint can produce fails a `success !== true` test; each of them slips
+				// past a `! empty( ->error )` test, and each used to arrive here as a
+				// completed upgrade:
+				//
+				//   array ['error'=>…]      transport error, 502, Cloudflare page, WAF
+				//                           block, any text/html body. Property reads NULL.
+				//   Braintree ErrorResult   A DECLINED CARD. The controller's failure arm
+				//                           is res.send(result) — the RAW Braintree result,
+				//                           which carries success:false, errors, message
+				//                           and NO error property at all. Insufficient
+				//                           funds or do-not-honor is the ordinary case here
+				//                           and it is far more common than any outage.
+				//   thrown gateway error    .catch(err => res.send(err)); an Error
+				//                           serialises to {}.
+				//
+				// The three sibling Braintree calls in this same case — assign_subscription,
+				// create_customer, create_payment_method — all already gate on ->success.
+				// This was the only one left asking whether it had failed instead.
+				$subscription_ok = is_object( $subscription ) && ! empty( $subscription->success ) && $subscription->success === true;
+
+				if ( ! $subscription_ok ) {
+					// Prefer what the platform said, when it said anything. An ErrorResult
+					// carries ->message; the framework's own errors carry ->error.
+					if ( is_object( $subscription ) && ! empty( $subscription->message ) )
+						$error = $subscription->message;
+					elseif ( is_object( $subscription ) && ! empty( $subscription->error ) )
+						$error = $subscription->error;
+					else
+						// We never got an answer, so we do not have one to give. Do NOT say the
+						// card was not charged: subscription.create bills immediately, and a
+						// timeout AFTER the gateway wrote is exactly the case this branch
+						// catches — the charge may well exist. And do NOT say "try again":
+						// the endpoint has no idempotency key and no existing-subscription
+						// lookup (see the standing @todo above this request), so a retry is a
+						// SECOND subscription and a SECOND charge, neither undoable from here.
+						$error = __( 'We could not confirm your upgrade with Cookie Compliance — the connection failed while we were waiting for an answer, so we do not know whether the payment went through. Please check your email for a receipt and contact support before trying again, so you are not charged twice.', 'cookie-notice' );
+
+					$response = [ 'error' => $error ];
 					break;
 				}
+				// ── End create_subscription success gate ─────────────────────────
 
 				$status_data = $cn->defaults['data'];
 
@@ -435,6 +501,26 @@ class Cookie_Notice_Welcome_API {
 				];
 
 				$response = $this->request( 'register', $params );
+
+				// ── Begin register request unreachable guard ─────────────────────
+				// Neither check below fires on an array, so control reached the login
+				// POST ~20 lines down and sent the customer's email and password for an
+				// account we have no idea whether we created. Two bad endings: the account
+				// DID get made (the gateway timed out after the write) and the flow
+				// continues as though register had answered, or it did not and the
+				// customer is shown login's credentials error for what was a register
+				// transport failure.
+				//
+				// This is the one of the six earlier-audited sites whose "reaches an
+				// array-safe bail and writes nothing" reading was wrong: it makes a
+				// further outbound request before any bail.
+				if ( ! is_object( $response ) ) {
+					$response = (object) [
+						'error' => __( 'We could not reach Cookie Compliance to create your account. Please try again.', 'cookie-notice' )
+					];
+					break;
+				}
+				// ── End register request unreachable guard ───────────────────────
 
 				// errors?
 				if ( ! empty( $response->error ) )
@@ -599,6 +685,24 @@ class Cookie_Notice_Welcome_API {
 				$response = $this->request( 'quick_config', $params );
 				$status_data = $cn->defaults['data'];
 
+				// ── Begin register unreachable guard ─────────────────────────────
+				// The same array-vs-object discriminator the login path carries, on the
+				// sibling flow. The consequence here is milder and worth stating plainly
+				// rather than overstating: unlike login, register does NOT fall through
+				// to a success return — the error array survives to wp_json_encode() at
+				// the end of this handler, so the customer is told something failed.
+				// What the guard buys is that the two failure kinds stop being told
+				// apart by accident, and that PHP 8 stops emitting "attempt to read
+				// property on array" on every blip. Registration writes over a row that
+				// predates any connection, so there is no healthy status to clobber.
+				if ( ! is_object( $response ) ) {
+					$response = (object) [
+						'error' => __( 'We could not reach Cookie Compliance to finish setting up this site. Please try again.', 'cookie-notice' )
+					];
+					break;
+				}
+				// ── End register unreachable guard ───────────────────────────────
+
 				if ( $response->status === 200 ) {
 					// notify publish app
 					$params = [
@@ -606,6 +710,18 @@ class Cookie_Notice_Welcome_API {
 					];
 
 					$response = $this->request( 'notify_app', $params );
+
+					// ── Begin register notify_app guard ──────────────────────
+					// Its own request, so its own guard — quick_config succeeding
+					// says nothing about this one reaching the platform, and this
+					// is the branch that writes status='active'.
+					if ( ! is_object( $response ) ) {
+						$response = (object) [
+							'error' => __( 'We could not reach Cookie Compliance to activate this site. Please try again.', 'cookie-notice' )
+						];
+						break;
+					}
+					// ── End register notify_app guard ────────────────────────
 
 					if ( $response->status === 200 ) {
 						$response = true;
@@ -714,6 +830,28 @@ class Cookie_Notice_Welcome_API {
 				// get apps and check if one for the current domain already exists
 				$response = $this->request( 'list_apps', [] );
 
+				// ── Begin list_apps unreachable guard ────────────────────────────
+				// request() returns an ARRAY, ['error' => …], for a WP transport error
+				// AND for any text/html body — a 502, a Cloudflare page, a WAF block. On
+				// an array every property read below is NULL, so BOTH error checks pass
+				// and the apps loop finds nothing. $app_exists stays false, and the very
+				// next step reads that as "this domain has no app yet" and calls
+				// app_create — registering a SECOND application on the customer's account
+				// for a domain that already has one, off a transient blip. That is an
+				// external, non-idempotent side effect; it cannot be undone from here and
+				// the customer is left to notice the duplicate themselves.
+				//
+				// The auth request just above is safe only by accident: its token check
+				// (empty( $response->data->token )) happens to catch the array. Nothing
+				// here did.
+				if ( ! is_object( $response ) ) {
+					$response = (object) [
+						'error' => __( 'We could not reach Cookie Compliance to list your sites. Please try again.', 'cookie-notice' )
+					];
+					break;
+				}
+				// ── End list_apps unreachable guard ──────────────────────────────
+
 				// errors?
 				if ( ! empty( $response->message ) ) {
 					$response->error = $response->message;
@@ -794,9 +932,22 @@ class Cookie_Notice_Welcome_API {
 
 				$response = $this->request( 'get_subscriptions', $params );
 
+				// ── Begin get_subscriptions unreachable guard ────────────────────
+				// Same array-vs-object shape. Unguarded, the error check below reads NULL
+				// off the array and passes, (array) NULL yields [], and that empty list is
+				// written to the subscriptions transient for a FULL DAY — so the tier is
+				// resolved from nothing and stays resolved from nothing until the cache
+				// expires, long after the network recovered.
+				if ( ! is_object( $response ) ) {
+					$response = (object) [
+						'error' => __( 'We could not reach Cookie Compliance to read your plan. Please try again.', 'cookie-notice' )
+					];
+					break;
+				}
+				// ── End get_subscriptions unreachable guard ──────────────────────
+
 				// errors?
 				if ( ! empty( $response->error ) ) {
-					$response->error = $response->error;
 					break;
 				} else
 					$subscriptions = map_deep( (array) $response->data, [ $this, 'sanitize_preserve_bools' ] );
@@ -841,8 +992,19 @@ class Cookie_Notice_Welcome_API {
 				// Pre-existing domains already have their configuration in the Designer API.
 				// Only call quick_config for new domains to avoid overwriting existing
 				// regulations and settings with defaults.
-				$status_data = $cn->defaults['data'];
+				//
+				// ── Begin login status seed ──────────────────────────────────────
+				// Seeded from what is STORED, not from the defaults, for the same reason
+				// the analytics path is: every write below persists the WHOLE
+				// cookie_notice_status row while this flow only knows about three of its
+				// fields, so a defaults seed silently reset widget_version and
+				// activation_datetime on a reconnect that touched neither.
+				$status_data = array_merge(
+					$cn->defaults['data'],
+					(array) Cookie_Notice_Store::get( 'cookie_notice_status', $cn->defaults['data'], $network )
+				);
 				$status_data['subscription'] = $subscription_tier;
+				// ── End login status seed ────────────────────────────────────────
 
 				if ( ! $app_was_preexisting ) {
 					// Apply pre-configure settings from transient (mirrors register flow).
@@ -883,6 +1045,19 @@ class Cookie_Notice_Welcome_API {
 
 					$response = $this->request( 'quick_config', $params );
 
+					// ── Begin quick_config unreachable guard ─────────────────
+					// See the login unreachable guard below notify_app for why
+					// is_object() is the discriminator and why an unreachable platform
+					// must not write this row.
+					if ( ! is_object( $response ) ) {
+						$response = (object) [
+							'error' => __( 'We could not reach Cookie Compliance to finish setting up this site. Your settings are unchanged — please try again.', 'cookie-notice' )
+						];
+
+						break;
+					}
+					// ── End quick_config unreachable guard ───────────────────
+
 					if ( $response->status !== 200 ) {
 						$status_data['status'] = 'pending';
 
@@ -910,6 +1085,42 @@ class Cookie_Notice_Welcome_API {
 				];
 
 				$response = $this->request( 'notify_app', $params );
+
+				// ── Begin login unreachable guard ────────────────────────────────
+				// "The platform told us something" and "we could not reach the platform"
+				// are different answers and only the first may write this row.
+				//
+				// request() returns an ARRAY, ['error' => …], for BOTH a WP transport
+				// error and any text/html response — an nginx 502, a Cloudflare page, a
+				// WAF block. A real answer is the json_decode()d object. So is_object()
+				// is the discriminator, exactly as in get_app_config()'s last-known-good
+				// guard; `$response->status` and `empty( $response->error )` are not.
+				//
+				// Both read as a FAILURE on an array and then swallow it:
+				//
+				//   $response->status === 200   NULL === 200   false  -> else branch
+				//   empty( $response->error )   true                  -> no break
+				//
+				// so a blip wrote status='pending' over a healthy row AND fell through to
+				// the success return below, handing React subscriptions and a fresh nonce.
+				// The customer saw a successful reconnect; their site had just been
+				// downgraded to the legacy cookie bar — frontend.php gates the real widget
+				// on get_status() === 'active' — with no blocking and no consent records
+				// until the next successful pull, up to 12 hours later.
+				//
+				// This is the same defect as the config-pull P0, on the path a customer
+				// reaches when something is ALREADY wrong and they are trying to fix it.
+				//
+				// Not writing the row at all is the whole point: 'pending' is a claim
+				// about what the platform says, and here the platform said nothing.
+				if ( ! is_object( $response ) ) {
+					$response = (object) [
+						'error' => __( 'We could not reach Cookie Compliance to activate this site. Your settings are unchanged — please try again.', 'cookie-notice' )
+					];
+
+					break;
+				}
+				// ── End login unreachable guard ──────────────────────────────────
 
 				// Idempotent: "App was already active" means the API app record is already Active
 				// (StatusID != Inactive). This happens when WP options were cleared but the API-side
@@ -1063,11 +1274,40 @@ class Cookie_Notice_Welcome_API {
 							// get_dashboard() and cnReactData can expose them to the
 							// Protection tab LAWS card without a Designer API round-trip.
 							// (#1897 — LAWS card always showed "No laws selected")
+							//
+							// ── Begin regulations optimistic-write scope ─────────────
+							// is_network_options(), NOT the $network of this method, which
+							// is is_network_admin() (:98). Those are different questions
+							// and this row is not this write's alone:
+							//
+							//   this write        optimistic, so the LAWS card updates
+							//                     without waiting for the pull below
+							//   get_app_config()  AUTHORITATIVE, runs synchronously ~30
+							//                     lines down, writes the same key under
+							//                     is_network_options()
+							//
+							// All four readers — get_consent_regime() (cookie-notice.php),
+							// the LAWS card (react-admin-ajax.php), the selectedLaws
+							// bootstrap (settings.php) and the WP Consent API via the
+							// resolver — read is_network_options() too. Writing this one
+							// under is_network_admin() put it in the network row on a
+							// network-activated multisite with global_override OFF, where
+							// the pull then wrote the site row: the optimistic value
+							// became a stale orphan nothing reads, and the laws a super
+							// admin had just selected were invisible to every consumer.
+							//
+							// It survived because it only splits on that one multisite
+							// shape — on single-site all three predicates give the same
+							// answer, and the bootstrap read the same wrong row back, so
+							// a save looked like it worked.
+							$law_scope      = $cn->is_network_options();
 							$saved_law_keys = array_keys( $new_options );
-							if ( $network )
+
+							if ( $law_scope )
 								update_site_option( 'cookie_notice_app_regulations', $saved_law_keys );
 							else
 								update_option( 'cookie_notice_app_regulations', $saved_law_keys );
+							// ── End regulations optimistic-write scope ───────────────
 
 							// GDPR & others
 							$options['config']['privacyPolicyLink'] = true;
@@ -1386,6 +1626,39 @@ class Cookie_Notice_Welcome_API {
 			return $value;
 		}
 		return sanitize_text_field( $value );
+	}
+
+	/**
+	 * Dev-only proxy to request(), for the test-reset helper.
+	 *
+	 * react-admin-ajax.php's dev_reset deletes the orphan app it created, which needs
+	 * request(). It called `Cookie_Notice()->welcome->request( … )` — two faults at once:
+	 * ->welcome is Cookie_Notice_Welcome, which has no request() at all, and this class's
+	 * request() is private. Either one is a fatal, so the app deletion has never run and
+	 * every dev reset has leaked an orphan app.
+	 *
+	 * Exposed through a named dev-only door rather than by making request() public: the
+	 * reason it is private is that callers must not choose arbitrary endpoints, and that
+	 * reason does not stop being true because a test helper is convenient. The guards
+	 * below mean this does not exist on a production site.
+	 *
+	 * @param string $request
+	 * @param array  $params
+	 * @return object|array
+	 */
+	public function dev_request( $request = '', $params = [] ) {
+		if ( ! defined( 'CN_DEV_MODE' ) || ! CN_DEV_MODE )
+			return [ 'error' => 'dev_request is unavailable.' ];
+
+		if ( ! current_user_can( apply_filters( 'cn_manage_cookie_notice_cap', 'manage_options' ) ) )
+			return [ 'error' => 'Insufficient permissions.' ];
+
+		// Assigned rather than returned inline, so the census in
+		// tests/unit/request-array-response-guards.php can classify it. That check
+		// caught this call the moment it was added, which is the check working.
+		$dev_result = $this->request( $request, $params );
+
+		return $dev_result;
 	}
 
 	/**
@@ -1968,6 +2241,31 @@ class Cookie_Notice_Welcome_API {
 			]
 		);
 
+		// ── Begin consent-log unreachable guard ──────────────────────────────
+		// "We could not reach the platform" and "you have no consent records" are
+		// opposite answers, and this method used to give the same one for both: the
+		// chain below is all-negative, so on an array every arm is false and it fell
+		// to `$result = []`. react-admin-ajax.php then answered wp_send_json_success
+		// with zero logs.
+		//
+		// An admin pulling consent records for a DSAR or a regulator during a
+		// Transactional API blip was shown an EMPTY LOG AS A SUCCESS — told, on the
+		// one screen whose whole purpose is demonstrating consent, that they had
+		// none. That is the failure mode this feature exists to prevent, and it is
+		// indistinguishable from the real thing unless we say so here.
+		//
+		// WP_Error, not a string: the two legacy consumers already route a non-array
+		// to wp_send_json_error, but the two React ones test `! is_array( $raw ) ||
+		// empty( $raw )` and answer success either way, so a plain string was ALSO
+		// rendered as "0 records". A type the callers must handle explicitly is the
+		// only shape that cannot be mistaken for emptiness.
+		if ( ! is_object( $result ) ) {
+			return new WP_Error(
+				'cn_consent_logs_unreachable',
+				__( 'We could not reach Cookie Compliance to load your consent records. This does not mean there are none on file — please try again in a moment.', 'cookie-notice' )
+			);
+		}
+		// ── End consent-log unreachable guard ────────────────────────────────
 		// message?
 		if ( ! empty( $result->message ) )
 			$result = $result->message;
@@ -2008,6 +2306,31 @@ class Cookie_Notice_Welcome_API {
 
 		$result = $this->request( 'get_cookie_consent_logs', $params );
 
+		// ── Begin consent-log unreachable guard ──────────────────────────────
+		// "We could not reach the platform" and "you have no consent records" are
+		// opposite answers, and this method used to give the same one for both: the
+		// chain below is all-negative, so on an array every arm is false and it fell
+		// to `$result = []`. react-admin-ajax.php then answered wp_send_json_success
+		// with zero logs.
+		//
+		// An admin pulling consent records for a DSAR or a regulator during a
+		// Transactional API blip was shown an EMPTY LOG AS A SUCCESS — told, on the
+		// one screen whose whole purpose is demonstrating consent, that they had
+		// none. That is the failure mode this feature exists to prevent, and it is
+		// indistinguishable from the real thing unless we say so here.
+		//
+		// WP_Error, not a string: the two legacy consumers already route a non-array
+		// to wp_send_json_error, but the two React ones test `! is_array( $raw ) ||
+		// empty( $raw )` and answer success either way, so a plain string was ALSO
+		// rendered as "0 records". A type the callers must handle explicitly is the
+		// only shape that cannot be mistaken for emptiness.
+		if ( ! is_object( $result ) ) {
+			return new WP_Error(
+				'cn_consent_logs_unreachable',
+				__( 'We could not reach Cookie Compliance to load your consent records. This does not mean there are none on file — please try again in a moment.', 'cookie-notice' )
+			);
+		}
+		// ── End consent-log unreachable guard ────────────────────────────────
 		// message?
 		if ( ! empty( $result->message ) )
 			$result = $result->message;
@@ -2289,8 +2612,32 @@ class Cookie_Notice_Welcome_API {
 			// (reconnect / app-id swap). Absent on blobs written before this stamp.
 			$result['appId'] = $app_id;
 
-			// get default status data
-			$status_data = $cn->defaults['data'];
+			// ── Begin analytics status seed ──────────────────────────────────
+			// Seed from what is STORED, not from the defaults.
+			//
+			// This function writes the WHOLE cookie_notice_status row below but only
+			// knows about four of its fields. Seeded from defaults, every field it does
+			// not speak to was silently reset on write — and this runs on an HOURLY
+			// cron (wp_schedule_event 'hourly', :1905), so the reset was not a rare
+			// race, it was the steady state.
+			//
+			// widget_version was the live casualty: the config pull would set 'v2', the
+			// next analytics tick would blank it, get_banner_channel() would resolve v1
+			// (cookie-notice.php), and the site would drop off the v2 bundle within the
+			// hour — with Application.WidgetVersion still reading 'v2' on the platform,
+			// which is what made it unfindable from the backend. The partial-response
+			// guard added to get_app_config does not help here: that guards the config
+			// path, and this is a different writer of the same row.
+			//
+			// Seeding from the stored row fixes the whole class rather than that one
+			// field, so a field added to the row later does not have to remember to
+			// come back and edit this function. array_merge against the defaults keeps
+			// the shape complete if the stored row predates a field.
+			$status_data = array_merge(
+				$cn->defaults['data'],
+				(array) Cookie_Notice_Store::get( 'cookie_notice_status', $cn->defaults['data'], $network )
+			);
+			// ── End analytics status seed ────────────────────────────────────
 
 			// update status
 			$status_data['status'] = $cn->get_status();
@@ -2307,6 +2654,19 @@ class Cookie_Notice_Welcome_API {
 				$status_data['threshold_exceeded'] = $this->evaluate_threshold_exceeded(
 					isset( $result['cycleUsage'] ) ? $result['cycleUsage'] : null
 				);
+			} else {
+				// EXPLICIT, because the seed above changed what "no branch taken" means.
+				// While $status_data came from the defaults, falling past this if left
+				// threshold_exceeded false; seeded from the stored row it would now
+				// inherit whatever was there. That matters on exactly one path and it is
+				// a paying one: a Free site that was over its limit upgrades to Pro, the
+				// subscription is no longer 'basic', and the stale true would persist —
+				// leaving app_blocking forced off (the quota force in cookie-notice.php)
+				// on a site that just paid to have it on.
+				//
+				// A plan with no threshold cannot exceed one, so false is not a reset
+				// here, it is the answer.
+				$status_data['threshold_exceeded'] = false;
 			}
 
 			if ( $network ) {
@@ -3058,6 +3418,39 @@ class Cookie_Notice_Welcome_API {
 		// get status data
 		$status_data = $cn->defaults['data'];
 
+		// ── Begin last-known-good guard ──────────────────────────────────────────
+		//
+		// Distinguishes "the platform told us something" from "we could not reach the
+		// platform". Only the first is allowed to overwrite what we already know.
+		//
+		// request() builds an ARRAY itself — [ 'error' => … ] — for a WP transport
+		// failure (is_wp_error, :1849) and for ANY text/html response (:1855), which is
+		// what an nginx 502, a Cloudflare error page and a WAF block all produce. A real
+		// platform answer is the json_decode()d OBJECT from :1861. So `is_object()` is
+		// the discriminator, and an invalid-JSON body (json_decode → null) correctly
+		// lands on the unreachable side too.
+		//
+		// This existed as a P0: $status_data is seeded from the DEFAULTS above and was
+		// then written unconditionally below, so one transient blip persisted
+		// status='', subscription='basic', widget_version='' over good values. Because
+		// frontend.php:59 computes compliance from status === 'active', that took the
+		// site off the Cookie Compliance widget entirely and onto the legacy cookie bar
+		// — no pre-consent autoblocking, no consent records — until the next SUCCESSFUL
+		// pull, with nothing telling the customer. Do not collapse this back into an
+		// unconditional write.
+		$platform_answered = is_object( $response );
+		$store_status      = true;
+
+		// The row as it stands before this pull. The failure branch below reloads it
+		// wholesale; the success branch needs it too, for fields a SUCCESSFUL response
+		// can omit — see the widget_version partial-response guard. Read once, here, so
+		// both branches are looking at the same snapshot.
+		$stored_status_data = array_merge(
+			$cn->defaults['data'],
+			(array) Cookie_Notice_Store::get( 'cookie_notice_status', $cn->defaults['data'], $network )
+		);
+		// ── End last-known-good guard ────────────────────────────────────────────
+
 		// get config
 		if ( ! empty( $response->data ) ) {
 			// sanitize data
@@ -3105,10 +3498,29 @@ class Cookie_Notice_Welcome_API {
 			if ( ! empty( $result_raw['SubscriptionType'] ) )
 				$status_data['subscription'] = $cn->check_subscription( strtolower( $result_raw['SubscriptionType'] ) );
 
+			// ── Begin widget_version partial-response guard ──────────────────
 			// Backend-controlled banner build selector (rides the same get_config
-			// response as SubscriptionType). 'v2' selects the v2 build; anything
-			// else (incl. absent/null) resolves to v1 in get_banner_channel().
-			$status_data['widget_version'] = ! empty( $result_raw['WidgetVersion'] ) ? sanitize_key( $result_raw['WidgetVersion'] ) : '';
+			// response as SubscriptionType). 'v2' selects the v2 build; an explicit
+			// null or empty value means v1, and get_banner_channel() resolves
+			// anything that is not 'v2' to v1.
+			//
+			// KEYED ON array_key_exists, NOT on the value — matching SubscriptionType
+			// directly above, which this used to be the only field near here NOT to
+			// guard. The distinction is between "the platform told us this app is on
+			// v1" (key present, value null/'') and "the platform did not mention the
+			// field at all" (key absent). Only the first is an answer. Treating the
+			// second as one silently reverted every v2 customer to v1 the moment the
+			// field stopped being serialised — no error, no signal, and the flag
+			// staying 'v2' in the database the whole time, which is precisely what
+			// makes it unfindable.
+			//
+			// Not hypothetical: the field is a recent addition to the live-serve
+			// query, so every response predating that deploy omitted it.
+			if ( array_key_exists( 'WidgetVersion', $result_raw ) )
+				$status_data['widget_version'] = ! empty( $result_raw['WidgetVersion'] ) ? sanitize_key( $result_raw['WidgetVersion'] ) : '';
+			else
+				$status_data['widget_version'] = $stored_status_data['widget_version'] ?? $status_data['widget_version'];
+			// ── End widget_version partial-response guard ────────────────────
 
 			// Usage rides the SAME response as SubscriptionType above. Reading it
 			// instead from the separately-refreshed cookie_notice_app_analytics
@@ -3417,18 +3829,40 @@ class Cookie_Notice_Welcome_API {
 				error_log( '[Cookie Notice] get_app_config - No data in response. Error: ' . ( ! empty( $response->error ) ? $response->error : 'unknown' ) );
 			}
 
-			if ( ! empty( $response->error ) ) {
+			// ── Begin failed-pull status resolution ──────────────────────────
+			// Start from what is STORED, not from the defaults: neither branch below
+			// learned anything about subscription / widget_version / activation, so
+			// those must survive. The snapshot was taken before the pull and already
+			// merged against the defaults, so the shape is complete even if the stored
+			// option predates a field.
+			$status_data = $stored_status_data;
+
+			if ( $platform_answered && ! empty( $response->error ) ) {
+				// Authoritative: the platform answered, and it answered about this
+				// app's status specifically. 'App is not published yet' is a real
+				// signal and must still land.
 				if ( $response->error == 'App is not published yet' )
 					$status_data['status'] = 'pending';
 				else
 					$status_data['status'] = '';
+			} else {
+				// Unreachable platform — we learned nothing. Keep every stored value
+				// and write nothing at all.
+				$store_status = false;
 			}
+			// ── End failed-pull status resolution ────────────────────────────
 		}
 
-		if ( $network )
-			update_site_option( 'cookie_notice_status', $status_data );
-		else
-			update_option( 'cookie_notice_status', $status_data, false );
+		// ── Begin guarded status write ───────────────────────────────────────────
+		// The guard is the P0 fix: this write used to be unconditional, so a failed
+		// pull persisted the defaults seeded above over good values.
+		if ( $store_status ) {
+			if ( $network )
+				update_site_option( 'cookie_notice_status', $status_data );
+			else
+				update_option( 'cookie_notice_status', $status_data, false );
+		}
+		// ── End guarded status write ─────────────────────────────────────────────
 
 		// get current status data
 		$status_data_old = $cn->get_status_data();

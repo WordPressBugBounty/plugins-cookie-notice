@@ -811,25 +811,20 @@ class Cookie_Notice_Settings {
 					<label for="cn-faq-1" class="cn-toggle-item">
 						<input id="cn-faq-1" type="checkbox" />
 						<span class="cn-toggle-heading">' . esc_html__( 'Does Cookie Compliance make my site fully compliant with GDPR/CCPA and other privacy regulations?', 'cookie-notice' ) . '</span>
-						<span class="cn-toggle-body">' . esc_html__( 'It is not possible to provide the required technical compliance features using only a WordPress plugin. Features like consent record storage, purpose categories and script blocking that bring your site into full compliance with privacy regulations are only available through the Cookie Compliance integration.', 'cookie-notice' ) . '
+						<span class="cn-toggle-body">' . esc_html__( 'Not by itself — it gives you what you need to configure it that way. A WordPress plugin on its own cannot provide the required technical compliance features; connected to Cookie Compliance you get script blocking, consent purpose categories and consent record storage, covering requirements for over 100 countries and legal jurisdictions. Whether your site is fully compliant also depends on how you configure them and on how your site uses personal data.', 'cookie-notice' ) . '</span>
 					</label>
 					<label for="cn-faq-2" class="cn-toggle-item">
 						<input id="cn-faq-2" type="checkbox" />
-						<span class="cn-toggle-heading">' . esc_html__( 'Does Cookie Compliance make my site fully compliant with GDPR/CCPA?', 'cookie-notice' ) . '</span>
-						<span class="cn-toggle-body">' . esc_html__( 'Yes! The plugin + web application version includes technical compliance features to meet requirements for over 100 countries and legal jurisdictions.', 'cookie-notice' ) . '</span>
-					</label>
-					<label for="cn-faq-3" class="cn-toggle-item">
-						<input id="cn-faq-3" type="checkbox" />
 						<span class="cn-toggle-heading">' . esc_html__( 'Is Cookie Compliance free?', 'cookie-notice' ) . '</span>
 						<span class="cn-toggle-body">' . esc_html__( 'Yes, but with limits. Cookie Compliance includes both free and paid plans to choose from depending on your needs and your website monthly traffic.', 'cookie-notice' ) . '</span>
 					</label>
-					<label for="cn-faq-4" class="cn-toggle-item">
-						<input id="cn-faq-4" type="checkbox" />
+					<label for="cn-faq-3" class="cn-toggle-item">
+						<input id="cn-faq-3" type="checkbox" />
 						<span class="cn-toggle-heading">' . esc_html__( 'Where can I find pricing options?', 'cookie-notice' ) . '</span>
 						<span class="cn-toggle-body">' . esc_html__( 'You can learn more about the features and pricing by visiting the Cookie Compliance website here:', 'cookie-notice' ) . ' <a href="https://cookie-compliance.co/?utm_campaign=pricing+options&utm_source=wordpress&utm_medium=textlink" target="_blank">https://cookie-compliance.co</a></span>
 					</label>
-					<label for="cn-faq-5" class="cn-toggle-item">
-						<input id="cn-faq-5" type="checkbox" />
+					<label for="cn-faq-4" class="cn-toggle-item">
+						<input id="cn-faq-4" type="checkbox" />
 						<span class="cn-toggle-heading">' . esc_html__( 'Can I add Cookie Compliance with an AI assistant?', 'cookie-notice' ) . '</span>
 						<span class="cn-toggle-body">' . esc_html__( 'Yes. Point an MCP-capable assistant (Claude Code, Cursor, and others) at the Cookie Compliance MCP server — no account is required to start. On WordPress, keep using this plugin for placement rather than pasting a snippet.', 'cookie-notice' ) . ' <a href="https://cookie-compliance.co/mcp/?utm_campaign=mcp+faq&utm_source=wordpress&utm_medium=textlink" target="_blank" rel="noopener noreferrer">https://cookie-compliance.co/mcp/</a></span>
 					</label>
@@ -2698,7 +2693,6 @@ class Cookie_Notice_Settings {
 	public function admin_enqueue_scripts( $page ) {
 		// get main instance
 		$cn = Cookie_Notice();
-		$is_network = $cn->is_network_admin();
 
 		if ( $page === 'toplevel_page_cookie-notice' ) {
 			$ui_mode = $cn->options['general']['ui_mode'];
@@ -2798,10 +2792,50 @@ class Cookie_Notice_Settings {
 				// because nothing is waiting on it. Admins still get live data on every
 				// visit without touching "Pull Configuration".
 
-				// Read notification rules from shared JSON config.
+				// ── Begin React notification rule slot filter ────────────────
+				// Read notification rules from shared JSON config, and ship React only
+				// the slots React renders.
+				//
+				// notifications.json holds two DISJOINT rule languages under one roof,
+				// told apart by `slot`. The topBar and sidebar rules condition on
+				// tier / usagePercent / thresholdExceeded, which is what
+				// useNotifications.js implements. The wpDashboard rules condition on
+				// `state`, a key that evaluator does not implement at all — and an
+				// unknown condition key there is not rejected, it is simply never
+				// checked, so every wpDashboard rule passes every guard and the
+				// max-priority fold hands back whichever has the highest number.
+				//
+				// Today that is dashboard-free-over, "Protection paused — limit
+				// reached", resolved for every site on earth including a healthy Pro
+				// one. It is inert only because the hook happens to return topBar and
+				// sidebar and nothing reads the third key. That is one accidental
+				// read away from being live, and this file was handing it the
+				// ammunition by shipping all rules wholesale.
+				//
+				// Filtering at the wire is the fix that matches the real structure:
+				// the PHP evaluator already narrows to wpDashboard on its side, so
+				// after this each evaluator sees only the language it speaks. Adding
+				// dashboard states — as the blocking-gap work does — is then no longer
+				// a way to change what React resolves.
 				$cn_rules_json = file_get_contents( COOKIE_NOTICE_PATH . 'includes/notifications.json' );
 				$cn_rules_data = $cn_rules_json !== false ? json_decode( $cn_rules_json, true ) : null;
-				$cn_notification_rules = is_array( $cn_rules_data ) ? ( $cn_rules_data['rules'] ?? [] ) : [];
+				$cn_all_rules  = is_array( $cn_rules_data ) ? ( $cn_rules_data['rules'] ?? [] ) : [];
+
+				// ALLOWLIST, not a denylist. `!== 'wpDashboard'` would be fail-open: a
+				// fourth slot added to notifications.json would ship to React by
+				// default, where useNotifications.js skips condition keys it does not
+				// implement and the rule passes every guard again — the same bug, via a
+				// name nobody thought to exclude. Naming what React renders means a new
+				// slot is inert until someone deliberately adds it here.
+				$cn_react_slots = [ 'topBar', 'sidebar' ];
+
+				$cn_notification_rules = array_values( array_filter(
+					$cn_all_rules,
+					function ( $rule ) use ( $cn_react_slots ) {
+						return in_array( $rule['slot'] ?? '', $cn_react_slots, true );
+					}
+				) );
+				// ── End React notification rule slot filter ──────────────────
 
 				wp_localize_script( Cookie_Notice::REACT_ADMIN_HANDLE, Cookie_Notice::REACT_ADMIN_INLINE_KEYWORD, [
 					'ajaxURL'            => admin_url( 'admin-ajax.php' ),
@@ -2822,17 +2856,32 @@ class Cookie_Notice_Settings {
 					'devMode'            => defined( 'CN_DEV_MODE' ) && CN_DEV_MODE && current_user_can( 'manage_options' ),
 					'welcomeDismissedAt'      => get_option( 'cookie_notice_welcome_dismissed', '' ),
 					'setupWizardComplete'     => (bool) get_option( 'cookie_notice_setup_wizard_complete', false ),
-					'selectedLaws'       => Cookie_Notice_Store::get( 'cookie_notice_app_regulations', [], $cn->is_network_admin() ),
+					// is_network_options(), not is_network_admin() — this row's
+					// writers and its other three readers all use it. See the regulations
+					// optimistic-write scope note in welcome-api.php. Reading it under
+					// is_network_admin() here is what made the split invisible: the law
+					// save wrote the same wrong row, so a save-then-reload looked correct.
+					'selectedLaws'       => Cookie_Notice_Store::get( 'cookie_notice_app_regulations', [], $cn->is_network_options() ),
 					'wpPages'            => array_map( function( $p ) {
 						return [ 'id' => $p->ID, 'title' => $p->post_title ];
 					}, get_pages( [ 'sort_column' => 'post_title' ] ) ?: [] ),
 				'siteLocale'         => get_locale(),
 				'detectedPlugins'    => cn_detect_active_plugins(),
-				'bannerDesign'       => Cookie_Notice_Store::get( 'cookie_notice_app_design', [], $is_network ),
+					// is_network_options(), not is_network_admin() — same reason as selectedLaws
+					// above. cookie_notice_app_design is written by get_app_config() under
+					// is_network_options(), so on network-activated multisite with
+					// global_override off this read went to the network row the pull never
+					// writes, and the React banner designer opened on defaults instead of
+					// the customer's own design.
+					'bannerDesign'       => Cookie_Notice_Store::get( 'cookie_notice_app_design', [], $cn->is_network_options() ),
 				'displayType'        => $cn->options['general']['displayType'] ?? 'floating',
 				'appUrl'             => Cookie_Notice()->get_url( 'host' ),
-				'lastSynced'         => ( function() use ( $is_network ) {
-					$blocking = Cookie_Notice_Store::get( 'cookie_notice_app_blocking', [], $is_network );
+					// Likewise: cookie_notice_app_blocking is a get_app_config() row, so it
+					// is read under is_network_options(). Under is_network_admin() this came back
+					// empty on override-off multisite and "last synced" rendered blank on a
+					// site that syncs normally.
+				'lastSynced'         => ( function() use ( $cn ) {
+					$blocking = Cookie_Notice_Store::get( 'cookie_notice_app_blocking', [], $cn->is_network_options() );
 					return ! empty( $blocking['lastUpdated'] ) ? $blocking['lastUpdated'] : '';
 				} )(),
 				'purgeNonce'         => wp_create_nonce( 'cn-purge-cache' ),

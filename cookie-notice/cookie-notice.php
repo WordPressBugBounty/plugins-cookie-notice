@@ -2,7 +2,7 @@
 /*
 Plugin Name: Cookie Compliance for WordPress – Cookie Consent, GDPR & CCPA
 Description: Cookie Compliance for WordPress (formerly "Compliance by Hu-manity.co" / "Cookie Notice") — the WordPress component of Cookie Compliance, the consent management platform by Hu-manity.co. Cookie consent banner, pre-consent script blocking, Google Consent Mode v2, WP Consent API integration, and consent records for GDPR, CCPA and global data privacy laws.
-Version: 3.1.11
+Version: 3.1.12
 Author: Hu-manity.co
 Author URI: https://hu-manity.co/
 Plugin URI: https://cookie-compliance.co/
@@ -53,6 +53,23 @@ class Cookie_Notice {
 	const REACT_ADMIN_HANDLE          = 'cookie-notice-react-admin';
 	const REACT_ADMIN_BUNDLE_BASENAME = 'cn-admin-react.js';
 	const REACT_ADMIN_INLINE_KEYWORD  = 'cnReactData';
+
+	// ── Begin consent law lists ──────────────────────────────────────────────
+	/**
+	 * Opt-in laws: explicit prior consent required before any non-strictly-necessary
+	 * processing. Visiting the site is NOT implied consent under any of these regimes,
+	 * so a default-allow blocking posture is a gap wherever one of these is selected.
+	 */
+	const OPT_IN_LAWS = [ 'gdpr', 'ukpecr', 'lgpd', 'popia' ];
+
+	/**
+	 * Opt-out laws: processing permitted by default, visitor must actively decline.
+	 * CCPA/CPRA + state analogues, plus PIPEDA (express consent, implied by conduct).
+	 * A default-allow posture is the INTENDED model here, not a defect — see
+	 * get_consent_regime().
+	 */
+	const OPT_OUT_LAWS = [ 'ccpa', 'otherus', 'pipeda' ];
+	// ── End consent law lists ────────────────────────────────────────────────
 
 	private $status_data = [
 		'status'				=> '',
@@ -219,7 +236,7 @@ class Cookie_Notice {
 			'threshold_exceeded'	=> false,
 			'activation_datetime'	=> 0
 		],
-		'version'	=> '3.1.11'
+		'version'	=> '3.1.12'
 	];
 
 	/**
@@ -721,6 +738,70 @@ class Cookie_Notice {
 			&& ! empty( $this->options['general']['app_blocking_engine'] );
 	}
 	// ── End blocking_is_active accessor (DEC-012)
+
+	// ── Begin consent regime resolver
+	/**
+	 * Which consent regime do this site's SELECTED laws put it under?
+	 *
+	 *   'optin'   at least one opt-in law selected — prior consent required, so a
+	 *             default-allow posture is a gap
+	 *   'optout'  only opt-out laws selected — default-allow is the LAWFUL model and
+	 *             must not be reported as a gap
+	 *   ''        no laws selected, or the option is unreadable — we have no basis to
+	 *             judge. NOT the same as "no law applies"; callers must treat it as
+	 *             "say nothing", never as "compliant" or as "exposed".
+	 *
+	 * Opt-in wins when both are present: the strictest selected regime applies sitewide,
+	 * matching how the banner itself behaves.
+	 *
+	 * WHY THIS IS CORE AND NOT MODULE-LOCAL. The logic previously lived only in
+	 * Cookie_Notice_Modules_WP_Consent_API::get_consent_type(), behind that class's
+	 * is_enabled() gate, which returns '' whenever the WP Consent API integration is
+	 * switched off. That is right for answering "what should we tell WP Consent API",
+	 * and wrong for every other caller: the admin dashboard has to decide whether a
+	 * default-allow posture is a gap on a site that has never installed WP Consent API
+	 * at all. Reusing the gated accessor there would have graded every such site as
+	 * having no regime, i.e. silently suppressed a real GDPR warning. The module now
+	 * delegates here and keeps its own gate on top.
+	 *
+	 * SCOPE PREDICATE IS is_network_options(), which is the predicate the config pull
+	 * WRITES under — `is_multisite() && is_plugin_network_active() && global_override`
+	 * (see $network in welcome-api.php's get_app_config, and the regulations write it
+	 * guards). The module this was lifted from used bare is_plugin_network_active(),
+	 * which is a DIFFERENT predicate and a real bug: on a network-activated multisite
+	 * with global_override OFF — the ordinary "network-activate, configure per site"
+	 * setup — the pull writes the SITE row while that predicate reads the NETWORK row
+	 * and comes back empty. A genuine GDPR site would then resolve to '' and have its
+	 * warning suppressed, which is the exact failure this resolver exists to prevent,
+	 * one scope over. includes/store.php's own header warns these predicates are not
+	 * interchangeable; this is what it is warning about.
+	 *
+	 * Changing it here also changes what the WP Consent API module reports in that
+	 * same configuration, from '' to the site's real regime. That is the point: it was
+	 * reading a row nothing had written.
+	 *
+	 * THIS DESCRIBES CONFIGURATION, NOT ANY PARTICULAR VISITOR. With geolocation on, one
+	 * install serves opt-in in the EU and opt-out in the US from the same settings, so
+	 * copy built on this must speak about the selected laws and must not claim an
+	 * outcome for the site as a whole.
+	 *
+	 * @return string 'optin' | 'optout' | ''
+	 */
+	public function get_consent_regime() {
+		$regulations = Cookie_Notice_Store::get( 'cookie_notice_app_regulations', [], $this->is_network_options() );
+
+		if ( ! is_array( $regulations ) || empty( $regulations ) )
+			return '';
+
+		if ( ! empty( array_intersect( $regulations, self::OPT_IN_LAWS ) ) )
+			return 'optin';
+
+		if ( ! empty( array_intersect( $regulations, self::OPT_OUT_LAWS ) ) )
+			return 'optout';
+
+		return '';
+	}
+	// ── End consent regime resolver
 
 	/**
 	 * Get cookie compliance status data.
@@ -1788,11 +1869,23 @@ class Cookie_Notice {
 
 		// compliance only
 		if ( $status === 'active' ) {
-			// get analytics data options
-			if ( $network )
-				$analytics = get_site_option( 'cookie_notice_app_analytics', [] );
-			else
-				$analytics = get_option( 'cookie_notice_app_analytics', [] );
+			// ── Begin update-notice analytics scope ──────────────────────
+			// is_network_options(), NOT the $network of this method — which is
+			// is_network_admin() (:1792) and stays that, because the dismissal
+			// writes and the $allow_notice logic around it genuinely are about
+			// which screen the admin is on. This read is not: the row is written
+			// by get_app_config() under is_network_options(), so asking where the
+			// admin is standing reads a different row than the pull fills.
+			//
+			// On a network-activated multisite with global_override on, that meant
+			// a per-site administrator got $analytics = [] and the quota warning
+			// below never rendered — the notice whose entire job is to tell a site
+			// it is about to lose protection, silently absent on exactly the sites
+			// configured to share one app. The reverse shape misses too: a network
+			// admin on a multisite WITHOUT global_override reads the network row,
+			// which the pull never writes.
+			$analytics = Cookie_Notice_Store::get( 'cookie_notice_app_analytics', [], $this->is_network_options() );
+			// ── End update-notice analytics scope ────────────────────────
 
 			if ( is_multisite() && ( ( $network && ! $this->is_plugin_network_active() && ! $this->network_options['general']['global_override'] ) || ( ! $network && $this->is_plugin_network_active() && $this->network_options['general']['global_override'] ) ) )
 				$allow_notice = false;

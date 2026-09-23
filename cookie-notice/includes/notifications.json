@@ -77,8 +77,8 @@
 			"slot": "wpDashboard",
 			"condition": { "state": "banner_only" },
 			"title": "Your banner shows \u2014 but nothing is blocked",
-			"gapLabel": "Not protected",
-			"description": "Scripts fire before consent. Connect free to protect.",
+			"gapLabel": "Blocking off",
+			"description": "Scripts fire before consent. Connect free to turn blocking on.",
 			"cta": { "label": "Connect free to activate protection \u2192", "action": "openWelcomeModal" },
 			"ctaSmall": "No credit card \u00b7 protects up to 10,000 visits / month"
 		},
@@ -88,9 +88,9 @@
 			"priority": 20,
 			"slot": "wpDashboard",
 			"condition": { "state": "free_under" },
-			"title": "Protected, with gaps to close",
+			"title": "Blocking is on, with gaps to close",
 			"gapLabel": "Free plan",
-			"description": "Close the gaps below to fully cover your ad stack.",
+			"description": "Close the gaps below to cover more of your ad stack.",
 			"cta": { "label": "Close all gaps with Pro \u2192", "action": "openWelcomeModal" },
 			"ctaSmall": "Unlimited visits \u00b7 every consent mode \u00b7 lifetime records"
 		},
@@ -124,10 +124,34 @@
 			"priority": 10,
 			"slot": "wpDashboard",
 			"condition": { "state": "pro" },
-			"title": "Fully protected",
-			"gapLabel": "All systems active",
-			"description": "Everything\u2019s on. Nothing to do.",
+			"title": "Protection active",
+			"gapLabel": "All features on",
+			"description": "Script blocking, consent categories and consent records are on for this site. Whether your site is fully compliant also depends on your own setup and the scripts it runs.",
 			"cta": { "label": "View consent & traffic analytics \u2192", "action": "openWelcomeModal" }
+		},
+		{
+			"id": "dashboard-engine-off",
+			"type": "critical",
+			"priority": 95,
+			"slot": "wpDashboard",
+			"condition": { "state": "engine_off" },
+			"title": "Script blocking is off",
+			"gapLabel": "Nothing is held",
+			"description": "No scripts are being held for anyone, in any region, whatever a visitor\u2019s privacy signal says. Your banner still shows and still records consent.",
+			"cta": { "label": "Turn script blocking on \u2192", "action": "openWelcomeModal" },
+			"ctaSmall": "Switch the script blocking engine back on"
+		},
+		{
+			"id": "dashboard-posture-gap",
+			"type": "warning",
+			"priority": 85,
+			"slot": "wpDashboard",
+			"condition": { "state": "posture_gap" },
+			"title": "Scripts run before visitors choose",
+			"gapLabel": "Allowed by default",
+			"description": "Autoblocking is set to allow by default, and the laws you selected ask for consent first. Scripts are still held once someone declines or sends a Global Privacy Control signal.",
+			"cta": { "label": "Review your autoblocking setting \u2192", "action": "openWelcomeModal" },
+			"ctaSmall": "Required where you have selected an opt-in law"
 		}
 	]
 }

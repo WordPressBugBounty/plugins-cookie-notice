@@ -41,11 +41,18 @@ class Cookie_Notice_Consent_Logs_Date_List_Table extends WP_List_Table {
 		// get main instance
 		$cn = Cookie_Notice();
 
-		// get consent logs
-		if ( is_multisite() && $cn->is_network_admin() && $cn->is_plugin_network_active() && $cn->network_options['general']['global_override'] )
-			$analytics = get_site_option( 'cookie_notice_app_analytics', [] );
-		else
-			$analytics = get_option( 'cookie_notice_app_analytics', [] );
+		// ── Begin consent-log analytics scope ────────────────────────────────
+		// is_network_options(), like every other reader of a get_app_config() row.
+		// This was hand-spelled with a surplus is_network_admin() conjunct, which asks
+		// WHERE THE ADMIN IS STANDING rather than WHERE THE ROW LIVES — and the pull
+		// never consults the former. On a network-activated multisite with
+		// global_override on, get_app_config() writes the network row, so a per-site
+		// administrator opening Privacy Consent read the site row instead: empty, and
+		// the table rendered a month of zeroes over real consent records. The tab is
+		// reachable from both admin contexts (settings.php), so this is not a
+		// network-admin-only screen that could get away with the extra conjunct.
+		$analytics = Cookie_Notice_Store::get( 'cookie_notice_app_analytics', [], $cn->is_network_options() );
+		// ── End consent-log analytics scope ──────────────────────────────────
 
 		// get date format
 		$format = get_option( 'date_format' );

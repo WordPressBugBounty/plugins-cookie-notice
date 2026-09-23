@@ -240,7 +240,7 @@ class Cookie_Notice_Frontend {
 
 				// bestwebsoft recaptcha compatibility
 				if ( cn_is_plugin_active( 'bestwebsoftrecaptcha', 'captcha' ) )
-					include_once( COOKIE_NOTICE_PATH . 'includes/modules/bestwebsoft-recaptcha/bestwebsoft-recaptcha.php' );
+					include_once( COOKIE_NOTICE_PATH . 'includes/modules/bestwebsoft-forms/bestwebsoft-forms.php' );
 			}
 			// ── End captcha-rescue gate (DEC-012)
 		}

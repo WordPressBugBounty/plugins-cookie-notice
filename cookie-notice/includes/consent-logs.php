@@ -48,6 +48,11 @@ class Cookie_Notice_Consent_Logs {
 		if ( $dt && $dt->format( 'Y-m-d' ) === $date ) {
 			$data = Cookie_Notice()->welcome_api->get_cookie_consent_logs( $date );
 
+			// Unreachable is not empty. Without this the table renders as a clean,
+			// successful "no records" during an outage.
+			if ( is_wp_error( $data ) )
+				wp_send_json_error( $data->get_error_message() );
+
 			if ( is_array( $data ) )
 				wp_send_json_success( $this->get_cookie_consent_logs_table( $data ) );
 			else

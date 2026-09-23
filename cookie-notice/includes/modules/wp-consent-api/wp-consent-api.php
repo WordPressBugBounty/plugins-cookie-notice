@@ -57,18 +57,18 @@ if ( ! defined( 'ABSPATH' ) )
 class Cookie_Notice_Modules_WP_Consent_API {
 
 	/**
-	 * Opt-in laws: explicit prior consent required before any
-	 * non-strictly-necessary processing. Visiting the site is NOT
-	 * implied consent under any of these regimes.
+	 * Law lists, kept as aliases of the canonical ones on Cookie_Notice.
+	 *
+	 * The definitions moved to the main class so the dashboard can resolve a
+	 * regime without this integration being enabled — see
+	 * Cookie_Notice::get_consent_regime(). These names stay because they are
+	 * public constants on a shipped class and something outside the plugin may
+	 * reference them; they must never be given their own values again, or the
+	 * two copies drift and the banner and this filter start disagreeing about
+	 * which regime a site is under.
 	 */
-	const OPT_IN_LAWS = [ 'gdpr', 'ukpecr', 'lgpd', 'popia' ];
-
-	/**
-	 * Opt-out laws: processing permitted by default; visitor must
-	 * actively decline. CCPA/CPRA + state analogues, plus PIPEDA
-	 * (express-consent-but-implied-by-conduct).
-	 */
-	const OPT_OUT_LAWS = [ 'ccpa', 'otherus', 'pipeda' ];
+	const OPT_IN_LAWS  = Cookie_Notice::OPT_IN_LAWS;
+	const OPT_OUT_LAWS = Cookie_Notice::OPT_OUT_LAWS;
 
 	/**
 	 * Notice dismissal flag name. Per-site, or per-network on
@@ -147,21 +147,16 @@ class Cookie_Notice_Modules_WP_Consent_API {
 	 * @return string
 	 */
 	public function get_consent_type( $default = '' ): string {
+		// The is_enabled() gate stays HERE and is not pushed down into
+		// get_consent_regime(). It answers "should we speak to WP Consent API at
+		// all", which is this integration's question alone — the dashboard must
+		// still resolve a regime on a site that has the toggle off, or a real
+		// opt-in site would be graded as having no regime and its warning
+		// suppressed. Same reason the regime lookup itself moved to the main class.
 		if ( ! $this->is_enabled() )
 			return '';
 
-		$regulations = Cookie_Notice_Store::get( 'cookie_notice_app_regulations', [], Cookie_Notice()->is_plugin_network_active() );
-
-		if ( ! is_array( $regulations ) || empty( $regulations ) )
-			return '';
-
-		if ( ! empty( array_intersect( $regulations, self::OPT_IN_LAWS ) ) )
-			return 'optin';
-
-		if ( ! empty( array_intersect( $regulations, self::OPT_OUT_LAWS ) ) )
-			return 'optout';
-
-		return '';
+		return Cookie_Notice()->get_consent_regime();
 	}
 
 	/**
