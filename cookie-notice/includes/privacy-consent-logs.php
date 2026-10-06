@@ -38,6 +38,10 @@ class Cookie_Notice_Privacy_Consent_logs {
 		if ( ! current_user_can( apply_filters( 'cn_manage_cookie_notice_cap', 'manage_options' ) ) )
 			wp_send_json_error();
 
+		// only where the screen shows consent logs (multisite: the scope that serves the app)
+		if ( ! Cookie_Notice()->settings->consent_logs_in_scope() )
+			wp_send_json_error( Cookie_Notice()->settings->consent_logs_scope_message() );
+
 		$data = Cookie_Notice()->welcome_api->get_privacy_consent_logs();
 
 		// Unreachable is not empty. Without this the table renders as a clean,

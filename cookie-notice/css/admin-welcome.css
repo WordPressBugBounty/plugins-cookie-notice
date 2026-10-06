@@ -2096,3 +2096,36 @@
 	color: #6b7280;
 	text-align: center;
 }
+
+/* Sign-in: which app should this site use ( none of the account's apps is this site's ) */
+.cn-login-app-list {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin: 0 0 12px;
+}
+.cn-login-app-option {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 4px 10px;
+	padding: 10px 14px;
+	border: 1px solid #dcdcde;
+	border-radius: 6px;
+	cursor: pointer;
+	overflow-wrap: anywhere;
+}
+.cn-login-app-name {
+	font-weight: 600;
+}
+.cn-login-app-domain,
+.cn-login-app-badge,
+.cn-login-app-note {
+	font-size: 12px;
+	color: #6b7280;
+}
+.cn-login-app-badge {
+	background: #f6f7f7;
+	border-radius: 10px;
+	padding: 1px 8px;
+}

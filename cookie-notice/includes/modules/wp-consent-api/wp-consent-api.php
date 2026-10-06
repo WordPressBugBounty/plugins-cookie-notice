@@ -262,17 +262,8 @@ class Cookie_Notice_Modules_WP_Consent_API {
 		if ( ! Cookie_Notice()->can_write_at_scope( $network ) )
 			wp_die( esc_html( Cookie_Notice()->network_scope_denied_message() ), '', [ 'response' => 403 ] );
 
-		$options = Cookie_Notice_Store::get( 'cookie_notice_options', [], $network );
-
-		if ( ! is_array( $options ) )
-			$options = [];
-
-		$options['wp_consent_api'] = false;
-
-		if ( $network )
-			update_site_option( 'cookie_notice_options', $options );
-		else
-			update_option( 'cookie_notice_options', $options );
+		// only this key, on a fresh read (Cookie_Notice::update_general_option_keys())
+		Cookie_Notice()->update_general_option_keys( [ 'wp_consent_api' => false ], $network );
 
 		$this->set_notice_dismissed();
 

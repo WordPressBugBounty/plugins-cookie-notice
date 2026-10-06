@@ -185,6 +185,12 @@ class Cookie_Notice_Welcome {
 		if ( $action === 'upgrade-plugin' && strpos( $plugin, 'cookie-notice.php' ) !== false )
 			return;
 
+		// No welcome flow (?welcome=1 modal, admin-welcome.js) on a site the network manages:
+		// it connects, configures and pays for the NETWORK's app, and its settings form is
+		// greyed out. Its requests are refused there too (Cookie_Notice_Welcome_API::api_request()).
+		if ( Cookie_Notice()->settings->network_managed() )
+			return;
+
 		add_action( 'admin_enqueue_scripts', [ $this, 'admin_enqueue_scripts' ] );
 		add_action( 'admin_footer', [ $this, 'admin_footer' ] );
 	}
@@ -316,7 +322,7 @@ class Cookie_Notice_Welcome {
 							<h3 class="cn-pricing-select">' . esc_html__( 'Select plan', 'cookie-notice' ) . ':</h3>
 							<div class="cn-pricing-type cn-checkmark-wrapper">
 								<label for="pricing-type-monthly"><input id="pricing-type-monthly" type="radio" name="cn_pricing_type" value="monthly" checked><span class="cn-pricing-toggle toggle-left"><span class="cn-checkmark-container"><span class="cn-checkmark"></span></span><span class="cn-label">' . esc_html__( 'Monthly', 'cookie-notice' ) . '</span></span></label>
-								<label for="pricing-type-yearly"><input id="pricing-type-yearly" type="radio" name="cn_pricing_type" value="yearly"><span class="cn-pricing-toggle toggle-right"><span class="cn-checkmark-container"><span class="cn-checkmark"></span></span><span class="cn-label">' . esc_html__( 'Yearly', 'cookie-notice' ) . '<span class="cn-badge">' . esc_html__( 'Save 12%', 'cookie-notice' ) . '</span></span></span></label>
+								<label for="pricing-type-yearly"><input id="pricing-type-yearly" type="radio" name="cn_pricing_type" value="yearly"><span class="cn-pricing-toggle toggle-right"><span class="cn-checkmark-container"><span class="cn-checkmark"></span></span><span class="cn-label">' . esc_html__( 'Yearly', 'cookie-notice' ) . '<span class="cn-badge">' . esc_html__( 'Save 17%', 'cookie-notice' ) . '</span></span></span></label>
 							</div>
 							<div class="cn-pricing-table">
 								<label class="cn-pricing-item cn-pricing-plan-free" for="cn-pricing-plan-free">
@@ -329,10 +335,9 @@ class Cookie_Notice_Welcome {
 										<div class="cn-pricing-body">
 											<p class="cn-included"><span class="cn-icon"></span>' . esc_html__( 'GDPR, CCPA, LGPD, PECR requirements', 'cookie-notice' ) . '</p>
 											<p class="cn-included"><span class="cn-icon"></span>' . esc_html__( 'Consent Analytics Dashboard', 'cookie-notice' ) . '</p>
-											<p class="cn-excluded"><span class="cn-icon"></span>' . sprintf( esc_html__( '%s1,000%s visits / month', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
-											<p class="cn-excluded"><span class="cn-icon"></span>' . sprintf( esc_html__( '%s100%s privacy consents', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
-											<p class="cn-excluded"><span class="cn-icon"></span>' . sprintf( esc_html__( '%s30 days%s consent storage', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
-											<p class="cn-excluded"><span class="cn-icon"></span>' . sprintf( esc_html__( '%sGoogle & Facebook%s consent modes', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
+											<p class="cn-excluded"><span class="cn-icon"></span>' . sprintf( esc_html__( '%s1,000%s visits per 30-day cycle', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
+											<p class="cn-excluded"><span class="cn-icon"></span>' . sprintf( esc_html__( 'Latest %s100%s privacy consents viewable', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
+											<p class="cn-excluded"><span class="cn-icon"></span>' . sprintf( esc_html__( '%sFacebook & Microsoft%s consent modes', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
 											<p class="cn-excluded"><span class="cn-icon"></span>' . sprintf( esc_html__( '%sGeolocation%s support', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
 											<p class="cn-excluded"><span class="cn-icon"></span>' . sprintf( esc_html__( '%s1 additional%s language', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
 											<p class="cn-excluded"><span class="cn-icon"></span>' . sprintf( esc_html__( '%sStandard%s Support', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
@@ -363,9 +368,9 @@ class Cookie_Notice_Welcome {
 											<p class="cn-included"><span class="cn-icon"></span>' . esc_html__( 'GDPR, CCPA, LGPD, PECR requirements', 'cookie-notice' ) . '</p>
 											<p class="cn-included"><span class="cn-icon"></span>' . esc_html__( 'Consent Analytics Dashboard', 'cookie-notice' ) . '</p>
 											<p class="cn-included"><span class="cn-icon"></span>' . sprintf( esc_html__( '%sUnlimited%s visits', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
-											<p class="cn-included"><span class="cn-icon"></span>' . sprintf( esc_html__( '%sUnlimited%s privacy consents', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
-											<p class="cn-included"><span class="cn-icon"></span>' . sprintf( esc_html__( '%sLifetime%s consent storage', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
-											<p class="cn-included"><span class="cn-icon"></span>' . sprintf( esc_html__( '%sGoogle & Facebook%s consent modes', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
+											<p class="cn-included"><span class="cn-icon"></span>' . sprintf( esc_html__( '%sFull%s privacy consent history', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
+											<p class="cn-included"><span class="cn-icon"></span>' . sprintf( esc_html__( '%sConsent history%s beyond 7 days', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
+											<p class="cn-included"><span class="cn-icon"></span>' . sprintf( esc_html__( '%sFacebook & Microsoft%s consent modes', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
 											<p class="cn-included"><span class="cn-icon"></span>' . sprintf( esc_html__( '%sGeolocation%s support', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
 											<p class="cn-included"><span class="cn-icon"></span>' . sprintf( esc_html__( '%sUnlimited%s languages', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
 											<p class="cn-included"><span class="cn-icon"></span>' . sprintf( esc_html__( '%sPriority%s Support', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
@@ -398,10 +403,10 @@ class Cookie_Notice_Welcome {
 							<h1><b>' . esc_html__( 'Congratulations', 'cookie-notice' ) . '</b></h1>
 							<h2>' . esc_html__( 'You have successfully signed up to Cookie Compliance.', 'cookie-notice' ) . '</h2>
 							<div class="cn-lead">
-								<p>' . esc_html__( 'Log in to your account and continue configuring your website.', 'cookie-notice' ) . '</p>
+								<p>' . esc_html__( 'Sign in to your account and continue configuring your website.', 'cookie-notice' ) . '</p>
 							</div>
 							<div class="cn-buttons">
-								<a href="' . esc_url( $cn->get_url( 'host', '?utm_campaign=configure&utm_source=wordpress&utm_medium=button#/login' ) ) . '" class="cn-btn cn-btn-lg" target="_blank">' . esc_html__( 'Go to Application', 'cookie-notice' ) . '</a>
+								<a href="' . esc_url( $cn->get_url( 'host', '?utm_campaign=configure&utm_source=wordpress&utm_medium=button#/login' ) ) . '" class="cn-btn cn-btn-lg" target="_blank">' . esc_html__( 'Open Admin Portal', 'cookie-notice' ) . '</a>
 							</div>
 						</div>
 					</div>
@@ -509,7 +514,7 @@ class Cookie_Notice_Welcome {
 													<label for="cn_on_scroll"><input id="cn_on_scroll" type="checkbox" name="cn_on_scroll" value="1"><span>' . esc_html__( 'Consent on Scroll', 'cookie-notice' ) . '</span></label>
 													<label for="cn_on_click"><input id="cn_on_click" type="checkbox" name="cn_on_click" value="1"><span>' . esc_html__( 'Consent on Click', 'cookie-notice' ) . '</span></label>
 													<label for="cn_ui_blocking"><input id="cn_ui_blocking" type="checkbox" name="cn_ui_blocking" value="1"><span>' . esc_html__( 'UI Blocking', 'cookie-notice' ) . '</span></label>
-													<label for="cn_revoke_consent"><input id="cn_revoke_consent" type="checkbox" name="cn_revoke_consent" value="1" checked><span>' . esc_html__( 'Revoke Consent', 'cookie-notice' ) . '</span></label>
+													<label for="cn_revoke_consent"><input id="cn_revoke_consent" type="checkbox" name="cn_revoke_consent" value="1" checked><span>' . esc_html__( 'Update consent', 'cookie-notice' ) . '</span></label>
 												</div>
 											</div>' . 
 											// <div class="cn-small">* ' . esc_html__( 'available for Cookie Compliance&trade; Pro plans only', 'cookie-notice' ) . '</div>
@@ -672,13 +677,13 @@ class Cookie_Notice_Welcome {
 							</div>
 						</div>
 						<div class="cn-body">
-							<h2>' . esc_html__( 'Compliance Sign in', 'cookie-notice' ) . '</h2>
+							<h2>' . esc_html__( 'Sign in', 'cookie-notice' ) . '</h2>
 							<div class="cn-lead">
 								<p>' . esc_html__( 'Sign in to your existing Cookie Compliance account and select your preferred plan.', 'cookie-notice' ) . '</p>
 							</div>
 							<div class="cn-accordion">
 								<div id="cn-accordion-account" class="cn-accordion-item cn-form-container" tabindex="-1">
-									<div class="cn-accordion-header cn-form-header"><button class="cn-accordion-button" type="button">1. ' . esc_html__( 'Account Login', 'cookie-notice' ) . '</button></div>
+									<div class="cn-accordion-header cn-form-header"><button class="cn-accordion-button" type="button">1. ' . esc_html__( 'Sign in', 'cookie-notice' ) . '</button></div>
 									<div class="cn-accordion-collapse">
 										<form method="post" class="cn-form" action="" data-action="login">
 											<div class="cn-form-feedback cn-hidden"></div>
@@ -701,7 +706,47 @@ class Cookie_Notice_Welcome {
 
 				$html .= wp_nonce_field( 'cn_api_login', 'cn_nonce', true, false );
 
+				// The second step of a sign-in ( two-step verification ): shown by admin-welcome.js when
+				// the server answers the password with needs_code. Its own nonce, as a plain hidden input
+				// so the page does not get a second element with the id cn_nonce.
 				$html .= '
+										</form>
+										<form method="post" class="cn-form cn-login-code-form" action="" data-action="login_code" style="display:none">
+											<div class="cn-form-feedback cn-hidden"></div>
+											<h3>' . esc_html__( 'Enter the code', 'cookie-notice' ) . '</h3>
+											<p class="cn-login-code-hint" data-method="email" style="display:none">' . sprintf( esc_html__( 'Enter the code we emailed to %s.', 'cookie-notice' ), '<strong class="cn-code-email"></strong>' ) . '</p>
+											<p class="cn-login-code-hint" data-method="totp" style="display:none">' . esc_html__( 'Enter the code from your authenticator app.', 'cookie-notice' ) . '</p>
+											<p class="cn-login-code-hint" data-method="backup" style="display:none">' . esc_html__( 'Enter one of your backup codes.', 'cookie-notice' ) . '</p>
+											<p class="cn-login-code-sent" style="display:none">' . sprintf( esc_html__( 'We sent a code to %s.', 'cookie-notice' ), '<strong class="cn-code-email"></strong>' ) . '</p>
+											<div class="cn-field cn-field-text">
+												<input type="text" name="code" value="" tabindex="1" autocomplete="one-time-code" inputmode="numeric" maxlength="32" placeholder="' . esc_attr__( 'Verification code', 'cookie-notice' ) . '">
+											</div>
+											<input type="hidden" name="method" value="email" />
+											<input type="hidden" name="cn_nonce" value="' . esc_attr( wp_create_nonce( 'cn_api_login_code' ) ) . '" />
+											<div class="cn-field cn-field-submit cn-nav">
+												<button type="submit" class="cn-btn cn-screen-button" tabindex="4"><span class="cn-spinner"></span>' . esc_html__( 'Sign in', 'cookie-notice' ) . '</button>
+											</div>
+											<p class="cn-login-code-links">
+												<a href="#" class="cn-login-code-resend" data-label="' . esc_attr__( 'Resend code', 'cookie-notice' ) . '" style="display:none">' . esc_html__( 'Resend code', 'cookie-notice' ) . '</a>
+												<a href="#" class="cn-login-code-method" data-method="email" style="display:none">' . esc_html__( 'Email me a code', 'cookie-notice' ) . '</a>
+												<a href="#" class="cn-login-code-method" data-method="totp" style="display:none">' . esc_html__( 'Use your authenticator app', 'cookie-notice' ) . '</a>
+												<a href="#" class="cn-login-code-method" data-method="backup" style="display:none">' . esc_html__( 'Use a backup code', 'cookie-notice' ) . '</a>
+												<a href="#" class="cn-login-code-back">' . esc_html__( 'Back', 'cookie-notice' ) . '</a>
+											</p>
+										</form>
+										<form method="post" class="cn-form cn-login-app-form" action="" data-action="login_app" style="display:none" data-choose-message="' . esc_attr__( 'Choose one of your apps, or create a new app for this site.', 'cookie-notice' ) . '" data-current-label="' . esc_attr__( 'Connected now', 'cookie-notice' ) . '" data-new-label="' . esc_attr__( 'Create a new app for this site', 'cookie-notice' ) . '">
+											<div class="cn-form-feedback cn-hidden"></div>
+											<h3>' . esc_html__( 'Choose an app', 'cookie-notice' ) . '</h3>
+											<p class="cn-login-app-hint">' . sprintf( esc_html__( 'None of your apps is for %s. Choose the app this site should use.', 'cookie-notice' ), '<strong class="cn-app-site"></strong>' ) . '</p>
+											<div class="cn-login-app-list"></div>
+											<p class="cn-login-app-note">' . esc_html__( 'This site will use that app\'s banner settings.', 'cookie-notice' ) . '</p>
+											<input type="hidden" name="cn_nonce" value="' . esc_attr( wp_create_nonce( 'cn_api_login_app' ) ) . '" />
+											<div class="cn-field cn-field-submit cn-nav">
+												<button type="submit" class="cn-btn cn-screen-button" tabindex="4"><span class="cn-spinner"></span>' . esc_html__( 'Continue', 'cookie-notice' ) . '</button>
+											</div>
+											<p class="cn-login-code-links">
+												<a href="#" class="cn-login-app-back">' . esc_html__( 'Back', 'cookie-notice' ) . '</a>
+											</p>
 										</form>
 										<p>' . esc_html__( 'Don\'t have an account yet?', 'cookie-notice' ) . ' <a href="#" class="cn-screen-button" data-screen="register">' . esc_html__( 'Sign up', 'cookie-notice' ) . '</a></p>
 									</div>

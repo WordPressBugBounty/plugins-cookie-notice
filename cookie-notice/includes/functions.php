@@ -26,6 +26,25 @@ if ( ! function_exists( 'cn_cookies_set' ) ) {
 }
 
 /**
+ * URL that opens the onboarding wizard on the plugin's own screen.
+ *
+ * Mode-aware: the React admin opens its wizard on ?cn_react_welcome=1, the legacy admin
+ * on ?welcome=1 (admin-welcome.js). Neither screen answers the other's parameter, so a
+ * link built for the wrong mode lands on the settings page with no wizard. Network-aware:
+ * the network admin's wizard sets up the network row.
+ *
+ * @return string
+ */
+function cn_get_welcome_url() {
+	$cn = Cookie_Notice();
+
+	$base = $cn->is_network_admin() ? network_admin_url( 'admin.php?page=cookie-notice' ) : admin_url( 'admin.php?page=cookie-notice' );
+	$param = ( isset( $cn->options['general']['ui_mode'] ) && $cn->options['general']['ui_mode'] === 'react' ) ? 'cn_react_welcome' : 'welcome';
+
+	return add_query_arg( $param, '1', $base );
+}
+
+/**
  * Get active caching plugins.
  *
  * @param array $args

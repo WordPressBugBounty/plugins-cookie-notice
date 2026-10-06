@@ -1,14 +1,14 @@
 === Cookie Compliance for WordPress – Cookie Consent, GDPR & CCPA ===
 Contributors: humanityco
-Tags: gdpr, ccpa, cookies, consent, privacy, gpc, google-consent-mode, wp-consent-api
+Tags: gdpr, compliance, cookies, privacy, google consent mode
 Requires at least: 4.9.6
 Requires PHP: 7.4
 Tested up to: 7.0
-Stable tag: 3.1.12
+Stable tag: 3.1.13
 License: MIT License
 License URI: http://opensource.org/licenses/MIT
 
-Consent management platform for WordPress — GDPR, CCPA & ePrivacy consent, autoblocking, Google/Microsoft Consent Mode, GPC & WP Consent API.
+Consent management for WordPress — GDPR, CCPA & ePrivacy, autoblocking, Google Consent Mode, Microsoft Consent Mode (Pro), GPC & WP Consent API.
 
 == Description ==
 
@@ -16,7 +16,7 @@ This is <strong>Cookie Compliance for WordPress</strong> — the WordPress compo
 
 <strong>Cookie Compliance</strong> is a fully featured Consent Management Platform (CMP) that provides automated compliance features and enhanced design controls in a state-of-the-art web application. Cookie Compliance enables websites to <strong>take a proactive approach to data protection and consent laws</strong>. It is the first solution to offer Intentional Consent, a new consent framework that incorporates the latest guidelines from over 100+ countries, and emerging standards from leading international organizations like the IEEE and European Center for Digital Rights (noyb.eu). Cookie Compliance provides a beautiful, multi-level experience and includes new choices and controls for site visitors to better understand and engage in data privacy decisions.
 
-You can run this plugin two ways. In <strong>Banner Only mode</strong> it works on its own, with no account, and gives you the consent banner and its settings. In <strong>Connected mode</strong> — free or paid — you sign in to Cookie Compliance from inside WordPress and the plugin unlocks the platform features listed below: automatic script blocking, purpose categories, consent records, Google, Microsoft and Facebook consent modes, multilingual banners and multi-domain management. The two lists below say exactly which features belong to which mode.
+You can run this plugin two ways. In <strong>Banner Only mode</strong> it works on its own, with no account, and gives you the consent banner and its settings. In <strong>Connected mode</strong> — free or paid — you sign in to Cookie Compliance from inside WordPress and the plugin unlocks the platform features listed below: automatic script blocking, purpose categories, consent records, Google Consent Mode (every plan), Facebook and Microsoft consent modes (Professional plan), multilingual banners and multi-domain management. The two lists below say exactly which features belong to which mode.
 
 > Our Cookie Compliance web application introduces a more ethical, proactive way to capture and manage consent.  This early version of the emerging Intentional Consent framework is a result of Hu-manity.co’s ongoing work with top Fortune 500 companies, governments, and standards organizations, who believe that the imbalanced relationship between consumers and corporations is unsustainable when it comes to data privacy and consent online. We are making it available for all website owners and operators who share this belief and support our mission to eliminate the dark patterns in online consent.<br>
 > Matt Sinderbrand - Chief Platform Officer, Hu-manity.co
@@ -55,8 +55,8 @@ Signed in to Cookie Compliance, on a free or paid plan, you get access to the mo
 * <strong>Default configurations</strong> for GDPR, CCPA and more help to remove dark patterns and allow for quick and easy deployment of the consent banner without any guesswork. Customize the design of any default configuration to match the look and feel of your site.
 * <strong>Automatic script blocking</strong> blocks all non-essential cookie scripts and iFrames by default and <em>complies with valid consent rules under GDPR and other data protection laws</em>; in order to be compliant, your site must record visitor consent before setting or sending cookies.
 * <strong>Google Consent Mode v2</strong> ensures that your website can still gather valuable insights and perform effectively while respecting users' privacy preferences by <em>dynamically adjusting the behavior of Google services (ad_storage, analytics_storage, ad_user_data, ad_personalization) according to user consent.</em>
-* <strong>Facebook Consent Mode</strong> allows your website to <em>measure the impact of your ads on Facebook</em>, track website activities and conversions and automatically deliver ads to Facebook if the user has agreed to.
-* <strong>Microsoft Consent Mode</strong> holds Microsoft advertising (UET) signals until a visitor consents, then applies their choice automatically — the same way Google and Facebook consent modes do.
+* <strong>Facebook Consent Mode</strong> (Professional plan) allows your website to <em>measure the impact of your ads on Facebook</em>, track website activities and conversions and automatically deliver ads to Facebook if the user has agreed to.
+* <strong>Microsoft Consent Mode</strong> (Professional plan) holds Microsoft advertising (UET) signals until a visitor consents, then applies their choice automatically — the same way Google and Facebook consent modes do.
 * <strong>Global Privacy Control (GPC) & Do Not Track</strong> automatically applies a visitor's browser-level opt-out signal to the Marketing category as soon as the banner can read it — no visitor interaction required.
 * <strong>WP Consent API integration</strong> registers Cookie Compliance as the active Consent Management Platform under the [WP Consent API](https://wordpress.org/plugins/wp-consent-api/) — in Banner Only mode or connected — when that free companion plugin is active, so cooperative plugins such as WooCommerce, Google Site Kit, Burst Statistics, WP Statistics, AddToAny and Pixel Manager for WooCommerce automatically gate themselves on the consent your visitors give in the banner, with no extra configuration.
 * <strong>Consent record storage</strong> automatically stores a record of each consent and makes these records available for export. <em>Complies with proof-of-consent requirements prescribed under GDPR and other data protection laws.</em>
@@ -212,6 +212,32 @@ Yes. Point an MCP-capable assistant (Claude Code, Cursor, and others) at https:/
 4. Cookie Compliance settings
 
 == Changelog ==
+
+= 3.1.13 =
+* New: Sites on the classic interface can move to the new admin interface from a card in the sidebar. Your settings, connection and banner stay exactly as they are.
+* New: The new admin interface opens with a "Your banner" panel showing the banner your site really runs — its engine and style — with a quick way to preview it on your site.
+* New: On sites using the New banner engine, you can choose a Standard or Compact banner right from WordPress. Setup now starts with this choice.
+* New: Sites you add from the plugin now start on the New banner engine, the same as sites added in your Cookie Compliance account.
+* Improvement: The new admin interface now includes the Privacy Consent tab and form consent logs, and saves your settings just like the classic screens.
+* Improvement: On multisite networks, Network Administrators can manage network-wide settings from the new admin interface, and each sub-site's consent records stay private to that site.
+* Improvement: "Revoke consent" is now called "Update consent", matching your Cookie Compliance account.
+* Improvement: Removed banner templates, so the plugin no longer changes colours set in the Admin Portal. Set colours and position in Admin Portal → Configuration → Design.
+* Improvement: Clearer protection status that shows exactly when your banner is live.
+* Improvement: When your banner engine changes in your Cookie Compliance account, the plugin tells you once and offers to purge your page cache so visitors get the new banner.
+* Improvement: On the Privacy Consent tab, the status card shows one Connection row, and its "Open Admin Portal" button opens this site's app; a connected site whose last check did not come back shows "Not confirmed" instead of the sign-up offer. Where you enter your App ID and App Secret Key, and on sign-in, a hint tells Google sign-ups to copy them from the Admin Portal.
+* Improvement: Connect, sign-in and key labels now use the same words as your Cookie Compliance account.
+* Improvement: The status cards are shorter and "Pull latest settings" appears once per page.
+* Improvement: When you sign in to an account that has apps but none for this site, the plugin now asks which app this site should use, or lets you create a new one, instead of creating a new app for you.
+* Fix: In the new admin interface, clearing your App ID and App Secret Key now disconnects the site fully, the same as the classic screens.
+* Fix: On sites with page caching, connecting from the new admin interface now refreshes cached pages after your banner settings arrive, not before.
+* Fix: The Protection tab no longer shows the Threat Intelligence panel, whose news items never changed.
+* Fix: On connected sites, Save WordPress Settings now saves your WordPress settings only. It no longer changes your live banner's colours, position, opacity or consent behaviour; it still updates the banner's privacy policy link from your WordPress privacy page.
+* Fix: On sites using CCPA or Other U.S. State Laws, the Do Not Sell link you enter with your laws is now saved to your banner (its default language). An address that is not a full web link is refused and nothing is saved.
+* Fix: In setup, Apply & Finish now applies the languages you selected.
+* Fix: Plan, pricing and language screens now list the same features, limits and discount as the product.
+* Fix: Signing in from a WordPress installed in a subfolder (for example example.com/blog) now connects the app already on that domain, instead of stopping with "Domain URL already exists".
+* Fix: On new accounts with no app yet, signing in from the plugin now creates the app for your site, instead of stopping with "No apps found".
+* Fix: On accounts with two-step verification, signing in from the plugin now asks for the verification code instead of connecting with the password alone.
 
 = 3.1.12 =
 * Improvement: Your site stays connected and protected through a brief network or server problem, rather than waiting for the next scheduled check to recover.

@@ -2,7 +2,7 @@
 /*
 Plugin Name: Cookie Compliance for WordPress – Cookie Consent, GDPR & CCPA
 Description: Cookie Compliance for WordPress (formerly "Compliance by Hu-manity.co" / "Cookie Notice") — the WordPress component of Cookie Compliance, the consent management platform by Hu-manity.co. Cookie consent banner, pre-consent script blocking, Google Consent Mode v2, WP Consent API integration, and consent records for GDPR, CCPA and global data privacy laws.
-Version: 3.1.12
+Version: 3.1.13
 Author: Hu-manity.co
 Author URI: https://hu-manity.co/
 Plugin URI: https://cookie-compliance.co/
@@ -134,6 +134,15 @@ class Cookie_Notice {
 	public $app_blocking_stored = null;
 
 	/**
+	 * Did the constructor load $this->options['general'] from the NETWORK row (true) or a
+	 * site row (false)? update_general_option_keys() keeps the in-memory copy in step only
+	 * with writes to that same row.
+	 *
+	 * @var bool
+	 */
+	private $general_from_network = false;
+
+	/**
 	 * @var $defaults
 	 */
 	public $defaults = [
@@ -210,7 +219,6 @@ class Cookie_Notice {
 			'update_threshold_date'	=> 0,
 			'csp_notice'			=> false,
 			'ui_mode'				=> 'legacy',
-			// applied_template removed — now computed on the fly in React via matchTemplate().
 			'displayType'			=> 'floating',
 		],
 		'privacy_consent' => [
@@ -236,7 +244,7 @@ class Cookie_Notice {
 			'threshold_exceeded'	=> false,
 			'activation_datetime'	=> 0
 		],
-		'version'	=> '3.1.12'
+		'version'	=> '3.1.13'
 	];
 
 	/**
@@ -391,6 +399,7 @@ class Cookie_Notice {
 			if ( $this->is_network_admin() ) {
 				$general_options = $this->network_options['general'];
 				$privacy_consent_options = $this->network_options['privacy_consent'];
+				$this->general_from_network = true;
 			} else {
 				$page = isset( $_GET['page'] ) ? sanitize_key( $_GET['page'] ) : '';
 
@@ -408,6 +417,7 @@ class Cookie_Notice {
 					if ( $this->is_plugin_network_active() && $this->network_options['general']['global_override'] ) {
 						$general_options = $this->network_options['general'];
 						$privacy_consent_options = $this->network_options['privacy_consent'];
+						$this->general_from_network = true;
 					} else {
 						$general_options = get_option( 'cookie_notice_options', $this->defaults['general'] );
 						$privacy_consent_options = get_option( 'cookie_notice_privacy_consent', $this->defaults['privacy_consent'] );
@@ -458,6 +468,9 @@ class Cookie_Notice {
 		add_action( 'wp_ajax_cn_dismiss_notice', [ $this, 'ajax_dismiss_admin_notice' ] );
 		add_action( 'wp_ajax_cn_review_notice', [ $this, 'ajax_review_notice' ] );
 		add_action( 'wp_ajax_cn-deactivate-plugin', [ $this, 'deactivate_plugin' ] );
+		add_action( 'admin_notices', [ $this, 'display_engine_notice' ] );
+		add_action( 'network_admin_notices', [ $this, 'display_engine_notice' ] );
+		add_action( 'wp_ajax_cn_dismiss_engine_notice', [ $this, 'ajax_dismiss_engine_notice' ] );
 	}
 
 	/**
@@ -623,16 +636,19 @@ class Cookie_Notice {
 		//
 		// The Free-plan visit limit switches autoblocking off for the REST OF THIS
 		// REQUEST — a runtime overlay, never a change to what the admin asked for.
-		// Remember the stored value first, because every wholesale writer of
-		// $this->options['general'] would otherwise persist the forced false over it:
-		// there are nine of them, and the cheapest one needs no admin choice at all
-		// (opening the settings page runs refresh_csp_notice(), which re-saves the
-		// whole array). preserve_app_blocking_preference() is the guard that stops
-		// them; this is where it learns what to restore.
-		// Remembered ONCE. set_status_data() is re-entrant — the network save path and
-		// the React connection-change refresh both call it a second time in the same
-		// request — and by then options['general']['app_blocking'] is already the forced
-		// false, so re-reading it here would quietly overwrite the real value with it.
+		// Remember the stored value first, because a writer that stores a whole row rather
+		// than its own keys can carry the forced false over the admin's choice: the classic
+		// settings and network forms, the CN_DEV_MODE reset and any writer added later.
+		// Every other runtime writer stores only its own keys over a fresh read
+		// (update_general_option_keys()), and the React reset writes the freshly stored
+		// app_blocking with the guard pointed at it (write_with_stored_posture()).
+		// preserve_app_blocking_preference() is the guard that stops the rest; this is
+		// where it learns what to restore.
+		// Remembered ONCE. set_status_data() is re-entrant — the network save path, the
+		// React connection-change refresh and the React save's disconnect status reset
+		// (save_options()) each call it a second time in the same request — and by then
+		// options['general']['app_blocking'] is already the forced false, so re-reading it
+		// here would quietly overwrite the real value with it.
 		if ( $status_data['threshold_exceeded'] ) {
 			if ( $this->app_blocking_stored === null )
 				$this->app_blocking_stored = ! empty( $this->options['general']['app_blocking'] );
@@ -669,16 +685,15 @@ class Cookie_Notice {
 	 * Keep the Free-plan quota from eating the admin's stored autoblocking preference.
 	 *
 	 * The quota force in set_status() is a RUNTIME overlay, but it lands in
-	 * $this->options['general'] — the same array nine different call sites hand
-	 * straight to update_option( 'cookie_notice_options', ... ). Any one of them
-	 * therefore writes the forced false back over what the admin actually chose, and
-	 * nothing restores it when the visits cycle resets. Reachable with no admin choice
-	 * whatsoever: opening the settings page runs refresh_csp_notice()
-	 * ( includes/settings.php ), which re-saves the whole array whenever the .htaccess
-	 * state has drifted.
+	 * $this->options['general']. A writer that stores a whole row rather than its own keys
+	 * — the classic settings and network forms, the CN_DEV_MODE reset, any writer added
+	 * later — can write the forced false back over what the admin actually chose, and
+	 * nothing restores it when the visits cycle resets. (The other runtime writers store
+	 * only their own keys over a fresh read, update_general_option_keys(), which keeps
+	 * this guard pointed at the stored value when it does not write app_blocking itself.)
 	 *
 	 * Guarding the option rather than the call sites is deliberate — a tenth writer
-	 * added later is covered for free, which patching nine of them would not be.
+	 * added later is covered for free, which patching each of them would not be.
 	 *
 	 * Strictly protective, and narrow on purpose: it only ever turns a false back into
 	 * a true, only while the force is active in THIS request, and only when the stored
@@ -898,6 +913,32 @@ class Cookie_Notice {
 	 */
 	public function get_banner_channel() {
 		return $this->status_data['widget_version'] === 'v2' ? 'v2' : 'v1';
+	}
+
+	/**
+	 * The banner this scope's visitors get, as the admin screens name it (React cnReactData.banner
+	 * and every reply that can follow a config pull).
+	 *
+	 *   engine   'new' when get_banner_channel() loads the v2 build, else 'classic' — the
+	 *            routing decision itself, so the screen cannot name a build the site does not load.
+	 *   style    banner_config.bannerStyle from the stored config pull, read where the pull writes
+	 *            it and the front end reads it (is_network_options()). As the v2 widget reads it:
+	 *            'compact' only for exactly 'compact'; absent or anything else is 'standard'.
+	 *   managed  a site under Global Settings Override (Settings::network_managed()): the
+	 *            network's banner, not this site's to change.
+	 *
+	 * @return array { engine: 'new'|'classic', style: 'standard'|'compact', managed: bool }
+	 */
+	public function get_banner_summary() {
+		$blocking = Cookie_Notice_Store::get( 'cookie_notice_app_blocking', [], $this->is_network_options() );
+		$config   = is_array( $blocking ) && isset( $blocking['banner_config'] ) && is_array( $blocking['banner_config'] ) ? $blocking['banner_config'] : [];
+		$style    = isset( $config['bannerStyle'] ) ? $config['bannerStyle'] : '';
+
+		return [
+			'engine'  => $this->get_banner_channel() === 'v2' ? 'new' : 'classic',
+			'style'   => $style === 'compact' ? 'compact' : 'standard',
+			'managed' => (bool) $this->settings->network_managed(),
+		];
 	}
 
 	/**
@@ -1634,22 +1675,66 @@ class Cookie_Notice {
 	}
 
 	/**
-	 * Switch UI mode via ?ui_mode=react|legacy query param.
+	 * May the current user switch the admin UI of the row this screen renders from?
 	 *
-	 * Persists the choice to the DB so it sticks across page loads.
-	 * Admin-only (manage_options). Works in production — no CN_DEV_MODE required.
+	 * The one predicate for the legacy sidebar's "new admin" card and maybe_switch_ui_mode():
+	 * the capability the plugin page is registered with (Settings::admin_menu_options()). In
+	 * the network admin also can_write_at_scope( true ) — the network capability filter
+	 * governs visibility only, and the network row is the one every site reads under Global
+	 * Settings Override. Scope comes from is_network_admin() alone.
+	 *
+	 * @return bool
+	 */
+	public function can_switch_ui_mode() {
+		if ( $this->is_network_admin() )
+			return current_user_can( apply_filters( 'cn_manage_network_cookie_notice_cap', 'manage_network_options' ) ) && $this->can_write_at_scope( true );
+
+		return current_user_can( apply_filters( 'cn_manage_cookie_notice_cap', 'manage_options' ) );
+	}
+
+	/**
+	 * Switch the admin UI via ?ui_mode=react|legacy on the plugin page — confirmed, never on a GET.
+	 *
+	 * A GET renders a confirmation page. Its Switch button POSTs ui_mode with a nonce bound
+	 * to that mode, to the clean plugin URL; the POST writes only ui_mode, to the row the
+	 * page renders from, then redirects to the clean URL so a reload cannot repeat it. The
+	 * legacy sidebar card links here for 'react'. 'legacy' is support's way back: same flow,
+	 * and nothing in the UI links to it.
+	 *
+	 * Under CN_DEV_MODE a GET still writes directly (the e2e helpers set the mode that way),
+	 * unless the request carries cn_confirm=1 — the card's link does, so a test that clicks
+	 * the card runs the production flow.
+	 *
+	 * Hooked on admin_init from the constructor, so it runs before register_settings()
+	 * registers validate_options() as the row's sanitize callback.
+	 *
+	 * @global string $pagenow
 	 *
 	 * @return void
 	 */
 	public function maybe_switch_ui_mode() {
-		if ( ! isset( $_GET['ui_mode'] ) )
+		global $pagenow;
+
+		$is_post = isset( $_SERVER['REQUEST_METHOD'] ) && $_SERVER['REQUEST_METHOD'] === 'POST';
+
+		// A GET carries the mode in the URL, the confirmation's POST in its body. Never $_REQUEST.
+		if ( $is_post )
+			$mode = isset( $_POST['ui_mode'] ) ? $_POST['ui_mode'] : null;
+		else
+			$mode = isset( $_GET['ui_mode'] ) ? $_GET['ui_mode'] : null;
+
+		if ( ! is_string( $mode ) )
 			return;
 
-		// Only process ui_mode switches on the plugin's own admin page.
+		// Only on the plugin's own admin page: admin.php?page=cookie-notice is the URL the
+		// site-row read keys on (constructor, "get options").
+		if ( $pagenow !== 'admin.php' || wp_doing_ajax() )
+			return;
+
 		if ( ! isset( $_GET['page'] ) || $_GET['page'] !== 'cookie-notice' )
 			return;
 
-		if ( ! current_user_can( 'manage_options' ) )
+		if ( ! $this->can_switch_ui_mode() )
 			return;
 
 		// ── Begin network ui_mode write gate ─────────────────────────────────
@@ -1670,34 +1755,119 @@ class Cookie_Notice {
 			return;
 		// ── End network ui_mode write gate ───────────────────────────────────
 
-		$requested = sanitize_key( $_GET['ui_mode'] );
+		$requested = sanitize_key( $mode );
 
 		if ( ! in_array( $requested, [ 'react', 'legacy' ], true ) )
 			return;
 
-		$current = $this->options['general']['ui_mode'];
+		// Already in that mode: nothing to confirm, nothing to write.
+		if ( $this->options['general']['ui_mode'] === $requested )
+			return;
 
-		// Update DB only if the value actually changed.
-		if ( $current !== $requested ) {
-			$this->options['general']['ui_mode'] = $requested;
+		$dev_write = ! $is_post && defined( 'CN_DEV_MODE' ) && CN_DEV_MODE && empty( $_GET['cn_confirm'] );
+		$clean_url = $this->is_network_admin() ? network_admin_url( 'admin.php?page=cookie-notice' ) : admin_url( 'admin.php?page=cookie-notice' );
+		$action    = 'cn_switch_ui_mode_' . $requested;
 
-			if ( $this->is_network_admin() ) {
-				$db_options = get_site_option( 'cookie_notice_options', [] );
-			} else {
-				$db_options = get_option( 'cookie_notice_options', [] );
-			}
+		if ( ! $is_post && ! $dev_write ) {
+			// admin_init runs before core sends X-Frame-Options (admin-filters.php), so without
+			// this the page could be framed and its Switch button clickjacked.
+			send_frame_options_header();
 
-			$db_options['ui_mode'] = $requested;
-
-			if ( $this->is_network_admin() ) {
-				update_site_option( 'cookie_notice_options', $db_options );
-			} else {
-				update_option( 'cookie_notice_options', $db_options );
-			}
+			wp_die( $this->ui_mode_confirmation( $requested, $clean_url, $action ), esc_html( $this->ui_mode_switch_title( $requested ) ), [ 'response' => 200 ] );
+			return;
 		}
 
-		// Always set in-memory so the current request renders the correct view.
-		$this->options['general']['ui_mode'] = $requested;
+		if ( $is_post && ! wp_verify_nonce( isset( $_POST['_wpnonce'] ) && is_string( $_POST['_wpnonce'] ) ? $_POST['_wpnonce'] : '', $action ) ) {
+			wp_nonce_ays( $action );
+			return;
+		}
+
+		// Only this key, on a fresh read of the row the page renders from.
+		$this->update_general_option_keys( [ 'ui_mode' => $requested ], $this->is_network_admin() );
+
+		if ( $requested === 'react' )
+			$this->convert_legacy_welcome_dismissed();
+
+		if ( $dev_write ) {
+			// Render this request in the requested mode, as the dev GET always has.
+			$this->options['general']['ui_mode'] = $requested;
+			return;
+		}
+
+		if ( headers_sent() ) {
+			wp_die( '<p>' . esc_html__( 'The admin has been switched.', 'cookie-notice' ) . '</p><p><a href="' . esc_url( $clean_url ) . '">' . esc_html__( 'Continue', 'cookie-notice' ) . '</a></p>', esc_html( $this->ui_mode_switch_title( $requested ) ), [ 'response' => 200 ] );
+			return;
+		}
+
+		wp_safe_redirect( $clean_url );
+		exit;
+	}
+
+	/**
+	 * Title of the confirmation for switching to $mode.
+	 *
+	 * @param string $mode 'react' or 'legacy'.
+	 * @return string
+	 */
+	private function ui_mode_switch_title( $mode ) {
+		return $mode === 'react' ? __( 'Switch to the new admin interface', 'cookie-notice' ) : __( 'Switch to the classic interface', 'cookie-notice' );
+	}
+
+	/**
+	 * The confirmation page body for maybe_switch_ui_mode().
+	 *
+	 * Built only from the whitelisted mode and the plugin's own URL: nothing from the request
+	 * is echoed. No referer field — the POST goes to the clean URL and redirects there.
+	 *
+	 * @param string $mode   'react' or 'legacy' (whitelisted by the caller).
+	 * @param string $url    The clean plugin URL: form action and Cancel.
+	 * @param string $action Nonce action, bound to $mode.
+	 * @return string
+	 */
+	private function ui_mode_confirmation( $mode, $url, $action ) {
+		// wp_die()'s own CSS styles .button without a font-family and has no .button-primary.
+		$html = '<style>'
+			. '.cn-ui-mode-confirm .button{font-family:inherit}'
+			. '.cn-ui-mode-confirm .button-primary{background:#2271b1;border-color:#2271b1;color:#fff}'
+			. '.cn-ui-mode-confirm .button-primary:hover,.cn-ui-mode-confirm .button-primary:focus{background:#135e96;border-color:#135e96;color:#fff}'
+			. '</style>';
+		$html .= '<div class="cn-ui-mode-confirm">';
+		$html .= '<h1>' . esc_html( $this->ui_mode_switch_title( $mode ) ) . '</h1>';
+		$html .= '<p>' . esc_html__( 'Only the layout of the Cookie Compliance admin screens changes. Your settings, your Cookie Compliance connection and your banner stay as they are.', 'cookie-notice' ) . '</p>';
+
+		if ( $mode === 'react' )
+			$html .= '<p>' . esc_html__( 'There is no button to switch back. Contact support if you need the classic interface.', 'cookie-notice' ) . '</p>';
+
+		$html .= '<form method="post" action="' . esc_url( $url ) . '">';
+		$html .= wp_nonce_field( $action, '_wpnonce', false, false );
+		$html .= '<input type="hidden" name="ui_mode" value="' . esc_attr( $mode ) . '" />';
+		$html .= '<p><button type="submit" class="button button-primary">' . esc_html__( 'Switch', 'cookie-notice' ) . '</button> ';
+		$html .= '<a href="' . esc_url( $url ) . '" class="button">' . esc_html__( 'Cancel', 'cookie-notice' ) . '</a></p>';
+		$html .= '</form>';
+		$html .= '</div>';
+
+		return $html;
+	}
+
+	/**
+	 * After a switch to React, turn a legacy "welcome dismissed" flag into the timestamp React reads.
+	 *
+	 * The legacy welcome stores boolean true (Cookie_Notice_Welcome::dismiss_welcome()), which
+	 * React reads back as "1" (cnReactData.welcomeDismissedAt); new Date( "1" ) is the year
+	 * 2001, so the React welcome modal would reopen on the first load. React's own dismissal
+	 * stores current_time( 'mysql' ), which this writes in its place. Site-scoped in every
+	 * scope, like the legacy writer (Cookie_Notice_Welcome::dismiss_welcome()) — so on a site
+	 * it converts the flag React reads; in the Network Admin React reads the network row
+	 * (settings.php welcomeDismissedAt), which legacy never wrote, and this leaves it alone.
+	 * Converts only the legacy flag: never creates the option, never overwrites a timestamp.
+	 *
+	 * @return void
+	 */
+	private function convert_legacy_welcome_dismissed() {
+		$dismissed = get_option( 'cookie_notice_welcome_dismissed' );
+
+		if ( $dismissed === true || $dismissed === 1 || $dismissed === '1' )
+			update_option( 'cookie_notice_welcome_dismissed', current_time( 'mysql' ) );
 	}
 
 	/**
@@ -1721,6 +1891,8 @@ class Cookie_Notice {
 				delete_site_option( 'cookie_notice_app_analytics' );
 				delete_site_option( 'cookie_notice_app_blocking' );
 				delete_site_option( 'cookie_notice_blocking_push_pending' );
+				delete_site_option( 'cookie_notice_engine_seen' );
+				delete_site_option( 'cookie_notice_engine_changed' );
 				// Network-scoped, so it needs its own delete: the per-site sweep below only
 				// reaches delete_transient(), and the network retry cooldown is written with
 				// set_site_transient(). Left behind, a reinstall inside the cooldown window
@@ -1763,6 +1935,8 @@ class Cookie_Notice {
 			delete_option( 'cookie_notice_app_analytics' );
 			delete_option( 'cookie_notice_app_blocking' );
 			delete_option( 'cookie_notice_blocking_push_pending' );
+			delete_option( 'cookie_notice_engine_seen' );
+			delete_option( 'cookie_notice_engine_changed' );
 			delete_option( 'cookie_notice_version' );
 
 			// delete transients if any
@@ -1804,16 +1978,8 @@ class Cookie_Notice {
 		if ( version_compare( $this->db_version, $this->defaults['version'], '<' ) ) {
 			if ( $this->options['general']['update_version'] < $current_update ) {
 				// check version, if update version is lower than plugin version, set update notice to true
-				$this->options['general']['update_version'] = $current_update;
-				$this->options['general']['update_notice'] = true;
-
-				// update options
-				if ( $network ) {
-					$this->options['general']['update_notice_diss'] = false;
-
-					update_site_option( 'cookie_notice_options', $this->options['general'] );
-				} else
-					update_option( 'cookie_notice_options', $this->options['general'] );
+				// (only these keys, on a fresh read — update_general_option_keys())
+				$this->update_general_option_keys( [ 'update_version' => $current_update, 'update_notice' => true ] + ( $network ? [ 'update_notice_diss' => false ] : [] ), $network );
 			}
 
 			// update 2.4.17+
@@ -1853,16 +2019,8 @@ class Cookie_Notice {
 		$page = isset( $_GET['page'] ) ? sanitize_key( $_GET['page'] ) : '';
 
 		// if visiting settings, mark notice as read
-		if ( $page === 'cookie-notice' && ! empty( $_GET['welcome'] ) ) {
-			$this->options['general']['update_notice'] = false;
-
-			if ( $network ) {
-				$this->options['general']['update_notice_diss'] = true;
-
-				update_site_option( 'cookie_notice_options', $this->options['general'] );
-			} else
-				update_option( 'cookie_notice_options', $this->options['general'] );
-		}
+		if ( $page === 'cookie-notice' && ! empty( $_GET['welcome'] ) )
+			$this->update_general_option_keys( [ 'update_notice' => false ] + ( $network ? [ 'update_notice_diss' => true ] : [] ), $network );
 
 		if ( is_multisite() && ( ( $this->is_plugin_network_active() && ! $network && $this->network_options['general']['global_override'] ) || ( $network && ! $this->is_plugin_network_active() ) ) )
 			$this->options['general']['update_notice'] = false;
@@ -1987,6 +2145,154 @@ class Cookie_Notice {
 	}
 
 	/**
+	 * Drop this request's cached copy of a cookie_notice_options row, so the next read of it
+	 * comes from the database.
+	 *
+	 * A plain get_option() (or a read through Cookie_Notice_Store) later in a request is
+	 * served from the object cache the constructor's read filled, so it returns the row as this request
+	 * loaded it, not as another request may have stored it since. Site row: alloptions (an
+	 * autoloaded option is served from there), its own 'options' entry (a row stored without
+	 * autoload) and notoptions (no row at request start). Network row: its 'site-options'
+	 * entry and that network's notoptions.
+	 *
+	 * @param bool $network The network row (true) or this site's row (false).
+	 * @return void
+	 */
+	public function drop_cached_general_options( $network ) {
+		if ( $network && is_multisite() ) {
+			$prefix = get_current_network_id() . ':';
+
+			wp_cache_delete( $prefix . 'cookie_notice_options', 'site-options' );
+
+			$notoptions = wp_cache_get( $prefix . 'notoptions', 'site-options' );
+
+			if ( is_array( $notoptions ) && isset( $notoptions['cookie_notice_options'] ) ) {
+				unset( $notoptions['cookie_notice_options'] );
+				wp_cache_set( $prefix . 'notoptions', $notoptions, 'site-options' );
+			}
+		} else {
+			// An autoloaded option is served from alloptions, not its own cache entry.
+			wp_cache_delete( 'alloptions', 'options' );
+			wp_cache_delete( 'cookie_notice_options', 'options' );
+
+			$notoptions = wp_cache_get( 'notoptions', 'options' );
+
+			if ( is_array( $notoptions ) && isset( $notoptions['cookie_notice_options'] ) ) {
+				unset( $notoptions['cookie_notice_options'] );
+				wp_cache_set( 'notoptions', $notoptions, 'options' );
+			}
+		}
+	}
+
+	/**
+	 * $changes over an options row. Nested settings (colors, see_more_opt) merge leaf by
+	 * leaf, so pass only the leaves you change. The two list-valued keys, conditional_rules
+	 * and excluded_handles, replace the stored value whole: a recursive merge can neither
+	 * shrink nor empty a list, so a deleted rule or handle would come back.
+	 *
+	 * @param array $row
+	 * @param array $changes
+	 * @return array
+	 */
+	public function merge_general_options( array $row, array $changes ) {
+		$lists = array_intersect_key( $changes, array_flip( [ 'conditional_rules', 'excluded_handles' ] ) );
+
+		return array_replace( array_replace_recursive( $row, array_diff_key( $changes, $lists ) ), $lists );
+	}
+
+	/**
+	 * Run $write — a write of cookie_notice_options $row whose app_blocking is the value
+	 * already stored (read fresh, not chosen or forced in this request) — with the #2272
+	 * guard pointed at that value.
+	 *
+	 * preserve_app_blocking_preference() remembers the posture stored when this request
+	 * started and, while the Free-plan force is armed, turns a written false back into it.
+	 * Right for the forced false; wrong for a false another request stored since (a pull
+	 * of the Portal's "off"), which it would flip to true and stage as a push. So the guard
+	 * is pointed at the value being written: for the rest of the request when $network
+	 * names the row $this->options['general'] was loaded from (it is that row's stored
+	 * value from now on), for this write only otherwise. Not armed, or no app_blocking in
+	 * $row: $write runs untouched.
+	 *
+	 * @param array    $row     The row $write stores.
+	 * @param bool     $network The row's scope.
+	 * @param callable $write
+	 * @return void
+	 */
+	public function write_with_stored_posture( array $row, $network, callable $write ) {
+		$guard   = $this->app_blocking_stored;
+		$repoint = $guard !== null && array_key_exists( 'app_blocking', $row );
+
+		if ( $repoint )
+			$this->app_blocking_stored = ! empty( $row['app_blocking'] );
+
+		try {
+			$write();
+		} finally {
+			if ( $repoint && $this->general_from_network !== (bool) $network )
+				$this->app_blocking_stored = $guard;
+		}
+	}
+
+	/**
+	 * Change only $changes in the stored cookie_notice_options row, read fresh.
+	 *
+	 * Writing $this->options['general'] stores the WHOLE row as this request loaded it, so a
+	 * write another request made meanwhile is silently undone — e.g. dismissing a notice right
+	 * after the React Autoblocking toggle saved put app_blocking back on the live site, while
+	 * the admin was shown it as stored. Here the request's cached copy of the row is dropped
+	 * first (drop_cached_general_options()), the row is re-read from the database, and only
+	 * $changes are merged over it (merge_general_options()) before the write. No row yet:
+	 * $changes go over the plugin defaults, so a full row is stored, as the whole-row writers
+	 * did. When this is the row $this->options['general'] was loaded from, it takes the same
+	 * changes (unless $sync_memory is false), so the rest of the request agrees with what was
+	 * stored.
+	 *
+	 * The #2272 guard (preserve_app_blocking_preference()) runs on this write too. When
+	 * $changes do not carry app_blocking, the value written is the one already stored, and
+	 * the guard must not turn it back into the true it remembered at request start — see
+	 * write_with_stored_posture().
+	 *
+	 * Not atomic: a write landing between this read and this write still loses. It narrows the
+	 * window from the whole request to these few lines.
+	 *
+	 * @param array $changes     Option keys (or nested leaves) to set.
+	 * @param bool  $network     The network row (update_site_option()), as the caller decides.
+	 * @param bool  $sync_memory Apply $changes to $this->options['general'] too (same row only).
+	 * @param bool  $owned_only  Also drop every stored key that is not a plugin-owned field.
+	 * @return array The row written.
+	 */
+	public function update_general_option_keys( array $changes, $network, $sync_memory = true, $owned_only = false ) {
+		$this->drop_cached_general_options( $network );
+
+		$row = Cookie_Notice_Store::get( 'cookie_notice_options', null, $network );
+
+		if ( ! is_array( $row ) || $row === [] )
+			$row = $this->defaults['general'];
+
+		$row      = $this->merge_general_options( $row, $changes );
+		$same_row = $this->general_from_network === (bool) $network;
+
+		if ( $owned_only )
+			$row = array_intersect_key( $row, array_flip( self::$plugin_owned_fields ) );
+
+		$write = function () use ( $row, $network ) {
+			Cookie_Notice_Store::set( 'cookie_notice_options', $row, $network );
+		};
+
+		// Without app_blocking in $changes, the row carries the posture as stored.
+		if ( array_key_exists( 'app_blocking', $changes ) )
+			$write();
+		else
+			$this->write_with_stored_posture( $row, $network, $write );
+
+		if ( $sync_memory && $same_row )
+			$this->options['general'] = $this->merge_general_options( $this->options['general'], $changes );
+
+		return $row;
+	}
+
+	/**
 	 * Dismiss admin notice.
 	 *
 	 * @return void
@@ -2015,40 +2321,20 @@ class Cookie_Notice {
 					// set delay period last cycle day
 					$delay = isset( $_POST['param'] ) ? (int) $_POST['param'] : 0;
 
-					$this->options['general']['update_threshold_date'] = $delay + DAY_IN_SECONDS;
-
-					// update options
-					if ( $network )
-						update_site_option( 'cookie_notice_options', $this->options['general'] );
-					else
-						update_option( 'cookie_notice_options', $this->options['general'] );
+					// only this key, on a fresh read (update_general_option_keys())
+					$this->update_general_option_keys( [ 'update_threshold_date' => $delay + DAY_IN_SECONDS ], $network );
 					break;
 
 				// delay notice
 				case 'delay':
 					// set delay period to 2 weeks from now
-					$this->options['general']['update_delay_date'] = time() + 2 * WEEK_IN_SECONDS;
-
-					// update options
-					if ( $network )
-						update_site_option( 'cookie_notice_options', $this->options['general'] );
-					else
-						update_option( 'cookie_notice_options', $this->options['general'] );
+					$this->update_general_option_keys( [ 'update_delay_date' => time() + 2 * WEEK_IN_SECONDS ], $network );
 					break;
 
 				// hide notice
 				case 'approve':
 				default:
-					$this->options['general']['update_notice'] = false;
-					$this->options['general']['update_delay_date'] = 0;
-
-					// update options
-					if ( $network ) {
-						$this->options['general']['update_notice_diss'] = true;
-
-						update_site_option( 'cookie_notice_options', $this->options['general'] );
-					} else
-						update_option( 'cookie_notice_options', $this->options['general'] );
+					$this->update_general_option_keys( [ 'update_notice' => false, 'update_delay_date' => 0 ] + ( $network ? [ 'update_notice_diss' => true ] : [] ), $network );
 			}
 		}
 
@@ -2081,34 +2367,123 @@ class Cookie_Notice {
 			switch ( $notice_action ) {
 				// delay notice
 				case 'delay':
-					$this->options['general']['review_notice'] = true;
-					$this->options['general']['review_notice_delay'] = time() + 2 * WEEK_IN_SECONDS;
-
-					// update options
-					if ( $network )
-						update_site_option( 'cookie_notice_options', $this->options['general'] );
-					else
-						update_option( 'cookie_notice_options', $this->options['general'] );
+					// only these keys, on a fresh read (update_general_option_keys())
+					$this->update_general_option_keys( [ 'review_notice' => true, 'review_notice_delay' => time() + 2 * WEEK_IN_SECONDS ], $network );
 					break;
 
 				// hide notice
 				case 'dismiss':
 				case 'review':
 				default:
-					$this->options['general']['review_notice'] = false;
-					$this->options['general']['review_notice_delay'] = 0;
-
-					// update options
-					if ( $network ) {
-						$this->options['general']['update_notice_diss'] = true;
-
-						update_site_option( 'cookie_notice_options', $this->options['general'] );
-					} else
-						update_option( 'cookie_notice_options', $this->options['general'] );
+					$this->update_general_option_keys( [ 'review_notice' => false, 'review_notice_delay' => 0 ] + ( $network ? [ 'update_notice_diss' => true ] : [] ), $network );
 			}
 		}
 
 		exit;
+	}
+
+	/**
+	 * Which row this screen's engine-changed notice is read from: the row the config pull
+	 * writes for the banner this admin manages (Cookie_Notice_Welcome_API::note_engine_change(),
+	 * the pull's scope). A single site, or a site on its own settings, reads its own row; the
+	 * Network Admin the network row, under Global Settings Override. A site the network manages
+	 * and the Network Admin with the override off show none: the first cannot purge the
+	 * network's config, and the second's network row serves no site.
+	 *
+	 * @return bool|null true = network row, false = site row, null = no notice on this screen.
+	 */
+	private function engine_notice_scope() {
+		$network = $this->is_network_admin();
+
+		return $network === $this->is_network_options() ? $network : null;
+	}
+
+	/**
+	 * The one-time notice after a config pull for the same app changed its banner engine
+	 * (stored by Cookie_Notice_Welcome_API::note_engine_change()). Every admin screen, for
+	 * manage_options users, until dismissed. Shown only while it is still true: the banner is
+	 * live (status 'active') and runs the engine the notice names. `inline`, so WordPress
+	 * never moves it into the React admin's root (common.js relocates notices without it).
+	 *
+	 * @return void
+	 */
+	public function display_engine_notice() {
+		if ( ! current_user_can( 'manage_options' ) )
+			return;
+
+		$network = $this->engine_notice_scope();
+
+		// Only to an admin who can dismiss it (ajax_dismiss_engine_notice() writes at this scope).
+		if ( $network === null || ! $this->can_write_at_scope( $network ) || $this->get_status() !== 'active' )
+			return;
+
+		$change = Cookie_Notice_Store::get( 'cookie_notice_engine_changed', [], $network );
+		$engine = $this->get_banner_channel() === 'v2' ? 'new' : 'classic';
+
+		if ( ! is_array( $change ) || ! isset( $change['to'] ) || $change['to'] !== $engine )
+			return;
+
+		$at   = isset( $change['at'] ) ? (int) $change['at'] : 0;
+		$date = '';
+
+		if ( $at > 0 )
+			$date = function_exists( 'wp_date' ) ? wp_date( get_option( 'date_format' ), $at ) : date_i18n( get_option( 'date_format' ), $at );
+
+		$headline = $engine === 'new'
+			? __( 'Your banner now uses the New engine.', 'cookie-notice' )
+			: __( 'Your banner now uses the Classic engine.', 'cookie-notice' );
+
+		/* translators: %s: date the banner engine changed, in the site's date format. */
+		$when = $date !== '' ? sprintf( __( 'This changed on %s.', 'cookie-notice' ), $date ) . ' ' : '';
+
+		// Purge Cache only for an admin the purge handler accepts (Settings::ajax_purge_cache():
+		// the filtered capability; the scope is checked above).
+		$purge = current_user_can( apply_filters( 'cn_manage_cookie_notice_cap', 'manage_options' ) )
+			? ' data-purge-nonce="' . esc_attr( wp_create_nonce( 'cn-purge-cache' ) ) . '" data-purged="' . esc_attr__( 'Cache purged', 'cookie-notice' ) . '" data-purge-failed="' . esc_attr__( 'Purge failed. Try again.', 'cookie-notice' ) . '"'
+			: '';
+
+		echo '
+		<div class="notice notice-info is-dismissible inline cn-engine-notice" data-nonce="' . esc_attr( wp_create_nonce( 'cn_dismiss_engine_notice' ) ) . '"' . $purge . '>
+			<p><strong>' . esc_html( $headline ) . '</strong> ' . esc_html( $when ) . esc_html__( 'If your site or host caches pages, clear the cache so every visitor gets the new banner.', 'cookie-notice' ) . '</p>
+			<p>' . ( $purge !== '' ? '<button type="button" class="button button-primary cn-engine-notice__purge">' . esc_html__( 'Purge Cache', 'cookie-notice' ) . '</button> ' : '' ) . '<a class="button" href="' . esc_url( add_query_arg( [ 'cn_preview' => '1' ], home_url( '/' ) ) ) . '" target="_blank" rel="noopener noreferrer">' . esc_html__( 'Preview on my site', 'cookie-notice' ) . ' &#8599;</a></p>
+		</div>';
+	}
+
+	/**
+	 * Dismiss the engine-changed notice: delete its row. Scope from the vetted network claim
+	 * (set_network_data()), never from $_POST, so it deletes the row this admin was shown.
+	 *
+	 * @return void
+	 */
+	public function ajax_dismiss_engine_notice() {
+		if ( ! current_user_can( 'manage_options' ) )
+			wp_send_json_error( [ 'error' => 'Insufficient permissions.' ], 403 );
+
+		if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_key( wp_unslash( $_POST['nonce'] ) ), 'cn_dismiss_engine_notice' ) )
+			wp_send_json_error( [ 'error' => 'Invalid nonce.' ], 403 );
+
+		$network = $this->is_network_admin();
+
+		if ( ! $this->can_write_at_scope( $network ) )
+			wp_send_json_error( [ 'error' => $this->network_scope_denied_message() ], 403 );
+
+		Cookie_Notice_Store::delete( 'cookie_notice_engine_changed', $network );
+
+		wp_send_json_success();
+	}
+
+	/**
+	 * Forget the engine the config pulls named (Cookie_Notice_Welcome_API::note_engine_change())
+	 * and any notice waiting on it. Called wherever a disconnect resets the status to the
+	 * defaults, in that reset's scope, so the next pull — even for the same App ID — is a first
+	 * connect and stores no notice.
+	 *
+	 * @param bool $network Network rows (true) or site rows (false)
+	 * @return void
+	 */
+	public function forget_banner_engine( $network ) {
+		Cookie_Notice_Store::delete( 'cookie_notice_engine_seen', $network );
+		Cookie_Notice_Store::delete( 'cookie_notice_engine_changed', $network );
 	}
 
 	/**
@@ -2394,9 +2769,9 @@ class Cookie_Notice {
 
 			// add upgrade link
 			if ( $check_status ) {
-				$url = $this->is_network_admin() ? network_admin_url( 'admin.php?page=cookie-notice&welcome=1' ) : admin_url( 'admin.php?page=cookie-notice&welcome=1' );
+				$url = cn_get_welcome_url();
 
-				$links[] = sprintf( '<a href="%s" style="color: #20C19E; font-weight: bold">%s</a>', esc_url( $url ), esc_html__( 'Try Cookie Compliance free', 'cookie-notice' ) );
+				$links[] = sprintf( '<a href="%s" style="color: #20C19E; font-weight: bold">%s</a>', esc_url( $url ), esc_html__( 'Connect Your Site', 'cookie-notice' ) );
 			}
 		}
 

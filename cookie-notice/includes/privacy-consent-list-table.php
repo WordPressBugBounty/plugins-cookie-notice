@@ -201,14 +201,8 @@ class Cookie_Notice_Privacy_Consent_List_Table extends WP_List_Table {
 	 * @return void
 	 */
 	public function prepare_items() {
-		// get main instance
-		$cn = Cookie_Notice();
-
-		// get consent logs
-		if ( is_multisite() && $cn->is_network_admin() && $cn->is_plugin_network_active() && $cn->network_options['general']['global_override'] )
-			$privacy_consent = get_site_option( 'cookie_notice_privacy_consent_' . $this->cn_source['id'], [] );
-		else
-			$privacy_consent = get_option( 'cookie_notice_privacy_consent_' . $this->cn_source['id'], [] );
+		// get form statuses
+		$privacy_consent = Cookie_Notice()->privacy_consent->get_form_statuses( $this->cn_source['id'] );
 
 		$items = [];
 		$data = $this->cn_forms;

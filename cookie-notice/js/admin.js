@@ -458,7 +458,9 @@
 								data: {
 									action: 'cn_get_cookie_consent_logs',
 									nonce: cnArgs.nonceCookieConsentLogs,
-									date: el.closest( 'tr' ).data( 'date' )
+									date: el.closest( 'tr' ).data( 'date' ),
+									// network area: the handler checks the scope it serves
+									cn_network: cnArgs.network ? 1 : 0
 								}
 							} ).done( function( result ) {
 								if ( result.success ) {
@@ -505,7 +507,9 @@
 					dataType: 'json',
 					data: {
 						nonce: cnArgs.noncePrivacyConsentLogs,
-						action: 'cn_get_privacy_consent_logs'
+						action: 'cn_get_privacy_consent_logs',
+						// network area: the handler checks the scope it serves
+						cn_network: cnArgs.network ? 1 : 0
 					}
 				} ).done( function( result ) {
 					if ( result.success ) {

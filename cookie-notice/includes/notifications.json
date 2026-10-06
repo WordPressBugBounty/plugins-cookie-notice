@@ -13,7 +13,7 @@
 			"slot": "topBar",
 			"condition": { "tier": "free", "usagePercent": [ 100, null ], "thresholdExceeded": true },
 			"title": "Action Required: Visit limit reached",
-			"description": "Your site has exceeded its free monthly limit of {sessionTotal} visits. Cookie autoblocking is now disabled, which means tracking scripts may fire before visitors consent. Upgrade to Pro immediately to restore full compliance protection.",
+			"description": "Your site has exceeded its free limit of {sessionTotal} visits per 30-day cycle. Cookie autoblocking is now disabled, which means tracking scripts may fire before visitors consent. Upgrade to Pro immediately to restore full compliance protection.",
 			"cta": { "label": "Upgrade to Pro \u2192", "action": "openPricingModal" },
 			"dismissible": false,
 			"icon": "error"
@@ -25,7 +25,7 @@
 			"slot": "topBar",
 			"condition": { "tier": "free", "usagePercent": [ 70, 100 ] },
 			"title": "Approaching your visit limit",
-			"description": "Your site is nearing its free monthly limit ({sessionUsed} / {sessionTotal} visits). If you exceed the limit, cookie autoblocking will be disabled. Upgrade to Pro now for unlimited coverage.",
+			"description": "Your site is nearing its free limit for this 30-day cycle ({sessionUsed} / {sessionTotal} visits). If you exceed the limit, cookie autoblocking will be disabled. Upgrade to Pro now for unlimited coverage.",
 			"cta": { "label": "Upgrade to Pro \u2192", "action": "openPricingModal" },
 			"dismissible": true,
 			"icon": "warning"
@@ -37,7 +37,7 @@
 			"slot": "topBar",
 			"condition": { "tier": "free" },
 			"title": "Upgrade for unlimited coverage",
-			"description": "Free protects up to {sessionTotal} visits/month. Upgrade to Pro for unlimited visits, geo-targeting, and extended consent logs.",
+			"description": "Free protects up to {sessionTotal} visits per 30-day cycle. Upgrade to Pro for unlimited visits, geo-targeting, and full consent history.",
 			"cta": { "label": "Upgrade to Pro \u2192", "action": "openPricingModal" },
 			"dismissible": true,
 			"icon": "info"
@@ -52,7 +52,7 @@
 			"features": [
 				"Remove the visit limit",
 				"Geo-targeted consent",
-				"Extended consent logs"
+				"Full consent history"
 			],
 			"cta": { "label": "Upgrade to Pro \u2192", "action": "openPricingModal" }
 		},
@@ -66,7 +66,7 @@
 			"features": [
 				"Unlimited visits",
 				"Geo-targeted consent",
-				"Extended consent logs"
+				"Full consent history"
 			],
 			"cta": { "label": "Upgrade to Pro \u2192", "action": "openPricingModal" }
 		},
@@ -80,7 +80,7 @@
 			"gapLabel": "Blocking off",
 			"description": "Scripts fire before consent. Connect free to turn blocking on.",
 			"cta": { "label": "Connect free to activate protection \u2192", "action": "openWelcomeModal" },
-			"ctaSmall": "No credit card \u00b7 protects up to 10,000 visits / month"
+			"ctaSmall": "No credit card \u00b7 protects up to 1,000 visits per 30-day cycle"
 		},
 		{
 			"id": "dashboard-free-under",
@@ -92,7 +92,7 @@
 			"gapLabel": "Free plan",
 			"description": "Close the gaps below to cover more of your ad stack.",
 			"cta": { "label": "Close all gaps with Pro \u2192", "action": "openWelcomeModal" },
-			"ctaSmall": "Unlimited visits \u00b7 every consent mode \u00b7 lifetime records"
+			"ctaSmall": "Unlimited visits \u00b7 every consent mode \u00b7 full consent history"
 		},
 		{
 			"id": "dashboard-free-near",
@@ -102,7 +102,7 @@
 			"condition": { "state": "free_near" },
 			"title": "You\u2019re about to lose protection",
 			"gapLabel": "{usagePercent}% used",
-			"description": "You\u2019ve used {usagePercent}% of your monthly limit \u2014 protection switches off at 100%.",
+			"description": "You\u2019ve used {usagePercent}% of your limit for this 30-day cycle \u2014 protection switches off at 100%.",
 			"cta": { "label": "Upgrade before you hit the limit \u2192", "action": "openWelcomeModal" },
 			"ctaSmall": "Keep protection on \u00b7 go unlimited"
 		},

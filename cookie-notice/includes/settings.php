@@ -14,7 +14,6 @@ class Cookie_Notice_Settings {
 	private $current_tab = '';
 	private $sections = [];
 	private $current_section = '';
-	private $allow_consent_logs = true;
 	public $parameters = [];
 	public $operators = [];
 	public $conditional_display_types = [];
@@ -31,6 +30,17 @@ class Cookie_Notice_Settings {
 	public $level_names = [];
 	public $text_strings = [];
 	private $analytics_app_data = [];
+
+	/**
+	 * True while store_options() or store_option_keys() writes cookie_notice_options itself.
+	 *
+	 * update_option() runs the registered sanitize callback, validate_options(), which
+	 * fires cn_configuration_updated. Those two fire it once, after the write — this
+	 * keeps validate_options() from firing a second one.
+	 *
+	 * @var bool
+	 */
+	private $internal_write = false;
 
 	/**
 	 * Class constructor.
@@ -302,8 +312,8 @@ class Cookie_Notice_Settings {
 		$cn->defaults['general']['message_text'] = __( 'We use cookies to ensure that we give you the best experience on our website. If you continue to use this site we will assume that you are happy with it.', 'cookie-notice' );
 		$cn->defaults['general']['accept_text'] = __( 'Ok', 'cookie-notice' );
 		$cn->defaults['general']['refuse_text'] = __( 'No', 'cookie-notice' );
-		$cn->defaults['general']['revoke_message_text'] = __( 'You can revoke your consent any time using the Revoke consent button.', 'cookie-notice' );
-		$cn->defaults['general']['revoke_text'] = __( 'Revoke consent', 'cookie-notice' );
+		$cn->defaults['general']['revoke_message_text'] = __( 'You can change your consent any time using the Update consent button.', 'cookie-notice' );
+		$cn->defaults['general']['revoke_text'] = __( 'Update consent', 'cookie-notice' );
 		$cn->defaults['general']['see_more_opt']['text'] = __( 'Privacy policy', 'cookie-notice' );
 
 		// ── Begin network defaults write gate ────────────────────────────────
@@ -318,10 +328,11 @@ class Cookie_Notice_Settings {
 		// after_setup_theme is well past pluggable.php, so resolving the capability here is
 		// safe — unlike at plugin-include time.
 		//
-		// GATED BEFORE THE IN-MEMORY WRITES, not just before the DB write. The six
-		// assignments below overwrite $cn->options['general'] for the rest of the request,
-		// and any wholesale writer of that array later in the same request would persist the
-		// defaults a refusal was supposed to prevent. A refusal has to leave no trace.
+		// GATED BEFORE THE IN-MEMORY WRITES, not just before the DB write. The write below
+		// (update_general_option_keys()) also changes $cn->options['general'] for the rest of
+		// the request, and any wholesale writer of that array later in the same request would
+		// persist the defaults a refusal was supposed to prevent. A refusal has to leave no
+		// trace.
 		//
 		// Refused outright rather than degraded to a site write: on a network admin request
 		// get_option() resolves to the MAIN site's row, which is not this user's either. The
@@ -333,19 +344,16 @@ class Cookie_Notice_Settings {
 		// choke point reorders its operands to avoid.
 		if ( ! empty( $cn->options['general']['translate'] )
 			&& ( ! $cn->is_network_admin() || $cn->can_write_at_scope( true ) ) ) {
-			$cn->options['general']['translate'] = false;
-
-			$cn->options['general']['message_text'] = $cn->defaults['general']['message_text'];
-			$cn->options['general']['accept_text'] = $cn->defaults['general']['accept_text'];
-			$cn->options['general']['refuse_text'] = $cn->defaults['general']['refuse_text'];
-			$cn->options['general']['revoke_message_text'] = $cn->defaults['general']['revoke_message_text'];
-			$cn->options['general']['revoke_text'] = $cn->defaults['general']['revoke_text'];
-			$cn->options['general']['see_more_opt']['text'] = $cn->defaults['general']['see_more_opt']['text'];
-
-			if ( $cn->is_network_admin() )
-				update_site_option( 'cookie_notice_options', $cn->options['general'] );
-			else
-				update_option( 'cookie_notice_options', $cn->options['general'] );
+			// only these keys, on a fresh read (Cookie_Notice::update_general_option_keys())
+			$cn->update_general_option_keys( [
+				'translate'           => false,
+				'message_text'        => $cn->defaults['general']['message_text'],
+				'accept_text'         => $cn->defaults['general']['accept_text'],
+				'refuse_text'         => $cn->defaults['general']['refuse_text'],
+				'revoke_message_text' => $cn->defaults['general']['revoke_message_text'],
+				'revoke_text'         => $cn->defaults['general']['revoke_text'],
+				'see_more_opt'        => [ 'text' => $cn->defaults['general']['see_more_opt']['text'] ],
+			], $cn->is_network_admin() );
 		}
 		// ── End network defaults write gate ──────────────────────────────────
 
@@ -541,11 +549,8 @@ class Cookie_Notice_Settings {
 
 			do_settings_sections( 'cookie_notice_consent_logs' );
 
-			if ( ! $this->allow_consent_logs ) {
-				if ( $cn->is_network_admin() )
-					echo '<p class="description" style="margin-top: 20px;">' . __( 'Global network settings override is inactive. Consent records are available for each website of the multisite network separately.', 'cookie-notice' ) . '</p>';
-				else
-					echo '<p class="description" style="margin-top: 20px;">' . __( 'Global network settings override is active. Consent records are available for network administrators in the multisite admin only.', 'cookie-notice' ) . '</p>';
+			if ( ! $this->consent_logs_in_scope() ) {
+				echo '<p class="description" style="margin-top: 20px;">' . $this->consent_logs_scope_message() . '</p>';
 			} else {
 				if ( $this->current_section === 'privacy' ) {
 					if ( $status === 'active' ) {
@@ -573,10 +578,7 @@ class Cookie_Notice_Settings {
 
 						echo '</div>';
 					} else {
-						if ( $cn->is_network_admin() )
-							$upgrade_url = network_admin_url( 'admin.php?page=cookie-notice&welcome=1' );
-						else
-							$upgrade_url = admin_url( 'admin.php?page=cookie-notice&welcome=1' );
+						$upgrade_url = cn_get_welcome_url();
 
 						echo '
 							<div id="cn-consent-logs-disabled">
@@ -587,7 +589,7 @@ class Cookie_Notice_Settings {
 										<p>' . esc_html__( 'Integrate your website forms with Privacy Consent.', 'cookie-notice' ) . '</p>
 										<p>' . esc_html__( 'Collect and export proof of consent of your users.', 'cookie-notice' ) . '</p>
 										<p>' . esc_html__( 'Gain confidence that you are processing personal data legally.', 'cookie-notice' ) . '</p>
-										<p><a href="' . esc_url( $upgrade_url ) . '" class="button button-primary button-hero cn-button">' . esc_html__( 'Try Cookie Compliance free', 'cookie-notice' ) . '</a></p>
+										<p><a href="' . esc_url( $upgrade_url ) . '" class="button button-primary button-hero cn-button">' . esc_html__( 'Connect Your Site', 'cookie-notice' ) . '</a></p>
 									</div>
 								</div>
 							</div>';
@@ -619,10 +621,7 @@ class Cookie_Notice_Settings {
 						$list_table->prepare_items();
 						$list_table->display();
 					} else {
-						if ( $cn->is_network_admin() )
-							$upgrade_url = network_admin_url( 'admin.php?page=cookie-notice&welcome=1' );
-						else
-							$upgrade_url = admin_url( 'admin.php?page=cookie-notice&welcome=1' );
+						$upgrade_url = cn_get_welcome_url();
 
 						echo '
 							<div id="cn-consent-logs-disabled">
@@ -633,7 +632,7 @@ class Cookie_Notice_Settings {
 										<p>' . esc_html__( 'Automatically collect each cookie consent log.', 'cookie-notice' ) . '</p>
 										<p>' . esc_html__( 'Securely store and manage visitor consents.', 'cookie-notice' ) . '</p>
 										<p>' . esc_html__( 'Monitor consent activity directly in your WordPress dashboard.', 'cookie-notice' ) . '</p>
-										<p><a href="' . esc_url( $upgrade_url ) . '" class="button button-primary button-hero cn-button">' . esc_html__( 'Try Cookie Compliance free', 'cookie-notice' ) . '</a></p>
+										<p><a href="' . esc_url( $upgrade_url ) . '" class="button button-primary button-hero cn-button">' . esc_html__( 'Connect Your Site', 'cookie-notice' ) . '</a></p>
 									</div>
 								</div>
 							</div>';
@@ -738,6 +737,36 @@ class Cookie_Notice_Settings {
 	}
 
 	/**
+	 * The legacy sidebar's "new admin" card: a link to the confirmed switch to React.
+	 *
+	 * Shown on the legacy screen only, and only to a viewer who may switch the row the page
+	 * renders from — the same predicate maybe_switch_ui_mode() enforces. cn_confirm=1 makes
+	 * the link take the confirmation even under CN_DEV_MODE.
+	 *
+	 * @return string
+	 */
+	public function switch_to_react_card() {
+		$cn = Cookie_Notice();
+
+		if ( $cn->options['general']['ui_mode'] !== 'legacy' || ! $cn->can_switch_ui_mode() )
+			return '';
+
+		$base = $cn->is_network_admin() ? network_admin_url( 'admin.php?page=cookie-notice' ) : admin_url( 'admin.php?page=cookie-notice' );
+		$url  = add_query_arg( [ 'ui_mode' => 'react', 'cn_confirm' => '1' ], $base );
+
+		return '
+			<div class="cookie-notice-credits cn-switch-admin">
+				<div class="inside">
+					<div class="inner">
+						<h2>' . esc_html__( 'A new admin interface is available', 'cookie-notice' ) . '</h2>
+						<p>' . esc_html__( 'The same settings, connection and banner, in a new layout.', 'cookie-notice' ) . '</p>
+						<p><a href="' . esc_url( $url ) . '" class="button button-primary">' . esc_html__( 'Switch to the new interface', 'cookie-notice' ) . '</a></p>
+					</div>
+				</div>
+			</div>';
+	}
+
+	/**
 	 * Display options sidebar HTML.
 	 *
 	 * @return void
@@ -753,7 +782,7 @@ class Cookie_Notice_Settings {
 		$subscription = $cn->get_subscription();
 
 		echo '
-		<div class="cookie-notice-sidebar">
+		<div class="cookie-notice-sidebar">' . $this->switch_to_react_card() . '
 			<div class="cookie-notice-credits">
 				<div class="inside">
 					<div class="inner">';
@@ -770,9 +799,9 @@ class Cookie_Notice_Settings {
 								<p class="cn-active"><span class="cn-icon"></span>' . esc_html__( 'GDPR, CCPA, LGPD, PECR requirements', 'cookie-notice' ) . '</p>
 								<p class="cn-active"><span class="cn-icon"></span>' . esc_html__( 'Consent Analytics Dashboard', 'cookie-notice' ) . '</p>
 								<p class="' . ( $subscription === 'pro' ? 'cn-active' : 'cn-inactive' ) . '"><span class="cn-icon"></span>' . sprintf( esc_html__( '%sUnlimited%s visits', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
-								<p class="' . ( $subscription === 'pro' ? 'cn-active' : 'cn-inactive' ) . '"><span class="cn-icon"></span>' . sprintf( esc_html__( '%sUnlimited%s privacy consents', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
-								<p class="' . ( $subscription === 'pro' ? 'cn-active' : 'cn-inactive' ) . '"><span class="cn-icon"></span>' . sprintf( esc_html__( '%sLifetime%s consent storage', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
-								<p class="' . ( $subscription === 'pro' ? 'cn-active' : 'cn-inactive' ) . '"><span class="cn-icon"></span>' . sprintf( esc_html__( '%sGoogle, Microsoft & Facebook%s consent modes', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
+								<p class="' . ( $subscription === 'pro' ? 'cn-active' : 'cn-inactive' ) . '"><span class="cn-icon"></span>' . sprintf( esc_html__( '%sFull%s privacy consent history', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
+								<p class="' . ( $subscription === 'pro' ? 'cn-active' : 'cn-inactive' ) . '"><span class="cn-icon"></span>' . sprintf( esc_html__( '%sConsent history%s beyond 7 days', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
+								<p class="' . ( $subscription === 'pro' ? 'cn-active' : 'cn-inactive' ) . '"><span class="cn-icon"></span>' . sprintf( esc_html__( '%sFacebook & Microsoft%s consent modes', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
 								<p class="' . ( $subscription === 'pro' ? 'cn-active' : 'cn-inactive' ) . '"><span class="cn-icon"></span>' . sprintf( esc_html__( '%sGeolocation%s support', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
 								<p class="' . ( $subscription === 'pro' ? 'cn-active' : 'cn-inactive' ) . '"><span class="cn-icon"></span>' . sprintf( esc_html__( '%sUnlimited%s languages', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
 								<p class="' . ( $subscription === 'pro' ? 'cn-active' : 'cn-inactive' ) . '"><span class="cn-icon"></span>' . sprintf( esc_html__( '%sPriority%s Support', 'cookie-notice' ), '<b>', '</b>' ) . '</p>
@@ -836,6 +865,106 @@ class Cookie_Notice_Settings {
 	}
 
 	/**
+	 * May consent logs be shown in the current admin scope?
+	 *
+	 * The one copy of the multisite rule for who sees consent records, used by the legacy
+	 * Consent Logs screen and by every React log endpoint (cookie and privacy, view and
+	 * export). On a network-activated multisite the records belong to whichever app the
+	 * scope serves: under Global Settings Override that is the network's app, visible in
+	 * the Network Admin only; without it each site has its own app, visible on that site only.
+	 *
+	 * Evaluated at call time, never cached: the React endpoints run on admin-ajax, where
+	 * the scope is only known once the network claim has been vetted. Starts from deny;
+	 * only a scope that matches one of the cases below is allowed.
+	 *
+	 * @return bool
+	 */
+	public function consent_logs_in_scope() {
+		$cn = Cookie_Notice();
+
+		$allowed = false;
+
+		if ( ! is_multisite() || ! $cn->is_plugin_network_active() )
+			$allowed = true;
+		elseif ( $cn->is_network_admin() )
+			$allowed = ! empty( $cn->network_options['general']['global_override'] );
+		else
+			$allowed = empty( $cn->network_options['general']['global_override'] );
+
+		return $allowed;
+	}
+
+	/**
+	 * Message shown where consent_logs_in_scope() is false.
+	 *
+	 * @return string
+	 */
+	public function consent_logs_scope_message() {
+		if ( Cookie_Notice()->is_network_admin() )
+			return __( 'Global network settings override is inactive. Consent records are available for each website of the multisite network separately.', 'cookie-notice' );
+
+		return __( 'Global network settings override is active. Consent records are available for network administrators in the multisite admin only.', 'cookie-notice' );
+	}
+
+	/**
+	 * Is this a site whose settings the network manages — a site of a network-activated
+	 * multisite with Global Settings Override on, outside the Network Admin?
+	 *
+	 * Legacy greys that site's settings form out (display_options_page()); the React admin
+	 * shows the same disabled state (cnReactData.networkOverride), its save and reset refuse,
+	 * and its dashboard does not hand the network's app data to the site. Privacy Consent is
+	 * not covered: legacy lets the site save it under the override.
+	 *
+	 * @return bool
+	 */
+	public function network_managed() {
+		$cn = Cookie_Notice();
+
+		return ! $cn->is_network_admin() && $cn->is_network_options();
+	}
+
+	/**
+	 * Message shown where network_managed() is true.
+	 *
+	 * @return string
+	 */
+	public function network_managed_message() {
+		return __( 'Global network settings override is active. Every site will use the same network settings. Please contact super administrator if you want to have more control over the settings.', 'cookie-notice' );
+	}
+
+	/**
+	 * Refuse an AJAX write from a site whose settings the network manages (network_managed()).
+	 *
+	 * Such a request holds the NETWORK's row in $cn->options and the network's app_id, so a
+	 * write there changes the network's options, its app config on the platform, or its
+	 * connection — for a super administrator visiting the site too. Legacy only greys the
+	 * form out. Every write handler calls this first, right after its nonce and capability
+	 * checks and before any remote call or write. 403, as the scope refusals beside it.
+	 *
+	 * @return void
+	 */
+	public function verify_not_network_managed() {
+		if ( $this->network_managed() )
+			wp_send_json_error( [ 'error' => $this->network_managed_message(), 'code' => 'cn_network_managed' ], 403 );
+	}
+
+	/**
+	 * The admin UI mode of the row the settings page renders from: the network row in the
+	 * Network Admin, the site row everywhere else (cookie-notice.php "get options").
+	 *
+	 * Not $cn->options: on admin-ajax under Global Settings Override that is the NETWORK row
+	 * for a site too, so a site's React write handlers were registered by the network's mode
+	 * rather than by the screen the site's admin is looking at.
+	 *
+	 * @return string 'react' or 'legacy'
+	 */
+	public function rendered_ui_mode() {
+		$row = Cookie_Notice_Store::get( 'cookie_notice_options', [], Cookie_Notice()->is_network_admin() );
+
+		return is_array( $row ) && isset( $row['ui_mode'] ) && $row['ui_mode'] === 'react' ? 'react' : 'legacy';
+	}
+
+	/**
 	 * Register plugin settings.
 	 *
 	 * @return void
@@ -857,14 +986,6 @@ class Cookie_Notice_Settings {
 		else
 			$cb = '';
 
-		if ( is_multisite() ) {
-			if ( $cn->is_plugin_network_active() && ( ( $cn->is_network_admin() && ! $cn->network_options['general']['global_override'] ) || ( ! $cn->is_network_admin() && $cn->network_options['general']['global_override'] ) ) )
-				$this->allow_consent_logs = false;
-			else
-				$this->allow_consent_logs = true;
-		} else
-			$this->allow_consent_logs = true;
-		
 		add_settings_section( 'cookie_notice_consent_logs_status', esc_html__( 'Compliance Integration', 'cookie-notice' ), '', 'cookie_notice_consent_logs', [ 'before_section' => '<div class="%s">', 'after_section' => '</div>', 'section_class' => 'cn-section-container compliance-section' ] );
 
 		add_settings_field( 'cn_consent_logs_status', esc_html__( 'Compliance Status', 'cookie-notice' ), [ $this, 'cn_consent_logs_status' ], 'cookie_notice_consent_logs', 'cookie_notice_consent_logs_status' );
@@ -913,7 +1034,7 @@ class Cookie_Notice_Settings {
 			add_settings_section( 'cookie_notice_compliance', esc_html__( 'Compliance Integration', 'cookie-notice' ), '', 'cookie_notice_options', [ 'before_section' => '<div class="%s">', 'after_section' => '</div>', 'section_class' => 'cn-section-container compliance-section' ] );
 			add_settings_field( 'cn_app_status', esc_html__( 'Compliance Status', 'cookie-notice' ), [ $this, 'cn_app_status' ], 'cookie_notice_options', 'cookie_notice_compliance' );
 			add_settings_field( 'cn_app_id', esc_html__( 'App ID', 'cookie-notice' ), [ $this, 'cn_app_id' ], 'cookie_notice_options', 'cookie_notice_compliance' );
-			add_settings_field( 'cn_app_key', esc_html__( 'App Key', 'cookie-notice' ), [ $this, 'cn_app_key' ], 'cookie_notice_options', 'cookie_notice_compliance' );
+			add_settings_field( 'cn_app_key', esc_html__( 'App Secret Key', 'cookie-notice' ), [ $this, 'cn_app_key' ], 'cookie_notice_options', 'cookie_notice_compliance' );
 
 			// configuration section
 			add_settings_section( 'cookie_notice_configuration', esc_html__( 'Cookie Consent Settings', 'cookie-notice' ), '', 'cookie_notice_options', [ 'before_section' => '<div class="%s">', 'after_section' => '</div>', 'section_class' => 'cn-section-container misc-section' ] );
@@ -921,7 +1042,7 @@ class Cookie_Notice_Settings {
 			add_settings_field( 'cn_app_blocking_engine', esc_html__( 'Script blocking engine', 'cookie-notice' ), [ $this, 'cn_app_blocking_engine' ], 'cookie_notice_options', 'cookie_notice_configuration' );
 			add_settings_field( 'cn_app_blocking', esc_html__( 'Autoblocking', 'cookie-notice' ), [ $this, 'cn_app_blocking' ], 'cookie_notice_options', 'cookie_notice_configuration' );
 			add_settings_field( 'cn_excluded_handles', esc_html__( 'Excluded Script Handles', 'cookie-notice' ), [ $this, 'cn_excluded_handles' ], 'cookie_notice_options', 'cookie_notice_configuration' );
-			add_settings_field( 'cn_sync_config', esc_html__( 'Pull Configuration', 'cookie-notice' ), [ $this, 'cn_sync_config' ], 'cookie_notice_options', 'cookie_notice_configuration' );
+			add_settings_field( 'cn_sync_config', esc_html__( 'Pull latest settings', 'cookie-notice' ), [ $this, 'cn_sync_config' ], 'cookie_notice_options', 'cookie_notice_configuration' );
 			add_settings_field( 'cn_refuse_code', esc_html__( 'Scripts', 'cookie-notice' ), [ $this, 'cn_refuse_code' ], 'cookie_notice_options', 'cookie_notice_configuration' );
 			add_settings_field( 'cn_caching_compatibility', esc_html__( 'Caching Compatibility', 'cookie-notice' ), [ $this, 'cn_caching_compatibility' ], 'cookie_notice_options', 'cookie_notice_configuration' );
 			add_settings_field( 'cn_app_purge_cache', esc_html__( 'Purge Cache', 'cookie-notice' ), [ $this, 'cn_app_purge_cache' ], 'cookie_notice_options', 'cookie_notice_configuration' );
@@ -937,7 +1058,7 @@ class Cookie_Notice_Settings {
 			add_settings_section( 'cookie_notice_compliance', esc_html__( 'Compliance Integration', 'cookie-notice' ), '', 'cookie_notice_options', [ 'before_section' => '<div class="%s">', 'after_section' => '</div>', 'section_class' => 'cn-section-container compliance-section' ] );
 			add_settings_field( 'cn_app_status', esc_html__( 'Compliance status', 'cookie-notice' ), [ $this, 'cn_app_status' ], 'cookie_notice_options', 'cookie_notice_compliance' );
 			add_settings_field( 'cn_app_id', esc_html__( 'App ID', 'cookie-notice' ), [ $this, 'cn_app_id' ], 'cookie_notice_options', 'cookie_notice_compliance' );
-			add_settings_field( 'cn_app_key', esc_html__( 'App Key', 'cookie-notice' ), [ $this, 'cn_app_key' ], 'cookie_notice_options', 'cookie_notice_compliance' );
+			add_settings_field( 'cn_app_key', esc_html__( 'App Secret Key', 'cookie-notice' ), [ $this, 'cn_app_key' ], 'cookie_notice_options', 'cookie_notice_compliance' );
 
 			// configuration section
 			add_settings_section( 'cookie_notice_configuration', esc_html__( 'Notice Settings', 'cookie-notice' ), '', 'cookie_notice_options', [ 'before_section' => '<div class="%s">', 'after_section' => '</div>', 'section_class' => 'cn-section-container notice-section' ] );
@@ -945,7 +1066,7 @@ class Cookie_Notice_Settings {
 			add_settings_field( 'cn_accept_text', esc_html__( 'Button text', 'cookie-notice' ), [ $this, 'cn_accept_text' ], 'cookie_notice_options', 'cookie_notice_configuration' );
 			add_settings_field( 'cn_see_more', esc_html__( 'Privacy policy', 'cookie-notice' ), [ $this, 'cn_see_more' ], 'cookie_notice_options', 'cookie_notice_configuration' );
 			add_settings_field( 'cn_refuse_opt', esc_html__( 'Refuse consent', 'cookie-notice' ), [ $this, 'cn_refuse_opt' ], 'cookie_notice_options', 'cookie_notice_configuration' );
-			add_settings_field( 'cn_revoke_opt', esc_html__( 'Revoke consent', 'cookie-notice' ), [ $this, 'cn_revoke_opt' ], 'cookie_notice_options', 'cookie_notice_configuration' );
+			add_settings_field( 'cn_revoke_opt', esc_html__( 'Update consent', 'cookie-notice' ), [ $this, 'cn_revoke_opt' ], 'cookie_notice_options', 'cookie_notice_configuration' );
 			// Engine first, then posture — same pair as the connected branch above, so
 			// the two controls are never rendered apart. Both fields carry their own
 			// sentinel, so a form that omits either one preserves its stored value.
@@ -1012,7 +1133,7 @@ class Cookie_Notice_Settings {
 	 */
 	public function cn_network_section() {
 		echo '
-		<p>' . esc_html__( 'Global network settings override is active. Every site will use the same network settings. Please contact super administrator if you want to have more control over the settings.', 'cookie-notice' ) . '</p>';
+		<p>' . esc_html( $this->network_managed_message() ) . '</p>';
 	}
 	
 	/**
@@ -1021,7 +1142,7 @@ class Cookie_Notice_Settings {
 	 * @return void
 	 */
 	public function cn_consent_logs_section() {
-		if ( ! $this->allow_consent_logs )
+		if ( ! $this->consent_logs_in_scope() )
 			return;
 
 		echo '
@@ -1062,6 +1183,14 @@ class Cookie_Notice_Settings {
 		// get threshold status
 		$threshold_exceeded = $cn->threshold_exceeded();
 
+		// the Admin Portal, on this site's own app ( the portal reads app-id from the query inside its # route, as the upgrade links do )
+		$app_id     = (string) $cn->options['general']['app_id'];
+		$portal_url = $cn->get_url( 'host', '?utm_campaign=configure&utm_source=wordpress&utm_medium=button#/dashboard' . ( $app_id !== '' ? '?app-id=' . rawurlencode( $app_id ) : '' ) );
+
+		// an App ID but no status: connected, the last configuration pull did not confirm the state
+		if ( $app_status !== 'active' && $app_status !== 'pending' && $app_id !== '' )
+			$app_status = 'unconfirmed';
+
 		// ── Begin autoblocking status row (DEC-012)
 		//
 		// This row used to print "Active" on every connected site whatever the settings
@@ -1096,8 +1225,7 @@ class Cookie_Notice_Settings {
 					<div class="cn_compliance_status"><span class="cn-status-label">' . esc_html__( 'Cookie Consent Storage', 'cookie-notice' ) . '</span>: <span class="cn-status cn-active"><span class="cn-icon"></span> ' . esc_html__( 'Active', 'cookie-notice' ) . '</span></div>
 				</div>
 				<div id="cn_app_actions">
-					<a href="' . esc_url( $cn->get_url( 'host', '?utm_campaign=configure&utm_source=wordpress&utm_medium=button#/dashboard' ) ) . '" class="button button-primary button-hero cn-button" target="_blank">' . esc_html__( 'Log in & Configure', 'cookie-notice' ) . '</a>
-					<p class="description">' . esc_html__( 'Log in to the Cookie Compliance Admin Portal to explore, configure and manage its functionalities.', 'cookie-notice' ) . '</p>
+					<a href="' . esc_url( $portal_url ) . '" class="button button-primary button-hero cn-button" target="_blank">' . esc_html__( 'Open Admin Portal', 'cookie-notice' ) . '</a>
 				</div>';
 				break;
 
@@ -1110,8 +1238,18 @@ class Cookie_Notice_Settings {
 					<div class="cn_compliance_status"><span class="cn-status-label">' . esc_html__( 'Cookie Consent Storage', 'cookie-notice' ) . '</span>: <span class="cn-status cn-pending"><span class="cn-icon"></span> ' . esc_html__( 'Pending', 'cookie-notice' ) . '</span></div>
 				</div>
 				<div id="cn_app_actions">
-					<a href="' . esc_url( $cn->get_url( 'host', '?utm_campaign=configure&utm_source=wordpress&utm_medium=button#/dashboard' ) ) . '" class="button button-primary button-hero cn-button" target="_blank">' . esc_html__( 'Log in & Configure', 'cookie-notice' ) . '</a>
-					<p class="description">' . esc_html__( 'Log in to the Cookie Compliance Admin Portal and complete the setup process.', 'cookie-notice' ) . '</p>
+					<a href="' . esc_url( $portal_url ) . '" class="button button-primary button-hero cn-button" target="_blank">' . esc_html__( 'Open Admin Portal', 'cookie-notice' ) . '</a>
+					<p class="description">' . esc_html__( 'Sign in to the Cookie Compliance Admin Portal and complete the setup process.', 'cookie-notice' ) . '</p>
+				</div>';
+				break;
+
+			case 'unconfirmed':
+				echo '
+				<div id="cn_app_status">
+					<div class="cn_compliance_status"><span class="cn-status-label">' . esc_html__( 'Connection', 'cookie-notice' ) . '</span>: <span class="cn-status cn-inactive"><span class="cn-icon"></span> ' . esc_html__( 'Not confirmed', 'cookie-notice' ) . '</span></div>
+				</div>
+				<div id="cn_app_actions">
+					<a href="' . esc_url( $portal_url ) . '" class="button button-primary button-hero cn-button" target="_blank">' . esc_html__( 'Open Admin Portal', 'cookie-notice' ) . '</a>
 				</div>';
 				break;
 
@@ -1129,7 +1267,7 @@ class Cookie_Notice_Settings {
 					<div class="cn_compliance_status"><span class="cn-status-label">' . esc_html__( 'Cookie Consent Storage', 'cookie-notice' ) . '</span>: <span class="cn-status cn-inactive"><span class="cn-icon"></span> ' . esc_html__( 'Inactive', 'cookie-notice' ) . '</span></div>
 				</div>
 				<div id="cn_app_actions">
-					<a href="' . esc_url( $url ) . '" class="button button-primary button-hero cn-button cn-run-welcome">' . esc_html__( 'Try Cookie Compliance free', 'cookie-notice' ) . '</a>
+					<a href="' . esc_url( $url ) . '" class="button button-primary button-hero cn-button cn-run-welcome">' . esc_html__( 'Connect Your Site', 'cookie-notice' ) . '</a>
 					<p class="description">' . sprintf( esc_html__( 'Sign up to %s and add GDPR, CCPA and other international data privacy laws compliance features.', 'cookie-notice' ), '<a href="https://cookie-compliance.co/?utm_campaign=sign-up&utm_source=wordpress&utm_medium=textlink" target="_blank">Cookie Compliance</a>' ) . '</p>
 				</div>';
 				break;
@@ -1153,6 +1291,14 @@ class Cookie_Notice_Settings {
 		else
 			$url = admin_url( 'admin.php?page=cookie-notice' );
 
+		// the Admin Portal, on this site's own app ( the portal reads app-id from the query inside its # route, as the upgrade links do )
+		$app_id     = (string) $cn->options['general']['app_id'];
+		$portal_url = $cn->get_url( 'host', '?utm_campaign=configure&utm_source=wordpress&utm_medium=button#/dashboard' . ( $app_id !== '' ? '?app-id=' . rawurlencode( $app_id ) : '' ) );
+
+		// an App ID but no status: connected, the last configuration pull did not confirm the state
+		if ( $app_status !== 'active' && $app_status !== 'pending' && $app_id !== '' )
+			$app_status = 'unconfirmed';
+
 		switch ( $app_status ) {
 			case 'active':
 				echo '
@@ -1161,8 +1307,7 @@ class Cookie_Notice_Settings {
 					<div class="cn_compliance_status"><span class="cn-status-label">' . esc_html__( 'Privacy Consent Logs', 'cookie-notice' ) . '</span>: <span class="cn-status cn-active"><span class="cn-icon"></span> ' . esc_html__( 'Active', 'cookie-notice' ) . '</span></div>
 				</div>
 				<div id="cn_app_actions">
-					<a href="' . esc_url( $cn->get_url( 'host', '?utm_campaign=configure&utm_source=wordpress&utm_medium=button#/dashboard' ) ) . '" class="button button-primary button-hero cn-button" target="_blank">' . esc_html__( 'Log in & Configure', 'cookie-notice' ) . '</a>
-					<p class="description">' . esc_html__( 'Log in to the Cookie Compliance Admin Portal to explore, configure and manage its functionalities.', 'cookie-notice' ) . '</p>
+					<a href="' . esc_url( $portal_url ) . '" class="button button-primary button-hero cn-button" target="_blank">' . esc_html__( 'Open Admin Portal', 'cookie-notice' ) . '</a>
 				</div>';
 				break;
 
@@ -1173,8 +1318,18 @@ class Cookie_Notice_Settings {
 					<div class="cn_compliance_status"><span class="cn-status-label">' . esc_html__( 'Privacy Consent Logs', 'cookie-notice' ) . '</span>: <span class="cn-status cn-pending"><span class="cn-icon"></span> ' . esc_html__( 'Pending', 'cookie-notice' ) . '</span></div>
 				</div>
 				<div id="cn_app_actions">
-					<a href="' . esc_url( $cn->get_url( 'host', '?utm_campaign=configure&utm_source=wordpress&utm_medium=button#/dashboard' ) ) . '" class="button button-primary button-hero cn-button" target="_blank">' . esc_html__( 'Log in & Configure', 'cookie-notice' ) . '</a>
-					<p class="description">' . esc_html__( 'Log in to the Cookie Compliance Admin Portal and complete the setup process.', 'cookie-notice' ) . '</p>
+					<a href="' . esc_url( $portal_url ) . '" class="button button-primary button-hero cn-button" target="_blank">' . esc_html__( 'Open Admin Portal', 'cookie-notice' ) . '</a>
+					<p class="description">' . esc_html__( 'Sign in to the Cookie Compliance Admin Portal and complete the setup process.', 'cookie-notice' ) . '</p>
+				</div>';
+				break;
+
+			case 'unconfirmed':
+				echo '
+				<div id="cn_app_status">
+					<div class="cn_compliance_status"><span class="cn-status-label">' . esc_html__( 'Connection', 'cookie-notice' ) . '</span>: <span class="cn-status cn-inactive"><span class="cn-icon"></span> ' . esc_html__( 'Not confirmed', 'cookie-notice' ) . '</span></div>
+				</div>
+				<div id="cn_app_actions">
+					<a href="' . esc_url( $portal_url ) . '" class="button button-primary button-hero cn-button" target="_blank">' . esc_html__( 'Open Admin Portal', 'cookie-notice' ) . '</a>
 				</div>';
 				break;
 
@@ -1185,7 +1340,7 @@ class Cookie_Notice_Settings {
 					<div class="cn_compliance_status"><span class="cn-status-label">' . esc_html__( 'Privacy Consent Logs', 'cookie-notice' ) . '</span>: <span class="cn-status cn-inactive"><span class="cn-icon"></span> ' . esc_html__( 'Inactive', 'cookie-notice' ) . '</span></div>
 				</div>
 				<div id="cn_app_actions">
-					<a href="' . esc_url( $url ) . '" class="button button-primary button-hero cn-button cn-run-welcome">' . esc_html__( 'Try Cookie Compliance free', 'cookie-notice' ) . '</a>
+					<a href="' . esc_url( $url ) . '" class="button button-primary button-hero cn-button cn-run-welcome">' . esc_html__( 'Connect Your Site', 'cookie-notice' ) . '</a>
 					<p class="description">' . sprintf( esc_html__( 'Sign up to %s and enable Privacy Consent support.', 'cookie-notice' ), '<a href="https://cookie-compliance.co/?utm_campaign=sign-up&utm_source=wordpress&utm_medium=textlink" target="_blank">Cookie Compliance</a>' ) . '</p>
 				</div>';
 		}
@@ -1213,7 +1368,7 @@ class Cookie_Notice_Settings {
 		echo '
 		<div id="cn_app_key">
 			<input type="password" class="regular-text" name="cookie_notice_options[app_key]" value="' . esc_attr( Cookie_Notice()->options['general']['app_key'] ) . '" />
-			<p class="description">' . esc_html__( 'Enter your Cookie Compliance application secret key.', 'cookie-notice' ) . '</p>
+			<p class="description">' . esc_html__( 'Enter your Cookie Compliance App Secret Key.', 'cookie-notice' ) . '</p>
 		</div>';
 	}
 
@@ -1325,12 +1480,12 @@ class Cookie_Notice_Settings {
 			<div class="cn-button-container">
 				<button type="button" class="button button-secondary cn-sync-config-btn">
 					<span class="dashicons dashicons-update"></span>
-					' . esc_html__( 'Pull Configuration', 'cookie-notice' ) . '
+					' . esc_html__( 'Pull latest settings', 'cookie-notice' ) . '
 				</button>
 				<span class="cn-sync-spinner spinner"></span>
 				<span class="description cn-sync-status">' . $last_synced_display . '</span>
 			</div>
-			<p class="description">' . esc_html__( 'Manually pull the latest configuration including autoblocking. Configuration syncs automatically every 24 hours.', 'cookie-notice' ) . '</p>
+			<p class="description">' . esc_html__( 'Manually pull the latest configuration including autoblocking. Configuration also syncs automatically twice a day.', 'cookie-notice' ) . '</p>
 			<div class="cn-sync-message" style="display: none;"></div>
 		</div>';
 	}
@@ -1573,16 +1728,7 @@ class Cookie_Notice_Settings {
 	 * @return void
 	 */
 	public function cn_pro_features_locked() {
-		// get main instance
-		$cn = Cookie_Notice();
-
-		$base_url = $cn->is_network_admin()
-			? network_admin_url( 'admin.php?page=cookie-notice' )
-			: admin_url( 'admin.php?page=cookie-notice' );
-
-		$welcome_url = ( $cn->options['general']['ui_mode'] === 'react' )
-			? add_query_arg( [ 'cn_react_welcome' => '1' ], $base_url )
-			: add_query_arg( [ 'welcome' => '1' ], $base_url );
+		$welcome_url = cn_get_welcome_url();
 
 		echo '
 		<div id="cn_pro_features_locked">
@@ -1609,12 +1755,12 @@ class Cookie_Notice_Settings {
 
 		echo '
 		<fieldset id="cn_revoke_opt">
-			<label><input id="cn_revoke_cookies" type="checkbox" name="cookie_notice_options[revoke_cookies]" value="1" ' . checked( true, $cn->options['general']['revoke_cookies'], false ) . ' />' . sprintf( esc_html__( 'Enable to give to the user the possibility to revoke their consent %s(requires "Refuse consent" option enabled)%s.', 'cookie-notice' ), '<i>', '</i>' ) . '</label>
+			<label><input id="cn_revoke_cookies" type="checkbox" name="cookie_notice_options[revoke_cookies]" value="1" ' . checked( true, $cn->options['general']['revoke_cookies'], false ) . ' />' . sprintf( esc_html__( 'Enable Update consent so visitors can reopen the banner and change their consent %s(requires "Refuse consent" option enabled)%s.', 'cookie-notice' ), '<i>', '</i>' ) . '</label>
 			<div id="cn_revoke_opt_container"' . ( $cn->options['general']['revoke_cookies'] ? '' : ' style="display: none"' ) . ' class="cn_fieldset_content">
 				<textarea name="cookie_notice_options[revoke_message_text]" class="large-text" cols="50" rows="2">' . esc_textarea( $cn->options['general']['revoke_message_text'] ) . '</textarea>
-				<p class="description">' . esc_html__( 'Enter the revoke message.', 'cookie-notice' ) . '</p>
+				<p class="description">' . esc_html__( 'Enter the Update consent message.', 'cookie-notice' ) . '</p>
 				<input type="text" class="regular-text" name="cookie_notice_options[revoke_text]" value="' . esc_attr( $cn->options['general']['revoke_text'] ) . '" />
-				<p class="description">' . esc_html__( 'The text of the button to revoke the consent.', 'cookie-notice' ) . '</p>';
+				<p class="description">' . esc_html__( 'The text of the Update consent button.', 'cookie-notice' ) . '</p>';
 
 		foreach ( $this->revoke_opts as $value => $label ) {
 			echo '
@@ -1622,7 +1768,7 @@ class Cookie_Notice_Settings {
 		}
 
 		echo '
-				<p class="description">' . sprintf( esc_html__( 'Select the method for displaying the revoke button - automatic (in the banner) or manual using %s[cookies_revoke]%s shortcode.', 'cookie-notice' ), '<code>', '</code>' ) . '</p>
+				<p class="description">' . sprintf( esc_html__( 'Select how Update consent is shown — automatic (floating control) or manual using the %s[cookies_revoke]%s shortcode.', 'cookie-notice' ), '<code>', '</code>' ) . '</p>
 			</div>
 		</fieldset>';
 	}
@@ -2075,14 +2221,9 @@ class Cookie_Notice_Settings {
 		$cn = Cookie_Notice();
 
 		if ( $cn->get_status() !== 'active' ) {
-			if ( ! empty( $cn->options['general']['csp_notice'] ) ) {
-				$cn->options['general']['csp_notice'] = false;
-
-				if ( $cn->is_network_admin() )
-					update_site_option( 'cookie_notice_options', $cn->options['general'] );
-				else
-					update_option( 'cookie_notice_options', $cn->options['general'] );
-			}
+			// only this key, on a fresh read (Cookie_Notice::update_general_option_keys())
+			if ( ! empty( $cn->options['general']['csp_notice'] ) )
+				$cn->update_general_option_keys( [ 'csp_notice' => false ], $cn->is_network_admin() );
 
 			return false;
 		}
@@ -2100,14 +2241,8 @@ class Cookie_Notice_Settings {
 		else
 			set_transient( 'cookie_notice_csp_check', $invalid ? '1' : '0', HOUR_IN_SECONDS );
 
-		if ( $cn->options['general']['csp_notice'] !== $invalid ) {
-			$cn->options['general']['csp_notice'] = $invalid;
-
-			if ( $network )
-				update_site_option( 'cookie_notice_options', $cn->options['general'] );
-			else
-				update_option( 'cookie_notice_options', $cn->options['general'] );
-		}
+		if ( $cn->options['general']['csp_notice'] !== $invalid )
+			$cn->update_general_option_keys( [ 'csp_notice' => $invalid ], $network );
 
 		return $invalid;
 	}
@@ -2140,6 +2275,331 @@ class Cookie_Notice_Settings {
 		}
 	}
 
+	// ── Shared save rules ─────────────────────────────────────────────────
+	//
+	// One rule per field, and one method per post-save effect, called from BOTH save
+	// paths: the legacy form (validate_options) and the React admin (Cookie_Notice_React_
+	// Admin_Ajax::save_options). The React save posts only the keys that changed and
+	// merges them over the stored row, so it calls the field rules only for keys it was
+	// sent and runs the effects on the merged row. validate_options() itself is never
+	// reused there: it writes a default for every key it was not sent.
+
+	/**
+	 * Clean a banner message text (notice or Update consent message): trim, then
+	 * wp_kses_post with the plugin's 'display' style allowance. Empty → the default text.
+	 *
+	 * @param string $field 'message_text' or 'revoke_message_text'
+	 * @param string $value Unslashed value
+	 * @return string
+	 */
+	public function sanitize_message_text( $field, $value ) {
+		add_filter( 'safe_style_css', [ $this, 'allow_style_attributes' ] );
+
+		$value = wp_kses_post( trim( $value ) );
+
+		remove_filter( 'safe_style_css', [ $this, 'allow_style_attributes' ] );
+
+		return $value === '' ? Cookie_Notice()->defaults['general'][$field] : $value;
+	}
+
+	/**
+	 * Clean a button text (accept, refuse, Update consent). Empty → the default text.
+	 *
+	 * @param string $field 'accept_text', 'refuse_text' or 'revoke_text'
+	 * @param string $value Unslashed value
+	 * @return string
+	 */
+	public function sanitize_button_text( $field, $value ) {
+		$value = sanitize_text_field( $value );
+
+		return $value === '' ? Cookie_Notice()->defaults['general'][$field] : $value;
+	}
+
+	/**
+	 * Clean the custom script code: trim, then keep only the tags allowed for its place.
+	 *
+	 * @param string $value Unslashed (or WAF-decoded) value — never unslash it again
+	 * @param string $location 'body' or 'head'
+	 * @return string
+	 */
+	public function sanitize_refuse_code( $value, $location ) {
+		return wp_kses( trim( $value ), Cookie_Notice()->get_allowed_html( $location ) );
+	}
+
+	/**
+	 * Clean the button CSS class list: each class through sanitize_html_class, duplicates
+	 * dropped. Nothing valid left from several classes → the default.
+	 *
+	 * @param string $value Unslashed value
+	 * @return string
+	 */
+	public function sanitize_css_class( $value ) {
+		$value = trim( $value );
+
+		if ( $value === '' )
+			return $value;
+
+		// single class
+		if ( strpos( $value, ' ' ) === false )
+			return sanitize_html_class( $value );
+
+		// get unique valid html classes
+		$classes = array_unique( array_filter( array_map( 'sanitize_html_class', explode( ' ', $value ) ) ) );
+
+		return ! empty( $classes ) ? implode( ' ', $classes ) : Cookie_Notice()->defaults['general']['css_class'];
+	}
+
+	/**
+	 * AMP support can be on only while the AMP plugin is active.
+	 *
+	 * @param bool $enabled
+	 * @return bool
+	 */
+	public function sanitize_amp_support( $enabled ) {
+		return $enabled && cn_is_plugin_active( 'amp' );
+	}
+
+	/**
+	 * Caching compatibility can be on only while a supported caching plugin is active.
+	 *
+	 * @param bool $enabled
+	 * @return bool
+	 */
+	public function sanitize_caching_compatibility( $enabled ) {
+		// get active caching plugins
+		$active_plugins = cn_get_active_caching_plugins();
+
+		return $enabled && ! empty( $active_plugins );
+	}
+
+	/**
+	 * The plugin options as the React admin sees them: the general row, with the STORED
+	 * Autoblocking preference instead of the over-quota-forced runtime value set_status()
+	 * leaves in $cn->options. The React toggle shows what the admin chose and a save reply
+	 * reports the stored row, so the two agree and no reply flips the toggle.
+	 *
+	 * One builder for the page bootstrap (cnReactData.options) and its re-read
+	 * (react-admin-ajax.php get_plugin_options()), so both expose exactly the same fields.
+	 *
+	 * The row is read here, by scope, and NOT taken from $cn->options: the constructor picks
+	 * that row by request type, so on a network-activated multisite with global_override on
+	 * the settings PAGE of a subsite loads the site row while admin-ajax.php loads the
+	 * NETWORK row (network app_id / app_key included). Taken from $cn->options, the re-read
+	 * handed a subsite screen the network's settings. Scope here is is_network_admin() —
+	 * the network admin screen, or an AJAX cn_network claim vetted by
+	 * Cookie_Notice::enforce_network_scope() — and the site row otherwise, which is what
+	 * the settings page loads in every case.
+	 *
+	 * Read from the database, app_blocking is the stored preference: the Free-plan quota
+	 * force only ever lands in memory, and preserve_app_blocking_preference() keeps it out
+	 * of the row.
+	 *
+	 * For the same reason app_id is the STORED id, so under CN_DEV_MODE the ?cn_tier
+	 * override (Cookie_Notice::maybe_apply_dev_tier_override(), in memory only) does not
+	 * reach cnReactData.options.app_id — the bootstrap must equal its re-read. Its faked id
+	 * is the top-level cnReactData.app_id (identical to options.app_id in production); React
+	 * code that wants the tier's app identity reads that, the connection forms the stored id.
+	 *
+	 * @return array
+	 */
+	public function react_options() {
+		$cn  = Cookie_Notice();
+		$row = Cookie_Notice_Store::get( 'cookie_notice_options', $cn->defaults['general'], $cn->is_network_admin() );
+
+		// The same merge the constructor applies to the row it loads.
+		$options = $cn->multi_array_merge( $cn->defaults['general'], is_array( $row ) ? $row : [] );
+
+		if ( ! isset( $options['see_more_opt']['sync'] ) )
+			$options['see_more_opt']['sync'] = $cn->defaults['general']['see_more_opt']['sync'];
+
+		$options['app_blocking'] = ! empty( $options['app_blocking'] );
+
+		return $options;
+	}
+
+	/**
+	 * Is Cookie Compliance active — will the front end print the widget that does the
+	 * blocking? The same test as Cookie_Notice_Frontend::early_init(): below 'active'
+	 * ('' or 'pending', e.g. after a pull the platform refused) no script is held, whatever
+	 * the blocking switches say. For the React admin's blocking claim: the page bootstrap
+	 * (cnReactData.complianceActive) and every reply that carries blocking_paused.
+	 *
+	 * get_status() reads the in-memory status data, which get_app_config() refreshes
+	 * (set_status_data()) after it writes, so a reply built after a pull reports the status
+	 * that pull left.
+	 *
+	 * @return bool
+	 */
+	public function compliance_active() {
+		return Cookie_Notice()->get_status() === 'active';
+	}
+
+	/**
+	 * Cookie expiry choices for the React admin, from the filtered (cn_cookie_expiry) list
+	 * the legacy screen and both saves use.
+	 *
+	 * @return array [ [ 'value' => key, 'label' => label ], ... ]
+	 */
+	public function get_expiry_options() {
+		$options = [];
+
+		foreach ( $this->times as $key => $time ) {
+			$options[] = [ 'value' => (string) $key, 'label' => $time[0] ];
+		}
+
+		return $options;
+	}
+
+	/**
+	 * Point the WordPress privacy policy page at the banner's policy page, when synced.
+	 *
+	 * @param array $options Full (merged) options
+	 * @return void
+	 */
+	public function sync_privacy_policy_page( $options ) {
+		if ( $options['see_more_opt']['link_type'] === 'page' && $options['see_more_opt']['sync'] )
+			update_option( 'wp_page_for_privacy_policy', $options['see_more_opt']['id'] );
+	}
+
+	/**
+	 * Link position "message": the policy link lives in the message, as a shortcode.
+	 *
+	 * @param array $options Full (merged) options
+	 * @return array
+	 */
+	public function append_policy_link_shortcode( $options ) {
+		if ( $options['see_more'] && $options['link_position'] === 'message' && strpos( $options['message_text'], '[cookies_policy_link' ) === false )
+			$options['message_text'] .= ' [cookies_policy_link]';
+
+		return $options;
+	}
+
+	/**
+	 * Register the saved texts with WPML (>= 3.2) for translation.
+	 *
+	 * @param array $options Full (merged) options
+	 * @return void
+	 */
+	public function register_wpml_option_strings( $options ) {
+		if ( ! defined( 'ICL_SITEPRESS_VERSION' ) || ! version_compare( ICL_SITEPRESS_VERSION, '3.2', '>=' ) )
+			return;
+
+		do_action( 'wpml_register_single_string', 'Cookie Notice', 'Message in the notice', $options['message_text'] );
+		do_action( 'wpml_register_single_string', 'Cookie Notice', 'Button text', $options['accept_text'] );
+		do_action( 'wpml_register_single_string', 'Cookie Notice', 'Refuse button text', $options['refuse_text'] );
+		do_action( 'wpml_register_single_string', 'Cookie Notice', 'Revoke message text', $options['revoke_message_text'] );
+		do_action( 'wpml_register_single_string', 'Cookie Notice', 'Revoke button text', $options['revoke_text'] );
+		do_action( 'wpml_register_single_string', 'Cookie Notice', 'Privacy policy text', $options['see_more_opt']['text'] );
+
+		if ( $options['see_more_opt']['link_type'] === 'custom' )
+			do_action( 'wpml_register_single_string', 'Cookie Notice', 'Custom link', $options['see_more_opt']['link'] );
+	}
+
+	/**
+	 * Tell caching plugins (and anything else listening) that the settings changed.
+	 *
+	 * @param array $options
+	 * @return void
+	 */
+	public function configuration_updated( $options ) {
+		do_action( 'cn_configuration_updated', 'settings', $options );
+	}
+
+	/**
+	 * Write cookie_notice_options for the React admin and fire cn_configuration_updated
+	 * exactly once. The write still passes through sanitize_option(); validate_options()
+	 * steps aside for it (see $internal_write).
+	 *
+	 * @param array $options Full options row
+	 * @param bool $network Network row (true) or site row (false)
+	 * @return void
+	 */
+	public function store_options( $options, $network ) {
+		$this->internal_write = true;
+
+		try {
+			if ( $network )
+				update_site_option( 'cookie_notice_options', $options );
+			else
+				update_option( 'cookie_notice_options', $options );
+		} finally {
+			$this->internal_write = false;
+		}
+
+		$this->configuration_updated( $options );
+	}
+
+	/**
+	 * Write only $changes to cookie_notice_options for the React admin's save and fire
+	 * cn_configuration_updated exactly once, as store_options() does.
+	 *
+	 * The row is read fresh and only $changes go over it
+	 * (Cookie_Notice::update_general_option_keys()), so a setting another request saved
+	 * after this save request started (when its cached copy was loaded) survives. Stored
+	 * keys that are not plugin-owned fields are removed from that fresh row (#2264), as
+	 * the React save always has.
+	 *
+	 * @param array $changes Option keys (nested settings by leaf) to set
+	 * @param bool $network Network row (true) or site row (false)
+	 * @return void
+	 */
+	public function store_option_keys( array $changes, $network ) {
+		$this->internal_write = true;
+
+		try {
+			$row = Cookie_Notice()->update_general_option_keys( $changes, $network, true, true );
+		} finally {
+			$this->internal_write = false;
+		}
+
+		$this->configuration_updated( $row );
+	}
+
+	/**
+	 * The options row a React "Reset to defaults" writes: the defaults, keeping the
+	 * connection, the admin UI mode, the network switches, the Protection-tab blocking
+	 * switches (frozen while the Free-plan limit is exceeded, #2272) and the plugin's own
+	 * notice bookkeeping. Legacy's reset (validate_options) instead disconnects the site
+	 * and returns it to the legacy screen; the React one does not (decision 2026-10-05).
+	 *
+	 * @param array $current The stored row
+	 * @return array
+	 */
+	public function get_reset_options( $current ) {
+		$options = Cookie_Notice()->defaults['general'];
+
+		foreach ( self::$reset_keeps as $key ) {
+			if ( array_key_exists( $key, $current ) )
+				$options[$key] = $current[$key];
+		}
+
+		return $options;
+	}
+
+	/**
+	 * Keys a React reset keeps from the stored row. See get_reset_options().
+	 *
+	 * @var string[]
+	 */
+	public static $reset_keeps = [
+		'app_id',
+		'app_key',
+		'ui_mode',
+		'global_override',
+		'global_cookie',
+		'app_blocking',
+		'app_blocking_engine',
+		'review_notice',
+		'review_notice_delay',
+		'update_version',
+		'update_notice',
+		'update_notice_diss',
+		'update_delay_date',
+		'update_threshold_date',
+		'csp_notice'
+	];
+	// ── End shared save rules ─────────────────────────────────────────────
+
 	/**
 	 * Validate options.
 	 *
@@ -2148,6 +2608,10 @@ class Cookie_Notice_Settings {
 	 * @return array
 	 */
 	public function validate_options( $input ) {
+		// written by store_options() / store_option_keys(), which fire cn_configuration_updated themselves
+		if ( $this->internal_write )
+			return $input;
+
 		if ( ! current_user_can( apply_filters( 'cn_manage_cookie_notice_cap', 'manage_options' ) ) )
 			return $input;
 
@@ -2184,6 +2648,9 @@ class Cookie_Notice_Settings {
 					update_site_option( 'cookie_notice_status', $cn->defaults['data'] );
 				else
 					update_option( 'cookie_notice_status', $cn->defaults['data'] );
+
+				// …and the engine it ran: reconnecting, even to the same App ID, is a first connect.
+				$cn->forget_banner_engine( $is_network );
 			}
 
 			// app blocking — checkbox: absent from POST when unchecked.
@@ -2287,18 +2754,17 @@ class Cookie_Notice_Settings {
 			// debug mode
 			$input['debug_mode'] = isset( $input['debug_mode'] );
 
-			// ui_mode is managed exclusively by maybe_switch_ui_mode() via nonce-gated
-			// query param. It must not be processed here — the #2153 preservation loop
-			// carries the existing DB value through. See #2155.
+			// ui_mode is not processed here. The admin's switch is maybe_switch_ui_mode():
+			// a confirmation page, then a POST with a nonce bound to the target mode. This
+			// does not strip it: a cookie_notice_options[ui_mode] posted to this form stays
+			// in $input as sent, and the #2153 preservation loop carries the stored value
+			// through only when the key is absent. See #2155.
 
 			// amp support
-			$input['amp_support'] = isset( $input['amp_support'] ) && cn_is_plugin_active( 'amp' );
-
-			// get active caching plugins
-			$active_plugins = cn_get_active_caching_plugins();
+			$input['amp_support'] = $this->sanitize_amp_support( isset( $input['amp_support'] ) );
 
 			// caching compatibility
-			$input['caching_compatibility'] = isset( $input['caching_compatibility'] ) && ! empty( $active_plugins );
+			$input['caching_compatibility'] = $this->sanitize_caching_compatibility( isset( $input['caching_compatibility'] ) );
 
 			// wp consent api — stored preference; not gated on function_exists( 'wp_has_consent' )
 			// so an admin's intent survives WPCA being temporarily inactive.
@@ -2352,56 +2818,33 @@ class Cookie_Notice_Settings {
 				$input['colors']['bar_opacity'] = $cn->defaults['general']['colors']['bar_opacity'];
 
 			// message text
-			if ( isset( $input['message_text'] ) ) {
-				add_filter( 'safe_style_css', [ $this, 'allow_style_attributes' ] );
-
-				$input['message_text'] = wp_kses_post( trim( $input['message_text'] ) );
-
-				remove_filter( 'safe_style_css', [ $this, 'allow_style_attributes' ] );
-
-				if ( $input['message_text'] === '' )
-					$input['message_text'] = $cn->defaults['general']['message_text'];
-			} else
+			if ( isset( $input['message_text'] ) )
+				$input['message_text'] = $this->sanitize_message_text( 'message_text', $input['message_text'] );
+			else
 				$input['message_text'] = $cn->defaults['general']['message_text'];
 
 			// accept button text
-			if ( isset( $input['accept_text'] ) ) {
-				$input['accept_text'] = sanitize_text_field( $input['accept_text'] );
-
-				if ( $input['accept_text'] === '' )
-					$input['accept_text'] = $cn->defaults['general']['accept_text'];
-			} else
+			if ( isset( $input['accept_text'] ) )
+				$input['accept_text'] = $this->sanitize_button_text( 'accept_text', $input['accept_text'] );
+			else
 				$input['accept_text'] = $cn->defaults['general']['accept_text'];
 
 			// refuse button text
-			if ( isset( $input['refuse_text'] ) ) {
-				$input['refuse_text'] = sanitize_text_field( $input['refuse_text'] );
-
-				if ( $input['refuse_text'] === '' )
-					$input['refuse_text'] = $cn->defaults['general']['refuse_text'];
-			} else
+			if ( isset( $input['refuse_text'] ) )
+				$input['refuse_text'] = $this->sanitize_button_text( 'refuse_text', $input['refuse_text'] );
+			else
 				$input['refuse_text'] = $cn->defaults['general']['refuse_text'];
 
 			// revoke message text
-			if ( isset( $input['revoke_message_text'] ) ) {
-				add_filter( 'safe_style_css', [ $this, 'allow_style_attributes' ] );
-
-				$input['revoke_message_text'] = wp_kses_post( trim( $input['revoke_message_text'] ) );
-
-				remove_filter( 'safe_style_css', [ $this, 'allow_style_attributes' ] );
-
-				if ( $input['revoke_message_text'] === '' )
-					$input['revoke_message_text'] = $cn->defaults['general']['revoke_message_text'];
-			} else
+			if ( isset( $input['revoke_message_text'] ) )
+				$input['revoke_message_text'] = $this->sanitize_message_text( 'revoke_message_text', $input['revoke_message_text'] );
+			else
 				$input['revoke_message_text'] = $cn->defaults['general']['revoke_message_text'];
 
 			// revoke button text
-			if ( isset( $input['revoke_text'] ) ) {
-				$input['revoke_text'] = sanitize_text_field( $input['revoke_text'] );
-
-				if ( $input['revoke_text'] === '' )
-					$input['revoke_text'] = $cn->defaults['general']['revoke_text'];
-			} else
+			if ( isset( $input['revoke_text'] ) )
+				$input['revoke_text'] = $this->sanitize_button_text( 'revoke_text', $input['revoke_text'] );
+			else
 				$input['revoke_text'] = $cn->defaults['general']['revoke_text'];
 
 			// refuse consent
@@ -2421,35 +2864,20 @@ class Cookie_Notice_Settings {
 
 			// body refuse code
 			if ( isset( $input['refuse_code'] ) )
-				$input['refuse_code'] = wp_kses( trim( $input['refuse_code'] ), $cn->get_allowed_html( 'body' ) );
+				$input['refuse_code'] = $this->sanitize_refuse_code( $input['refuse_code'], 'body' );
 			else
 				$input['refuse_code'] = $cn->defaults['general']['refuse_code'];
 
 			// head refuse code
 			if ( isset( $input['refuse_code_head'] ) )
-				$input['refuse_code_head'] = wp_kses( trim( $input['refuse_code_head'] ), $cn->get_allowed_html( 'head' ) );
+				$input['refuse_code_head'] = $this->sanitize_refuse_code( $input['refuse_code_head'], 'head' );
 			else
 				$input['refuse_code_head'] = $cn->defaults['general']['refuse_code_head'];
 
 			// css button class(es)
-			if ( isset( $input['css_class'] ) ) {
-				$input['css_class'] = trim( $input['css_class'] );
-
-				if ( $input['css_class'] !== '' ) {
-					// more than 1 class?
-					if ( strpos( $input['css_class'], ' ' ) !== false ) {
-						// get unique valid html classes
-						$input['css_class'] = array_unique( array_filter( array_map( 'sanitize_html_class', explode( ' ', $input['css_class'] ) ) ) );
-
-						if ( ! empty( $input['css_class'] ) )
-							$input['css_class'] = implode( ' ', $input['css_class'] );
-						else
-							$input['css_class'] = $cn->defaults['general']['css_class'];
-					// single class
-					} else
-						$input['css_class'] = sanitize_html_class( $input['css_class'] );
-				}
-			} else
+			if ( isset( $input['css_class'] ) )
+				$input['css_class'] = $this->sanitize_css_class( $input['css_class'] );
+			else
 				$input['css_class'] = $cn->defaults['general']['css_class'];
 
 			// accepted expiry
@@ -2533,8 +2961,7 @@ class Cookie_Notice_Settings {
 				$input['see_more_opt']['id'] = $input['see_more'] && isset( $input['see_more_opt']['id'] ) ? (int) $input['see_more_opt']['id'] : 0;
 				$input['see_more_opt']['sync'] = isset( $input['see_more_opt']['sync'] );
 
-				if ( $input['see_more_opt']['sync'] )
-					update_option( 'wp_page_for_privacy_policy', $input['see_more_opt']['id'] );
+				$this->sync_privacy_policy_page( $input );
 			}
 
 			// privacy policy link target
@@ -2556,8 +2983,7 @@ class Cookie_Notice_Settings {
 				$input['link_position'] = $cn->defaults['general']['link_position'];
 
 			// message link position?
-			if ( $input['see_more'] && $input['link_position'] === 'message' && strpos( $input['message_text'], '[cookies_policy_link' ) === false )
-				$input['message_text'] .= ' [cookies_policy_link]';
+			$input = $this->append_policy_link_shortcode( $input );
 
 			// notice data
 			$input['update_version'] = $cn->options['general']['update_version'];
@@ -2568,25 +2994,17 @@ class Cookie_Notice_Settings {
 			$input['translate'] = false;
 
 			// WPML >= 3.2
-			if ( defined( 'ICL_SITEPRESS_VERSION' ) && version_compare( ICL_SITEPRESS_VERSION, '3.2', '>=' ) ) {
-				do_action( 'wpml_register_single_string', 'Cookie Notice', 'Message in the notice', $input['message_text'] );
-				do_action( 'wpml_register_single_string', 'Cookie Notice', 'Button text', $input['accept_text'] );
-				do_action( 'wpml_register_single_string', 'Cookie Notice', 'Refuse button text', $input['refuse_text'] );
-				do_action( 'wpml_register_single_string', 'Cookie Notice', 'Revoke message text', $input['revoke_message_text'] );
-				do_action( 'wpml_register_single_string', 'Cookie Notice', 'Revoke button text', $input['revoke_text'] );
-				do_action( 'wpml_register_single_string', 'Cookie Notice', 'Privacy policy text', $input['see_more_opt']['text'] );
-
-				if ( $input['see_more_opt']['link_type'] === 'custom' )
-					do_action( 'wpml_register_single_string', 'Cookie Notice', 'Custom link', $input['see_more_opt']['link'] );
-			}
+			$this->register_wpml_option_strings( $input );
 
 			// Preserve any keys in the current DB options that validate_options() does not
 			// explicitly process (e.g. displayType, ui_mode, update_delay_date,
 			// update_threshold_date, update_notice_diss). Without this, WordPress's register_setting()
 			// replaces the entire cookie_notice_options row with $input, silently dropping these fields
 			// on every legacy form save. See #2153.
-			// Re-read from DB here (not from constructor snapshot) to avoid overwriting concurrent
-			// React changes made in another tab after this page loaded. See #2181.
+			// Read through the option API. Not a fresh database read: it returns the row as this
+			// request loaded it (object cache), so React changes another tab saved after this
+			// form was rendered are kept, but one landing while this request runs is not seen.
+			// See #2181.
 			$current_db_options = (array) Cookie_Notice_Store::get( 'cookie_notice_options', [], $is_network );
 			foreach ( $current_db_options as $key => $value ) {
 				if ( ! array_key_exists( $key, $input ) ) {
@@ -2602,9 +3020,12 @@ class Cookie_Notice_Settings {
 
 			// set app data
 			Cookie_Notice_Store::set( 'cookie_notice_status', $cn->defaults['data'], $is_network );
+
+			// …and the engine it ran: reconnecting, even to the same App ID, is a first connect.
+			$cn->forget_banner_engine( $is_network );
 		}
 
-		do_action( 'cn_configuration_updated', 'settings', $input );
+		$this->configuration_updated( $input );
 
 		return $input;
 	}
@@ -2844,18 +3265,37 @@ class Cookie_Notice_Settings {
 					'configureNonce'     => wp_create_nonce( 'cn_api_configure' ),
 					'registerNonce'      => wp_create_nonce( 'cn_api_register' ),
 					'loginNonce'         => wp_create_nonce( 'cn_api_login' ),
+					'loginCodeNonce'     => wp_create_nonce( 'cn_api_login_code' ),
+					'loginAppNonce'      => wp_create_nonce( 'cn_api_login_app' ),
 					'paymentNonce'       => wp_create_nonce( 'cn_api_payment' ),
 					'uiMode'             => $ui_mode,
 					'network'            => $cn->is_network_admin(),
+					// A site under Global Settings Override: settings disabled, no blocking claim.
+					'networkOverride'    => $this->network_managed(),
+					// Global Cookie works only on a domain-based network (cn_global_cookie()).
+					'globalCookieAvailable' => is_multisite() && is_subdomain_install(),
 					'status'             => $cn->get_status(),
 					'subscription'       => $cn->get_subscription(),
 					'app_id'             => $cn->options['general']['app_id'],
 					'version'            => $cn->defaults['version'],
-					'options'            => $cn->options['general'],
+					// The stored row with the STORED Autoblocking preference (react_options());
+					// blockingPaused says that preference is frozen and not in effect;
+					// complianceActive whether the widget that blocks is printed at all.
+					'options'            => $this->react_options(),
+					'blockingPaused'     => (bool) $cn->threshold_exceeded(),
+					'complianceActive'   => $this->compliance_active(),
+					// The banner visitors get: engine, style, network-managed (get_banner_summary()).
+					'banner'             => $cn->get_banner_summary(),
+					// The filtered (cn_cookie_expiry) choices both saves validate against.
+					'expiryOptions'      => $this->get_expiry_options(),
+					'welcomeUrl'         => cn_get_welcome_url(),
 					'siteUrl'            => home_url(),
 					'devMode'            => defined( 'CN_DEV_MODE' ) && CN_DEV_MODE && current_user_can( 'manage_options' ),
-					'welcomeDismissedAt'      => get_option( 'cookie_notice_welcome_dismissed', '' ),
-					'setupWizardComplete'     => (bool) get_option( 'cookie_notice_setup_wizard_complete', false ),
+					// The scope their React writers use (react-admin-ajax.php dismiss_welcome(),
+					// complete_setup_wizard()): the network row in the Network Admin, where
+					// get_option() would read the MAIN SITE's flag instead.
+					'welcomeDismissedAt'      => Cookie_Notice_Store::get( 'cookie_notice_welcome_dismissed', '', $cn->is_network_admin() ),
+					'setupWizardComplete'     => (bool) Cookie_Notice_Store::get( 'cookie_notice_setup_wizard_complete', false, $cn->is_network_admin() ),
 					// is_network_options(), not is_network_admin() — this row's
 					// writers and its other three readers all use it. See the regulations
 					// optimistic-write scope note in welcome-api.php. Reading it under
@@ -3018,9 +3458,20 @@ class Cookie_Notice_Settings {
 		if ( ! check_ajax_referer( 'cn-purge-cache', 'nonce' ) )
 			exit;
 
+		// The engine-changed notice's button (js/admin-notice.js): page caches purged too, and
+		// an explicit JSON answer either way. Other callers keep the bare reply.
+		$purge_pages = ! empty( $_POST['purge_pages'] );
+
 		// check capability
-		if ( ! current_user_can( apply_filters( 'cn_manage_cookie_notice_cap', 'manage_options' ) ) )
+		if ( ! current_user_can( apply_filters( 'cn_manage_cookie_notice_cap', 'manage_options' ) ) ) {
+			if ( $purge_pages )
+				wp_send_json_error( [ 'error' => esc_html__( 'You do not have permission to perform this action.', 'cookie-notice' ) ], 403 );
+
 			exit;
+		}
+
+		// The pull below rewrites the network's config rows on a site the network manages.
+		$this->verify_not_network_managed();
 
 		// ── Begin purge scope gate ───────────────────────────────────────────
 		// Say so rather than succeeding at nothing. Under global_override the config this
@@ -3046,6 +3497,20 @@ class Cookie_Notice_Settings {
 			set_site_transient( 'cookie_notice_config_update', current_time( 'timestamp', true ), 600 );
 		else
 			set_transient( 'cookie_notice_config_update', current_time( 'timestamp', true ), 600 );
+
+		// ── Begin page cache purge on request ────────────────────────────────
+		// The engine-changed notice's Purge Cache asks for it (purge_pages, js/admin-notice.js).
+		// The pull that changed the engine has already run, so the pull above usually changes
+		// nothing, and get_app_config() purges page caches only on a change: pages cached with
+		// the old banner would stay. So purge on every such click, after the new-config stamp
+		// so every page cached from now on carries it, with the scope's own row as every other
+		// purge passes it, and say so. Callers without the flag keep the change-gated purge.
+		if ( $purge_pages ) {
+			$this->configuration_updated( (array) Cookie_Notice_Store::get( 'cookie_notice_options', [], Cookie_Notice()->is_network_options() ) );
+
+			wp_send_json_success();
+		}
+		// ── End page cache purge on request ──────────────────────────────────
 
 		exit;
 	}

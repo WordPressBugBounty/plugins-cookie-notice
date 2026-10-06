@@ -1443,7 +1443,7 @@ class Cookie_Notice_Frontend {
 	 *
 	 * Added in 3.1.3. Lets our backend (Designer API on publish, Account API on
 	 * plan change) force a config + tier re-pull immediately, instead of waiting
-	 * on the WP-Cron pull (daily active / hourly inactive). Authentication is the
+	 * on the WP-Cron pull (twice daily active / hourly inactive). Authentication is the
 	 * shared app secret (app-secret-key header) — no WP login / nonce, by design.
 	 *
 	 * @return void

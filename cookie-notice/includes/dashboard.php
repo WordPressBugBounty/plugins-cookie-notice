@@ -708,11 +708,7 @@ class Cookie_Notice_Dashboard {
 	 * @return array
 	 */
 	protected function build_boxes( $state, $s ) {
-		$cn = Cookie_Notice();
-
-		$welcome_url = $cn->is_network_admin()
-			? network_admin_url( 'admin.php?page=cookie-notice&cn_react_welcome=1' )
-			: admin_url( 'admin.php?page=cookie-notice&cn_react_welcome=1' );
+		$welcome_url = cn_get_welcome_url();
 
 		$pro_cta = [ 'label' => __( 'Turn on with Pro →', 'cookie-notice' ), 'url' => $welcome_url ];
 
@@ -1048,11 +1044,7 @@ class Cookie_Notice_Dashboard {
 	 * @return array
 	 */
 	protected function build_hero( $state, $s, $gap_count ) {
-		$cn = Cookie_Notice();
-
-		$welcome_url = $cn->is_network_admin()
-			? network_admin_url( 'admin.php?page=cookie-notice&cn_react_welcome=1' )
-			: admin_url( 'admin.php?page=cookie-notice&cn_react_welcome=1' );
+		$welcome_url = cn_get_welcome_url();
 
 		// Presentation (visual severity) per state — copy itself lives in notifications.json.
 		$pres = [
@@ -1282,7 +1274,7 @@ class Cookie_Notice_Dashboard {
 				'label'			=> esc_html__( 'Your site does not have Cookie Compliance', 'cookie-notice' ),
 				'status'		=> 'recommended',
 				'description'	=> esc_html__( "Run Compliance Check to determine your site's compliance with updated data processing and consent rules under GDPR, CCPA and other international data privacy laws.", 'cookie-notice' ),
-				'actions'		=> sprintf( '<p><a href="%s" target="_blank" rel="noopener noreferrer">%s</a></p>', admin_url( 'admin.php?page=cookie-notice&welcome=1' ), esc_html__( 'Run Compliance Check', 'cookie-notice' ) ),
+				'actions'		=> sprintf( '<p><a href="%s" target="_blank" rel="noopener noreferrer">%s</a></p>', esc_url( cn_get_welcome_url() ), esc_html__( 'Run Compliance Check', 'cookie-notice' ) ),
 				'test'			=> 'cookie_compliance_status',
 				'badge'			=> [
 					'label'	=> esc_html__( 'Compliance', 'cookie-notice' ),

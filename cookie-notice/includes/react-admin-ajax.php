@@ -7,7 +7,7 @@ if ( ! defined( 'ABSPATH' ) )
  * Cookie_Notice_React_Admin_Ajax class.
  *
  * Provides the PHP AJAX backend for the React admin UI.
- * Registers six wp_ajax_ actions consumed by the React admin bundle.
+ * Registers the wp_ajax_ actions consumed by the React admin bundle.
  *
  * @class   Cookie_Notice_React_Admin_Ajax
  * @package Cookie_Notice
@@ -42,6 +42,13 @@ class Cookie_Notice_React_Admin_Ajax {
 	const WAF_B64_SENTINEL = "--CNWAF-B64--";
 
 	/**
+	 * React's onboarding flags: written to the network row in the Network Admin and the site
+	 * row on a site (dismiss_welcome(), complete_setup_wizard()), and read back the same way
+	 * (settings.php cnReactData.welcomeDismissedAt / setupWizardComplete).
+	 */
+	const SCOPED_ONBOARDING_FLAGS = [ 'cookie_notice_welcome_dismissed', 'cookie_notice_setup_wizard_complete' ];
+
+	/**
 	 * Class constructor.
 	 *
 	 * @return void
@@ -53,18 +60,24 @@ class Cookie_Notice_React_Admin_Ajax {
 		add_action( 'wp_ajax_cn_react_consent_logs',        [ $this, 'get_consent_logs' ] );
 		add_action( 'wp_ajax_cn_react_export_consent_logs', [ $this, 'export_consent_logs' ] );
 		add_action( 'wp_ajax_cn_get_api_environment',         [ $this, 'get_api_environment' ] );
+		add_action( 'wp_ajax_cn_react_privacy_consent',      [ $this, 'get_privacy_consent' ] );
+		add_action( 'wp_ajax_cn_react_privacy_consent_logs', [ $this, 'get_privacy_consent_logs' ] );
+		add_action( 'wp_ajax_cn_react_plugin_options',       [ $this, 'get_plugin_options' ] );
 
 		// Write hooks — only register when ui_mode is "react" (#2267).
 		// In legacy mode the PHP form path handles writes; registering these
 		// would allow stale React JS (cached by a CDN or browser) to race
-		// against the legacy form submit.
-		$ui_mode = Cookie_Notice()->options['general']['ui_mode'] ?? 'legacy';
-
-		if ( $ui_mode === 'react' ) {
+		// against the legacy form submit. The mode of the row the page renders from, which
+		// under Global Settings Override is not $cn->options on admin-ajax.
+		if ( Cookie_Notice()->settings->rendered_ui_mode() === 'react' ) {
 			add_action( 'wp_ajax_cn_react_script_update',       [ $this, 'update_script' ] );
 			add_action( 'wp_ajax_cn_react_save_options',        [ $this, 'save_options' ] );
+			add_action( 'wp_ajax_cn_react_reset_options',       [ $this, 'reset_options' ] );
+			add_action( 'wp_ajax_cn_react_save_network_options', [ $this, 'save_network_options' ] );
 			add_action( 'wp_ajax_cn_react_rescan_scripts',      [ $this, 'rescan_scripts' ] );
 			add_action( 'wp_ajax_cn_react_rule_values',         [ $this, 'get_rule_values' ] );
+			add_action( 'wp_ajax_cn_react_save_privacy_consent', [ $this, 'save_privacy_consent' ] );
+			add_action( 'wp_ajax_cn_react_privacy_consent_form_status', [ $this, 'set_privacy_consent_form_status' ] );
 		}
 
 		// Mode-agnostic state hooks — welcome dismissal and setup wizard
@@ -101,6 +114,23 @@ class Cookie_Notice_React_Admin_Ajax {
 	}
 
 	/**
+	 * Refuse a consent-log request outside the scope legacy shows consent logs in.
+	 *
+	 * Server-side, on every log endpoint: on a network-activated multisite the records
+	 * belong to the app the scope serves (Cookie_Notice_Settings::consent_logs_in_scope()),
+	 * and hiding the screen in React alone would leave the endpoint open.
+	 *
+	 * @return void
+	 */
+	private function verify_consent_logs_scope() {
+		$settings = Cookie_Notice()->settings;
+
+		if ( ! $settings->consent_logs_in_scope() ) {
+			wp_send_json_error( [ 'error' => $settings->consent_logs_scope_message(), 'code' => 'cn_consent_logs_scope' ] );
+		}
+	}
+
+	/**
 	 * Return dashboard data for the Protection tab.
 	 *
 	 * @return void
@@ -110,11 +140,33 @@ class Cookie_Notice_React_Admin_Ajax {
 
 		$cn = Cookie_Notice();
 
+		// A site under Global Settings Override serves the NETWORK's app, and every row read
+		// below would be the network's: its visits, consent counts and account email. Legacy
+		// shows a site no dashboard widget then (dashboard.php wp_dashboard_setup()), so the
+		// site gets no consent data or account, and nothing is pulled. The configuration it
+		// runs under (laws, languages, banner design) is shown, as legacy shows the network's
+		// settings greyed out.
+		if ( $cn->settings->network_managed() ) {
+			$this->send_empty_dashboard();
+			return;
+		}
+
 		// --- Read cached analytics option ---
 		// Single source: cookie_notice_app_analytics (refreshed hourly via welcome-api.php cron).
 		// ⚠️ Multisite pattern: use site_option ONLY when network-active with global_override.
 		// Do NOT simplify to is_multisite() alone — pattern matches welcome-api.php get_app_config().
 		$network       = $cn->is_network_options();
+
+		// The Network Admin with Global Settings Override off: the rows below are the MAIN
+		// SITE's (its visits, consents and account email), and get_app_analytics() would write
+		// the network app's analytics and status over them. No site's data, nothing pulled —
+		// the React admin shows its per-site line here. In-memory predicate, as in
+		// welcome-api.php get_app_config() / get_app_analytics().
+		if ( $cn->is_network_admin() && ! $network ) {
+			$this->send_empty_dashboard();
+			return;
+		}
+
 		$analytics_raw = Cookie_Notice_Store::get( 'cookie_notice_app_analytics', [], $network );
 
 		// --- Cycle usage (visits vs threshold) ---
@@ -129,6 +181,11 @@ class Cookie_Notice_React_Admin_Ajax {
 		// analytics cron has not run. App-id changes already force a pull in
 		// save_options(); plan changes do not. Skip when CN_DEV_MODE is driving
 		// the counters, so ?cn_usage=0 stays a real zero for UI testing.
+		//
+		// get_app_analytics() writes cookie_notice_status['threshold_exceeded'], which pauses
+		// blocking on the live site, so the React admin treats this request as a config pull
+		// (src/admin-react/api/index.js PULL_ACTIONS): no protection claim while it runs, none
+		// for the page if its reply is lost. Removing this call? Keep that list in step.
 		$dev_usage = defined( 'CN_DEV_MODE' ) && CN_DEV_MODE && isset( $_POST['cn_usage'] );
 		$app_id    = isset( $cn->options['general']['app_id'] ) ? $cn->options['general']['app_id'] : '';
 
@@ -187,27 +244,12 @@ class Cookie_Notice_React_Admin_Ajax {
 
 		$consent_breakdown = $this->compute_consent_breakdown( $level_totals );
 
-		// Regulations saved locally by cn_api_request?configure action.
-		// Exposed here so Protection.jsx LAWS card can display them without a
-		// Designer API round-trip. (#1897)
-		$reg_keys     = Cookie_Notice_Store::get( 'cookie_notice_app_regulations', [], $network );
-		$regulations  = array_fill_keys( (array) $reg_keys, true );
-
-		// Language codes saved locally by react_apply_languages() on successful API write. (#1966)
-		// Always includes 'en' (default) + any additional codes the user configured.
-		$saved_languages = Cookie_Notice_Store::get( 'cookie_notice_app_languages', [], $network );
-		$language = array_values( array_unique( array_merge( [ 'en' ], (array) $saved_languages ) ) );
-
 		// Platform account email from login token (#2168).
 		// Stored in cookie_notice_app_token transient as ->email after successful login.
 		// Used in PortalBridgeModal to tell the user which email to sign in with.
 		// Returns empty string when not connected (token not set or expired).
 		$data_token    = Cookie_Notice_Store::get_transient( 'cookie_notice_app_token', $network );
 		$account_email = ! empty( $data_token->email ) ? sanitize_email( $data_token->email ) : '';
-
-		// Banner design fields cached by get_app_config() — React computes
-		// the active template on the fly by matching against PRESETS.
-		$design = Cookie_Notice_Store::get( 'cookie_notice_app_design', [], $network );
 
 		wp_send_json_success( [
 			'analytics'        => [
@@ -225,12 +267,64 @@ class Cookie_Notice_React_Admin_Ajax {
 			'activatedAt'      => isset( $cn->status_data['activation_datetime'] ) ? $cn->status_data['activation_datetime'] : 0,
 			'consentCount'     => $consent_breakdown['total'],
 			'accountEmail'     => $account_email,
-			'appConfig'        => [
-				'regulations' => $regulations,
-				'language'    => $language,
-				'design'      => $design,
-			],
+			'appConfig'        => $this->dashboard_app_config(),
+			// The banner as stored after any pull above (React's store adopts it: api/index.js PULL_ACTIONS).
+			'banner'           => $cn->get_banner_summary(),
 		] );
+	}
+
+	/**
+	 * A dashboard with no consent data, account or pull: a site under Global Settings Override
+	 * (the network's data is not its own) and the Network Admin with the override off (the
+	 * main site's data is not the network's). The configuration is dashboard_app_config()'s.
+	 *
+	 * @return void
+	 */
+	private function send_empty_dashboard() {
+		$consent_breakdown = $this->compute_consent_breakdown( [ 1 => 0, 2 => 0, 3 => 0 ] );
+
+		wp_send_json_success( [
+			'analytics'        => [
+				'cycleUsage'        => [ 'visits' => 0, 'threshold' => 0 ],
+				'thresholdExceeded' => false,
+			],
+			'consentBreakdown' => $consent_breakdown,
+			'domainUrl'        => home_url(),
+			'appId'            => '',
+			'activatedAt'      => 0,
+			'consentCount'     => $consent_breakdown['total'],
+			'accountEmail'     => '',
+			'appConfig'        => $this->dashboard_app_config(),
+			'banner'           => Cookie_Notice()->get_banner_summary(),
+		] );
+	}
+
+	/**
+	 * The app's configuration as the dashboard reports it, from get_app_config()'s local
+	 * copies — on a site under Global Settings Override, the network's.
+	 *
+	 * @return array
+	 */
+	private function dashboard_app_config() {
+		$cn      = Cookie_Notice();
+		$network = $cn->is_network_options();
+
+		// Regulations saved locally by cn_api_request?configure action.
+		// Exposed here so Protection.jsx LAWS card can display them without a
+		// Designer API round-trip. (#1897)
+		$reg_keys = Cookie_Notice_Store::get( 'cookie_notice_app_regulations', [], $network );
+
+		// Language codes saved locally by react_apply_languages() on successful API write. (#1966)
+		// Always includes 'en' (default) + any additional codes the user configured.
+		$saved_languages = Cookie_Notice_Store::get( 'cookie_notice_app_languages', [], $network );
+
+		return [
+			'regulations' => array_fill_keys( (array) $reg_keys, true ),
+			'language'    => array_values( array_unique( array_merge( [ 'en' ], (array) $saved_languages ) ) ),
+			// Banner design fields cached by get_app_config(): the "Your banner" drawing,
+			// and the Do Not Sell link the law editors prefill.
+			'design'      => Cookie_Notice_Store::get( 'cookie_notice_app_design', [], $network ),
+		];
 	}
 
 	/**
@@ -272,6 +366,7 @@ class Cookie_Notice_React_Admin_Ajax {
 	 */
 	public function get_consent_logs() {
 		$this->verify_request();
+		$this->verify_consent_logs_scope();
 
 		$page       = isset( $_POST['page'] ) ? max( 1, absint( $_POST['page'] ) ) : 1;
 		$start_date = isset( $_POST['start_date'] ) ? sanitize_text_field( $_POST['start_date'] ) : date( 'Y-m-d' );
@@ -300,6 +395,19 @@ class Cookie_Notice_React_Admin_Ajax {
 		}
 
 		$empty_breakdown = [ 'total' => 0, 'acceptRate' => 0, 'customRate' => 0, 'rejectRate' => 0, 'levelLabels' => $this->get_level_labels() ];
+
+		// Compliance not active: legacy shows no records, only its "not active" state.
+		if ( $cn->get_status() !== 'active' ) {
+			wp_send_json_success( [
+				'logs'             => [],
+				'total'            => 0,
+				'page'             => $page,
+				'totalPages'       => 0,
+				'consentBreakdown' => $empty_breakdown,
+				'inactive'         => true,
+			] );
+			return;
+		}
 
 		// No app_id means not connected — return empty gracefully.
 		if ( empty( $cn->options['general']['app_id'] ) ) {
@@ -377,6 +485,7 @@ class Cookie_Notice_React_Admin_Ajax {
 	 */
 	public function update_script() {
 		$this->verify_request();
+		Cookie_Notice()->settings->verify_not_network_managed();
 
 		$operation = isset( $_POST['operation'] ) ? sanitize_text_field( $_POST['operation'] ) : '';
 
@@ -695,8 +804,15 @@ class Cookie_Notice_React_Admin_Ajax {
 	 */
 	public function export_consent_logs() {
 		$this->verify_request();
+		$this->verify_consent_logs_scope();
 
 		$cn = Cookie_Notice();
+
+		// Compliance not active: legacy shows no records, only its "not active" state.
+		if ( $cn->get_status() !== 'active' ) {
+			wp_send_json_success( [ 'csv' => '', 'count' => 0, 'inactive' => true ] );
+			return;
+		}
 
 		// Server-side Pro gate — TierGate in React is client-only.
 		if ( $cn->get_subscription() !== 'pro' ) {
@@ -777,6 +893,366 @@ class Cookie_Notice_React_Admin_Ajax {
 	}
 
 	/**
+	 * Return the Privacy Consent tab: compliance status, sources and their forms.
+	 *
+	 * Each source's on/off and all/selected come from the SITE row the write endpoints
+	 * save to (Cookie_Notice_Privacy_Consent::get_settings_row()); only the descriptor —
+	 * id, name, type, id type, availability — comes from get_sources(), whose own status
+	 * fields are read from $cn->options and so from the network row on admin-ajax under
+	 * Global Settings Override.
+	 *
+	 * POST params accepted:
+	 *   source  string  Only this source (paging a dynamic source's forms)
+	 *   page    int     Forms page for that source (1-based, default 1)
+	 *   order   string  'asc' | 'desc' title order for dynamic sources (default 'asc')
+	 *
+	 * @return void
+	 */
+	public function get_privacy_consent() {
+		$this->verify_request();
+
+		$cn = Cookie_Notice();
+
+		$only  = isset( $_POST['source'] ) ? sanitize_key( $_POST['source'] ) : '';
+		$page  = isset( $_POST['page'] ) ? max( 1, absint( $_POST['page'] ) ) : 1;
+		$order = isset( $_POST['order'] ) && sanitize_key( $_POST['order'] ) === 'desc' ? 'desc' : 'asc';
+
+		$row     = $cn->privacy_consent->get_settings_row();
+		$sources = [];
+
+		foreach ( $cn->privacy_consent->get_sources() as $source_id => $source ) {
+			if ( $only !== '' && $only !== $source_id )
+				continue;
+
+			$state          = $this->privacy_consent_source_state( $source, $row );
+			$state['forms'] = $this->privacy_consent_forms( $source, $page, $order );
+			$sources[]      = $state;
+		}
+
+		if ( $only !== '' && empty( $sources ) ) {
+			wp_send_json_error( [ 'error' => __( 'This form source is not available.', 'cookie-notice' ) ] );
+		}
+
+		wp_send_json_success( [
+			'status'   => $cn->get_status(),
+			'readOnly' => $cn->is_network_admin(),
+			'sources'  => $sources,
+		] );
+	}
+
+	/**
+	 * Save Privacy Consent source settings (on/off, all/selected forms).
+	 *
+	 * POST params accepted:
+	 *   sources[<id>][active]       '1' | '0'      Only for sources the admin changed
+	 *   sources[<id>][active_type]  'all' | 'selected'
+	 *
+	 * @return void
+	 */
+	public function save_privacy_consent() {
+		$this->verify_request();
+
+		$cn = Cookie_Notice();
+
+		$refusal = $this->privacy_consent_write_refusal();
+
+		if ( $refusal !== '' ) {
+			wp_send_json_error( [ 'error' => $refusal ] );
+		}
+
+		$submitted = isset( $_POST['sources'] ) && is_array( $_POST['sources'] ) ? wp_unslash( $_POST['sources'] ) : [];
+		$row       = $cn->privacy_consent->save_source_settings( $submitted );
+
+		if ( is_wp_error( $row ) ) {
+			wp_send_json_error( [ 'error' => $row->get_error_message() ] );
+		}
+
+		$sources = [];
+
+		foreach ( $cn->privacy_consent->get_sources() as $source ) {
+			$sources[] = $this->privacy_consent_source_state( $source, $row );
+		}
+
+		wp_send_json_success( [ 'sources' => $sources ] );
+	}
+
+	/**
+	 * Set the status of one form (the per-form toggle).
+	 *
+	 * Same rules as the legacy screen: both go through
+	 * Cookie_Notice_Privacy_Consent::update_form_status().
+	 *
+	 * POST params accepted:
+	 *   source   string
+	 *   form_id  int|string
+	 *   status   '1' | '0'
+	 *
+	 * @return void
+	 */
+	public function set_privacy_consent_form_status() {
+		$this->verify_request();
+
+		$cn = Cookie_Notice();
+
+		$refusal = $this->privacy_consent_write_refusal();
+
+		if ( $refusal !== '' ) {
+			wp_send_json_error( [ 'error' => $refusal ] );
+		}
+
+		if ( ! isset( $_POST['source'], $_POST['form_id'], $_POST['status'] ) ) {
+			wp_send_json_error( [ 'error' => __( 'This form does not exist.', 'cookie-notice' ) ] );
+		}
+
+		$result = $cn->privacy_consent->update_form_status( wp_unslash( $_POST['source'] ), wp_unslash( $_POST['form_id'] ), (bool) (int) $_POST['status'] );
+
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error( [ 'error' => $result->get_error_message() ] );
+		}
+
+		wp_send_json_success( [
+			'formId' => $result['form_id'],
+			'status' => $result['status'],
+			'source' => [
+				'id'         => $result['source'],
+				'active'     => $result['active'],
+				'activeType' => $result['active_type'],
+			],
+		] );
+	}
+
+	/**
+	 * Return the latest privacy (form) consent records, paged in PHP.
+	 *
+	 * Each row is built from an allowlist of fields (map_privacy_consent_log()); values
+	 * are shown as the platform returns them, masked there when the customer's
+	 * anonymisation setting is on.
+	 *
+	 * POST params accepted:
+	 *   page  int  Page number (1-based, default 1)
+	 *
+	 * @return void
+	 */
+	public function get_privacy_consent_logs() {
+		$this->verify_request();
+		$this->verify_consent_logs_scope();
+
+		$cn       = Cookie_Notice();
+		$page     = isset( $_POST['page'] ) ? max( 1, absint( $_POST['page'] ) ) : 1;
+		$per_page = 20;
+		$empty    = [ 'logs' => [], 'total' => 0, 'page' => $page, 'totalPages' => 0 ];
+
+		// Compliance not active: legacy shows no records, only its "not active" state.
+		if ( $cn->get_status() !== 'active' ) {
+			wp_send_json_success( $empty + [ 'inactive' => true ] );
+			return;
+		}
+
+		if ( empty( $cn->options['general']['app_id'] ) ) {
+			wp_send_json_success( $empty );
+			return;
+		}
+
+		$records = $cn->welcome_api->get_privacy_consent_logs();
+
+		// Unreachable, or an error message from the platform, is not an empty log.
+		if ( ! is_array( $records ) ) {
+			if ( is_wp_error( $records ) )
+				$message = $records->get_error_message();
+			elseif ( is_string( $records ) && $records !== '' )
+				$message = $records;
+			else
+				$message = __( 'We could not load your consent records. Please try again in a moment.', 'cookie-notice' );
+
+			wp_send_json_error( [ 'error' => $message ] );
+			return;
+		}
+
+		$logs = [];
+
+		foreach ( $records as $record ) {
+			if ( is_object( $record ) || is_array( $record ) )
+				$logs[] = $this->map_privacy_consent_log( $record );
+		}
+
+		$total = count( $logs );
+
+		wp_send_json_success( [
+			'logs'       => array_slice( $logs, ( $page - 1 ) * $per_page, $per_page ),
+			'total'      => $total,
+			'page'       => $page,
+			'totalPages' => (int) ceil( $total / $per_page ),
+		] );
+	}
+
+	/**
+	 * Build one privacy consent log row for the React admin.
+	 *
+	 * ALLOWLIST: the row carries the six fields legacy's table shows and nothing else.
+	 * The platform's record also holds the subject's details, the raw request, the proof,
+	 * and user, session and consent ids — none of which this screen displays, so none of
+	 * which leave the server.
+	 *
+	 * @param object|array $record
+	 *
+	 * @return array
+	 */
+	public function map_privacy_consent_log( $record ) {
+		$r = is_object( $record ) ? get_object_vars( $record ) : (array) $record;
+
+		$text = function ( $key ) use ( $r ) {
+			return isset( $r[ $key ] ) && is_scalar( $r[ $key ] ) ? (string) $r[ $key ] : '';
+		};
+
+		// source id -> source name, as legacy's Source column
+		$source_name = '';
+		$source_id   = $text( 'source' );
+
+		if ( $source_id !== '' && $source_id !== 'unknown' ) {
+			$source = Cookie_Notice()->privacy_consent->get_source( $source_id );
+
+			if ( ! empty( $source['name'] ) )
+				$source_name = (string) $source['name'];
+		}
+
+		// preference key names only, as legacy's Preferences column
+		$preferences = isset( $r['preferences'] ) ? array_map( 'strval', array_keys( (array) $r['preferences'] ) ) : [];
+
+		$date = $text( 'created_at' );
+
+		if ( $date !== '' ) {
+			try {
+				$datetime = new DateTime( $date );
+				$date     = $datetime->format( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ) ) . ' ' . __( 'GMT', 'cookie-notice' );
+			} catch ( Exception $e ) {
+				// keep the value as the platform sent it
+			}
+		}
+
+		return [
+			'subject'     => $text( 'subject_id' ),
+			'preferences' => $preferences,
+			'source'      => $source_name,
+			'form'        => $text( 'form_title' ),
+			'date'        => $date,
+			'ip'          => $text( 'ip_address' ),
+		];
+	}
+
+	/**
+	 * Why a Privacy Consent write must be refused, or '' when it may proceed.
+	 *
+	 * Legacy has no network save for privacy consent, and disables saving while the
+	 * compliance status is not active.
+	 *
+	 * @return string
+	 */
+	private function privacy_consent_write_refusal() {
+		$cn = Cookie_Notice();
+
+		if ( $cn->is_network_admin() )
+			return __( 'Privacy Consent settings are managed on each site of the network.', 'cookie-notice' );
+
+		if ( $cn->get_status() !== 'active' )
+			return __( 'Privacy Consent requires an active Cookie Compliance connection.', 'cookie-notice' );
+
+		return '';
+	}
+
+	/**
+	 * A source's descriptor and its settings from the site row.
+	 *
+	 * @param array $source
+	 * @param array $row
+	 *
+	 * @return array
+	 */
+	private function privacy_consent_source_state( $source, $row ) {
+		$cn = Cookie_Notice();
+		$id = $source['id'];
+
+		$available = ! empty( $source['availability'] );
+		$active    = $available && ! empty( $row[ $id . '_active' ] );
+		$type      = isset( $row[ $id . '_active_type' ] ) && is_string( $row[ $id . '_active_type' ] ) && array_key_exists( $row[ $id . '_active_type' ], $cn->privacy_consent->form_active_types ) ? $row[ $id . '_active_type' ] : 'all';
+
+		// legacy shows every source off in the Network Admin of a network-activated plugin
+		if ( is_multisite() && $cn->is_network_admin() && $cn->is_plugin_network_active() )
+			$active = false;
+
+		return [
+			'id'           => $id,
+			'name'         => $source['name'],
+			'type'         => $source['type'],
+			'idType'       => $source['id_type'],
+			'availability' => $available,
+			'active'       => $active,
+			'activeType'   => $type,
+		];
+	}
+
+	/**
+	 * One page of a source's forms with their stored statuses.
+	 *
+	 * Static sources list their fixed forms; dynamic sources are queried through the
+	 * module, ten per page in title order, as the legacy table.
+	 *
+	 * @param array  $source
+	 * @param int    $page
+	 * @param string $order
+	 *
+	 * @return array
+	 */
+	private function privacy_consent_forms( $source, $page, $order ) {
+		$cn    = Cookie_Notice();
+		$empty = [ 'items' => [], 'total' => 0, 'page' => 1, 'maxPages' => 0 ];
+
+		// an unavailable source's plugin is not loaded, so neither are its forms
+		if ( empty( $source['availability'] ) )
+			return $empty;
+
+		$dynamic = $source['type'] === 'dynamic';
+
+		if ( $dynamic ) {
+			$instance = $cn->privacy_consent->get_instance( $source['id'] );
+
+			if ( ! $instance )
+				return $empty;
+
+			$result = $instance->get_forms( [
+				'source'  => $source['id'],
+				'order'   => $order,
+				'orderby' => 'title',
+				'page'    => $page,
+				'search'  => ''
+			] );
+
+			$forms     = isset( $result['forms'] ) && is_array( $result['forms'] ) ? $result['forms'] : [];
+			$total     = isset( $result['total'] ) ? (int) $result['total'] : 0;
+			$max_pages = isset( $result['max_pages'] ) ? (int) $result['max_pages'] : 0;
+		} else {
+			$forms     = isset( $source['forms'] ) && is_array( $source['forms'] ) ? array_values( $source['forms'] ) : [];
+			$total     = count( $forms );
+			$max_pages = $total > 0 ? 1 : 0;
+			$page      = 1;
+		}
+
+		$statuses = $cn->privacy_consent->get_form_statuses( $source['id'] );
+		$items    = [];
+
+		foreach ( $forms as $form ) {
+			$items[] = [
+				'id'         => $form['id'],
+				'title'      => $dynamic ? $form['title'] : $form['name'],
+				'date'       => $dynamic ? $form['date'] : '',
+				'fieldCount' => isset( $form['fields'] ) && is_array( $form['fields'] ) ? count( $form['fields'] ) : 0,
+				'status'     => array_key_exists( $form['id'], $statuses ) && is_array( $statuses[ $form['id'] ] ) && ! empty( $statuses[ $form['id'] ]['status'] ),
+			];
+		}
+
+		return [ 'items' => $items, 'total' => $total, 'page' => $page, 'maxPages' => $max_pages ];
+	}
+
+	/**
 	 * Rescan scripts from the Designer API.
 	 *
 	 * Forces a fresh fetch of the app blocking config from the remote
@@ -787,6 +1263,7 @@ class Cookie_Notice_React_Admin_Ajax {
 	 */
 	public function rescan_scripts() {
 		$this->verify_request();
+		Cookie_Notice()->settings->verify_not_network_managed();
 
 		$cn = Cookie_Notice();
 
@@ -815,7 +1292,8 @@ class Cookie_Notice_React_Admin_Ajax {
 			$blocking['providers'] = $sample_providers;
 		}
 
-		wp_send_json_success( $this->build_blocking_response( $blocking ) );
+		// …and the banner as that pull left it (React's store adopts it: api/index.js PULL_ACTIONS).
+		wp_send_json_success( $this->build_blocking_response( $blocking ) + [ 'banner' => $cn->get_banner_summary() ] );
 	}
 
 	/**
@@ -829,12 +1307,9 @@ class Cookie_Notice_React_Admin_Ajax {
 	public function dismiss_welcome() {
 		$this->verify_request();
 
-		$cn = Cookie_Notice();
-
-		if ( $cn->is_network_admin() )
-			update_site_option( 'cookie_notice_welcome_dismissed', current_time( 'mysql' ) );
-		else
-			update_option( 'cookie_notice_welcome_dismissed', current_time( 'mysql' ) );
+		// The scope cnReactData.welcomeDismissedAt reads (settings.php): network row in the
+		// Network Admin, site row on a site.
+		Cookie_Notice_Store::set( 'cookie_notice_welcome_dismissed', current_time( 'mysql' ), Cookie_Notice()->is_network_admin() );
 
 		wp_send_json_success();
 	}
@@ -850,12 +1325,8 @@ class Cookie_Notice_React_Admin_Ajax {
 	public function complete_setup_wizard() {
 		$this->verify_request();
 
-		$cn = Cookie_Notice();
-
-		if ( $cn->is_network_admin() )
-			update_site_option( 'cookie_notice_setup_wizard_complete', true );
-		else
-			update_option( 'cookie_notice_setup_wizard_complete', true );
+		// The scope cnReactData.setupWizardComplete reads (settings.php).
+		Cookie_Notice_Store::set( 'cookie_notice_setup_wizard_complete', true, Cookie_Notice()->is_network_admin() );
 
 		wp_send_json_success();
 	}
@@ -887,6 +1358,7 @@ class Cookie_Notice_React_Admin_Ajax {
 		// This is best-effort: login or delete failures are logged but do NOT block the
 		// WP options reset — the reset must always succeed regardless of API availability.
 		$current_app_id = ! empty( $cn->options['general']['app_id'] ) ? $cn->options['general']['app_id'] : '';
+		$app_delete_error = null;
 
 		if ( ! empty( $current_app_id ) ) {
 			$test_email    = defined( 'CN_DEV_TEST_EMAIL' )    ? CN_DEV_TEST_EMAIL    : getenv( 'CN_DEV_TEST_EMAIL' );
@@ -903,7 +1375,16 @@ class Cookie_Notice_React_Admin_Ajax {
 					'Password' => $test_password,
 				] );
 
-				if ( ! empty( $login_result->data->token ) ) {
+				// A first-factor-only answer ( the test account has two-step verification ) is not a
+				// session: the same rule as sign-in and sign-up, one helper. It is not stored and not
+				// used, so app_delete is skipped like any failed login — the reset below still runs.
+				$partial_login = ! empty( $login_result->data->token ) && $welcome_api->is_partial_login_response( $login_result->data );
+
+				if ( $partial_login ) {
+					$app_delete_error = 'The test account answered with a partial (first-factor-only) token; the app was not deleted. Use a test account without two-step verification.';
+
+					error_log( '[Cookie Notice] dev_reset - login for ' . $test_email . ' returned a partial token; token not stored, skipping app_delete.' );
+				} elseif ( ! empty( $login_result->data->token ) ) {
 					// Store the full data object (not just the token string) — request() reads
 					// $data_token->token so the shape must match what login normally stores.
 					set_transient( 'cookie_notice_app_token', $login_result->data, HOUR_IN_SECONDS );
@@ -924,8 +1405,14 @@ class Cookie_Notice_React_Admin_Ajax {
 		}
 
 		// --- Step 2: Clear WP options (always runs regardless of API result above).
-		delete_option( 'cookie_notice_welcome_dismissed' );
-		delete_option( 'cookie_notice_setup_wizard_complete' );
+		// The onboarding flags in every scope this request may have written them: the site row,
+		// and in the Network Admin the network row too (dismiss_welcome(), complete_setup_wizard()).
+		foreach ( self::SCOPED_ONBOARDING_FLAGS as $flag ) {
+			delete_option( $flag );
+
+			if ( $cn->is_network_admin() )
+				delete_site_option( $flag );
+		}
 
 		$options = $cn->options['general'];
 		$options['app_id']  = '';
@@ -945,6 +1432,9 @@ class Cookie_Notice_React_Admin_Ajax {
 			update_option( 'cookie_notice_status', $default_data );
 		}
 
+		// Fresh-activation state: no engine remembered (the next pull is a first connect).
+		$cn->forget_banner_engine( is_multisite() );
+
 		// Clear transient caches
 		delete_transient( 'cookie_notice_app_quick_config' );
 		delete_site_transient( 'cookie_notice_app_quick_config' );
@@ -953,8 +1443,9 @@ class Cookie_Notice_React_Admin_Ajax {
 
 		$deleted_app = ! empty( $current_app_id ) ? $current_app_id : null;
 		wp_send_json_success( [
-			'message'     => 'Plugin reset to fresh-activation state.',
-			'deleted_app' => $deleted_app,
+			'message'          => 'Plugin reset to fresh-activation state.',
+			'deleted_app'      => $deleted_app,
+			'app_delete_error' => $app_delete_error,
 		] );
 	}
 
@@ -1001,7 +1492,9 @@ class Cookie_Notice_React_Admin_Ajax {
 			$option_value = sanitize_text_field( $raw_value );
 		}
 
-		update_option( $option_name, $option_value );
+		// The onboarding flags live where their React writers put them (network row in the
+		// Network Admin); everything else here is site-scoped.
+		Cookie_Notice_Store::set( $option_name, $option_value, in_array( $option_name, self::SCOPED_ONBOARDING_FLAGS, true ) && Cookie_Notice()->is_network_admin() );
 
 		wp_send_json_success( [ 'option' => $option_name, 'value' => $option_value ] );
 	}
@@ -1038,7 +1531,7 @@ class Cookie_Notice_React_Admin_Ajax {
 			wp_send_json_error( [ 'error' => 'Option not in allowlist: ' . $option_name ] );
 		}
 
-		$value = get_option( $option_name );
+		$value = Cookie_Notice_Store::get( $option_name, false, in_array( $option_name, self::SCOPED_ONBOARDING_FLAGS, true ) && Cookie_Notice()->is_network_admin() );
 
 		// Serialize arrays/objects so the test can inspect them as a string.
 		if ( is_array( $value ) || is_object( $value ) ) {
@@ -1099,26 +1592,31 @@ class Cookie_Notice_React_Admin_Ajax {
 	/**
 	 * Save plugin options submitted from the React admin UI.
 	 *
-	 * Reads each recognized POST field, sanitizes it, and merges it into the
-	 * existing options array before persisting via update_option() (single-site)
-	 * or update_site_option() (network).
+	 * Reads each recognized POST field and sanitizes it into a change set: the posted
+	 * keys (nested settings by leaf) plus message_text when the policy-link shortcode
+	 * changes it. Only those keys are stored, over a fresh read of the row
+	 * (Cookie_Notice::update_general_option_keys(), via Settings::store_option_keys()),
+	 * so a setting another request saved while this one ran is not undone. (The row this
+	 * request holds was loaded when the save request started, not when the page loaded.)
 	 *
 	 * @return void
 	 */
 	public function save_options() {
 		$this->verify_request();
+		Cookie_Notice()->settings->verify_not_network_managed();
 
 		$cn      = Cookie_Notice();
-		$options = $cn->options['general'];
+		$network = Cookie_Notice()->is_network_admin();
+		$changes = [];
 
-		// Capture the connected app id before any $_POST override, so a connection
-		// change can be detected after persist (see the refresh block at the end).
-		$old_app_id = isset( $options['app_id'] ) ? $options['app_id'] : '';
+		// Capture the connected app id before the save, so a connection change can be
+		// detected after persist (see the refresh block at the end).
+		$old_app_id = isset( $cn->options['general']['app_id'] ) ? $cn->options['general']['app_id'] : '';
 
 		// WAF-safe decode gate (#47585, #47616). The React admin base64-encodes the
 		// code/markup-bearing fields (refuse_code, refuse_code_head, conditional_rules)
 		// behind self::WAF_B64_SENTINEL so a firewall can't 403 the POST for carrying a
-		// raw <script>. Decode-or-reject ALL of them up-front, before any $options
+		// raw <script>. Decode-or-reject ALL of them up-front, before any $changes
 		// mutation for these fields, so a corrupt encoded payload rejects the whole save
 		// (no partial store). Legacy (non-sentinel) values pass through unchanged and the
 		// existing per-field passthrough below still applies.
@@ -1180,8 +1678,19 @@ class Cookie_Notice_React_Admin_Ajax {
 
 		foreach ( $bool_fields as $field ) {
 			if ( isset( $_POST[ $field ] ) ) {
-				$options[ $field ] = (bool) $_POST[ $field ];
+				$changes[ $field ] = (bool) $_POST[ $field ];
 			}
+		}
+
+		// Same rule as legacy (Settings::sanitize_amp_support / _caching_compatibility):
+		// on only while the plugin it serves is active. Only when posted — a stored value
+		// the admin did not touch is left as it is.
+		if ( isset( $_POST['amp_support'] ) ) {
+			$changes['amp_support'] = $cn->settings->sanitize_amp_support( $changes['amp_support'] );
+		}
+
+		if ( isset( $_POST['caching_compatibility'] ) ) {
+			$changes['caching_compatibility'] = $cn->settings->sanitize_caching_compatibility( $changes['caching_compatibility'] );
 		}
 
 		// ── Begin app_blocking quota freeze (#2272)
@@ -1191,67 +1700,79 @@ class Cookie_Notice_React_Admin_Ajax {
 		// had since #2272 (it renders the checkbox disabled, omits its sentinel, and
 		// validate_options() then preserves the DB value).
 		//
-		// This path has no sentinel: React posts every key on every save, and the value
-		// it posts is the quota-forced false it was handed in cnReactData.options. So an
-		// admin who merely saves an unrelated setting while over quota would otherwise
-		// destroy their own autoblocking preference permanently — a cycle reset does not
-		// bring it back. Restore the remembered pre-force value instead of capping.
+		// This path has no sentinel. The React settings save posts only the keys changed
+		// since its last successful save, but any app_blocking value it does post started
+		// from the quota-forced false it was handed in cnReactData.options — and nothing
+		// stops another caller posting the key. So without this, a save while over quota
+		// could destroy the admin's autoblocking preference permanently — a cycle reset
+		// does not bring it back.
 		//
-		// Cookie_Notice::preserve_app_blocking_preference() is the backstop that covers
-		// the other wholesale writers of this array; this is the explicit statement of
-		// the rule on the one path that would otherwise look deliberate.
-		if ( $cn->threshold_exceeded() ) {
-			$options['app_blocking'] = $cn->app_blocking_stored !== null
-				? $cn->app_blocking_stored
-				: ! empty( $cn->options['general']['app_blocking'] );
-		}
+		// So over quota app_blocking is left out of the save, posted or not. Only the
+		// change set is written, over a fresh read of the row, so the row keeps the
+		// app_blocking it holds at that moment — not a value this request remembered at
+		// its start, which another request may have replaced since. And
+		// Cookie_Notice::update_general_option_keys() points the #2272 guard at that
+		// stored value, so the guard does not turn a stored false back into true.
+		if ( $cn->threshold_exceeded() )
+			unset( $changes['app_blocking'] );
 		// ── End app_blocking quota freeze (#2272)
 
-		// Text fields.
-		$text_fields = [
-			'message_text',
-			'accept_text',
-			'refuse_text',
-			'revoke_text',
-			'revoke_message_text',
-			'css_class',
-		];
-
-		foreach ( $text_fields as $field ) {
+		// ── Begin React text-field sanitise ──
+		//
+		// Every value is wp_unslash'ed first: WordPress addslashes() all of $_POST
+		// (wp_magic_quotes), so without it "Don't" is stored as "Don\'t".
+		//
+		// Each field is cleaned by the same Settings method the legacy save uses:
+		//  - the two message texts carry admin HTML (links, bold, line breaks): trim +
+		//    wp_kses_post with the plugin's 'display' style allowance. sanitize_text_field
+		//    here once erased that HTML for good on any React save. The frontend re-runs
+		//    wp_kses_post at render, as it does for legacy values;
+		//  - the button texts: sanitize_text_field;
+		//  - the button CSS class: sanitize_html_class per class.
+		// Nothing left after cleaning → the default text, as legacy does.
+		foreach ( [ 'message_text', 'revoke_message_text' ] as $field ) {
 			if ( isset( $_POST[ $field ] ) ) {
-				$options[ $field ] = sanitize_text_field( $_POST[ $field ] );
+				$changes[ $field ] = $cn->settings->sanitize_message_text( $field, wp_unslash( $_POST[ $field ] ) );
 			}
 		}
 
+		foreach ( [ 'accept_text', 'refuse_text', 'revoke_text' ] as $field ) {
+			if ( isset( $_POST[ $field ] ) ) {
+				$changes[ $field ] = $cn->settings->sanitize_button_text( $field, wp_unslash( $_POST[ $field ] ) );
+			}
+		}
+
+		if ( isset( $_POST['css_class'] ) ) {
+			$changes['css_class'] = $cn->settings->sanitize_css_class( wp_unslash( $_POST['css_class'] ) );
+		}
+		// ── End React text-field sanitise ──
+
 		// Connection credential fields — sanitize_key strips to lowercase alphanumeric + dashes/underscores.
 		if ( isset( $_POST['app_id'] ) ) {
-			$options['app_id'] = sanitize_key( $_POST['app_id'] );
+			$changes['app_id'] = sanitize_key( wp_unslash( $_POST['app_id'] ) );
 		}
 
 		if ( isset( $_POST['app_key'] ) ) {
-			$options['app_key'] = sanitize_key( $_POST['app_key'] );
+			$changes['app_key'] = sanitize_key( wp_unslash( $_POST['app_key'] ) );
 		}
 
 		// Script blocking code fields — these can contain <script> tags.
-		// Sentinel-decoded (WAF-safe) values are stored VERBATIM: base64 decode
-		// already yields the exact bytes the admin typed, so a second wp_unslash
-		// would corrupt any backslash-bearing script/regex. Legacy (non-encoded)
-		// values keep today's exact wp_unslash passthrough (admin-only, manage_options).
-		if ( array_key_exists( 'refuse_code', $waf ) ) {
-			$options['refuse_code'] = $waf['refuse_code'];
-		} elseif ( isset( $_POST['refuse_code'] ) ) {
-			$options['refuse_code'] = wp_unslash( $_POST['refuse_code'] );
-		}
-
-		if ( array_key_exists( 'refuse_code_head', $waf ) ) {
-			$options['refuse_code_head'] = $waf['refuse_code_head'];
-		} elseif ( isset( $_POST['refuse_code_head'] ) ) {
-			$options['refuse_code_head'] = wp_unslash( $_POST['refuse_code_head'] );
+		// Sentinel-decoded (WAF-safe) values are already the exact bytes the admin
+		// typed, so they are NEVER wp_unslash'ed (a second unslash corrupts any
+		// backslash-bearing script/regex); a legacy (non-encoded) value is unslashed
+		// once. Either is then cleaned by the legacy rule — trim + wp_kses with the
+		// tags allowed for its place (Settings::sanitize_refuse_code).
+		foreach ( [ 'refuse_code' => 'body', 'refuse_code_head' => 'head' ] as $field => $location ) {
+			if ( array_key_exists( $field, $waf ) ) {
+				$changes[ $field ] = $cn->settings->sanitize_refuse_code( $waf[ $field ], $location );
+			} elseif ( isset( $_POST[ $field ] ) ) {
+				$changes[ $field ] = $cn->settings->sanitize_refuse_code( wp_unslash( $_POST[ $field ] ), $location );
+			}
 		}
 
 		// Excluded script handles — newline-separated string from React textarea → stored as array.
 		if ( isset( $_POST['excluded_handles'] ) ) {
-			$options['excluded_handles'] = array_values( array_filter( array_map( 'sanitize_text_field', explode( "\n", $_POST['excluded_handles'] ) ) ) );
+			$changes['excluded_handles'] = array_values( array_filter( array_map( 'sanitize_text_field', explode( "\n", wp_unslash( $_POST['excluded_handles'] ) ) ) ) );
 		}
 
 		// Conditional rules — JSON string from React → validated nested array.
@@ -1300,17 +1821,20 @@ class Cookie_Notice_React_Admin_Ajax {
 					}
 				}
 
-				$options['conditional_rules'] = $rules;
+				$changes['conditional_rules'] = $rules;
 			} else {
-				$options['conditional_rules'] = [];
+				$changes['conditional_rules'] = [];
 			}
 		}
 
-		// Select fields — value must be one of the allowed options.
+		// Select fields — value must be one of the allowed options. Cookie expiry choices
+		// are the filtered (cn_cookie_expiry) list legacy offers and validates against.
+		$expiry_choices = array_map( 'strval', array_keys( $cn->settings->times ) );
+
 		$select_fields = [
 			'revoke_cookies_opt' => [ 'automatic', 'manual' ],
-			'time'               => [ 'hour', 'day', 'week', 'month', '3months', '6months', 'year', 'infinity' ],
-			'time_rejected'      => [ 'hour', 'day', 'week', 'month', '3months', '6months', 'year', 'infinity' ],
+			'time'               => $expiry_choices,
+			'time_rejected'      => $expiry_choices,
 			'link_target'        => [ '_blank', '_self' ],
 			'link_position'      => [ 'banner', 'message' ],
 			'position'           => [ 'top', 'bottom', 'left', 'right', 'popup' ],
@@ -1325,14 +1849,14 @@ class Cookie_Notice_React_Admin_Ajax {
 			if ( isset( $_POST[ $field ] ) ) {
 				$value = sanitize_text_field( $_POST[ $field ] );
 				if ( in_array( $value, $allowed, true ) ) {
-					$options[ $field ] = $value;
+					$changes[ $field ] = $value;
 				}
 			}
 		}
 
 		// Number fields.
 		if ( isset( $_POST['on_scroll_offset'] ) ) {
-			$options['on_scroll_offset'] = absint( $_POST['on_scroll_offset'] );
+			$changes['on_scroll_offset'] = absint( $_POST['on_scroll_offset'] );
 		}
 
 		// Nested colors array — text, button, bar, bar_opacity.
@@ -1342,7 +1866,7 @@ class Cookie_Notice_React_Admin_Ajax {
 			if ( isset( $_POST[ $post_key ] ) ) {
 				$val = sanitize_hex_color( $_POST[ $post_key ] );
 				if ( $val ) {
-					$options['colors'][ $color_field ] = $val;
+					$changes['colors'][ $color_field ] = $val;
 				}
 			}
 		}
@@ -1351,64 +1875,104 @@ class Cookie_Notice_React_Admin_Ajax {
 		if ( isset( $_POST['bar_opacity'] ) ) {
 			$bar_opacity = absint( $_POST['bar_opacity'] );
 			$bar_opacity = max( 50, min( 100, $bar_opacity ) );
-			$options['colors']['bar_opacity'] = $bar_opacity;
+			$changes['colors']['bar_opacity'] = $bar_opacity;
 		}
 
 		// Nested see_more_opt array.
 		if ( isset( $_POST['see_more_opt'] ) && is_array( $_POST['see_more_opt'] ) ) {
-			$raw = $_POST['see_more_opt'];
+			$raw = wp_unslash( $_POST['see_more_opt'] );
 
 			if ( isset( $raw['text'] ) ) {
-				$options['see_more_opt']['text'] = sanitize_text_field( $raw['text'] );
+				$changes['see_more_opt']['text'] = sanitize_text_field( $raw['text'] );
 			}
 
 			if ( isset( $raw['link_type'] ) ) {
 				$link_type = sanitize_text_field( $raw['link_type'] );
 				if ( in_array( $link_type, [ 'page', 'custom' ], true ) ) {
-					$options['see_more_opt']['link_type'] = $link_type;
+					$changes['see_more_opt']['link_type'] = $link_type;
 				}
 			}
 
 			if ( isset( $raw['id'] ) ) {
-				$options['see_more_opt']['id'] = absint( $raw['id'] );
+				$changes['see_more_opt']['id'] = absint( $raw['id'] );
 			}
 
 			if ( isset( $raw['link'] ) ) {
-				$options['see_more_opt']['link'] = esc_url_raw( $raw['link'] );
+				$changes['see_more_opt']['link'] = esc_url_raw( $raw['link'] );
 			}
 
 			if ( isset( $raw['sync'] ) ) {
-				$options['see_more_opt']['sync'] = (bool) $raw['sync'];
+				$changes['see_more_opt']['sync'] = (bool) $raw['sync'];
 			}
 		}
 
-		// Enforce field ownership partition (#2264) — strip any key that is
-		// not declared in Cookie_Notice::$plugin_owned_fields. Nested sub-arrays
-		// (colors, see_more_opt, conditional_rules) are already in the allowlist.
-		$allowed = Cookie_Notice::$plugin_owned_fields;
+		// Only plugin-owned fields (#2264). Every key set above is one; this keeps request
+		// bookkeeping (action, nonce, cn_network) out of the row whatever is added later.
+		$changes = array_intersect_key( $changes, array_flip( Cookie_Notice::$plugin_owned_fields ) );
 
-		foreach ( array_keys( $options ) as $key ) {
-			if ( ! in_array( $key, $allowed, true ) ) {
-				unset( $options[ $key ] );
-			}
+		// Post-save effects, as legacy runs them, on the row as it will be stored — the row
+		// read fresh, with this save's changes over it — so they see the stored values of
+		// keys this partial save did not carry, including any another request saved since
+		// this save request started (its cached copy is from that moment).
+		$cn->drop_cached_general_options( $network );
+
+		$fresh = Cookie_Notice_Store::get( 'cookie_notice_options', [], $network );
+		$row   = $cn->merge_general_options( $cn->multi_array_merge( $cn->defaults['general'], is_array( $fresh ) ? $fresh : [] ), $changes );
+
+		// ── Begin disconnect status reset
+		//
+		// A save that leaves no complete connection (App ID or App Key empty) resets the
+		// connection status to the defaults, as the classic form does
+		// (Settings::validate_options()). Without it a React disconnect left the status
+		// 'active', so the front end kept printing the Cookie Compliance widget with no App ID,
+		// and the config cron, unscheduled without an App ID, never corrected it.
+		//
+		// Decided on $row, the row as this save will store it, never on $old_app_id or
+		// $cn->options (this request's copy from its start): a connection another request
+		// stored since then is not reset. Written here, before store_option_keys() purges
+		// page caches, so the purge comes after the status the front end prints from. Runs
+		// on every save that leaves no connection, so a site already stuck 'active' without
+		// one is repaired by its next save; a status that is already the defaults is unchanged.
+		if ( empty( $row['app_id'] ) || empty( $row['app_key'] ) ) {
+			Cookie_Notice_Store::set( 'cookie_notice_status', $cn->defaults['data'], $network );
+
+			// …and the engine it ran: reconnecting, even to the same App ID, is a first connect.
+			$cn->forget_banner_engine( $network );
+
+			// This request's status, read back from the row just written.
+			$cn->set_status_data();
 		}
+		// ── End disconnect status reset
+
+		$saved = $cn->settings->append_policy_link_shortcode( $row );
+
+		// The shortcode is appended to message_text: stored with this save when it was.
+		if ( $saved['message_text'] !== $row['message_text'] )
+			$changes['message_text'] = $saved['message_text'];
+
+		$cn->settings->sync_privacy_policy_page( $saved );
+		$cn->settings->register_wpml_option_strings( $saved );
+
+		// The connection this save leaves (the refresh block below compares it).
+		$new_app_id  = isset( $changes['app_id'] ) ? $changes['app_id'] : $old_app_id;
+		$new_app_key = isset( $changes['app_key'] ) ? $changes['app_key'] : ( isset( $cn->options['general']['app_key'] ) ? $cn->options['general']['app_key'] : '' );
 
 		// Persist — network vs. single-site.
 		//
 		// Scope comes from the claim recorded in Cookie_Notice::set_network_data() and
 		// vetted by Cookie_Notice::enforce_network_scope() on plugins_loaded, never from
 		// $_POST['cn_network'] directly. verify_request() above proves only manage_options,
-		// a site-level capability every subsite administrator holds, and $allowed carries
-		// app_id and app_key — so reading the raw field here let a subsite admin point
-		// every site on the network at their own Cookie Compliance account.
+		// a site-level capability every subsite administrator holds, and the plugin-owned
+		// fields include app_id and app_key — so reading the raw field here let a subsite
+		// admin point every site on the network at their own Cookie Compliance account.
 		//
-		// $options is seeded from $cn->options['general'], which the constructor already
-		// picked using the same claim, so the two cannot disagree about scope.
-		if ( Cookie_Notice()->is_network_admin() ) {
-			update_site_option( 'cookie_notice_options', $options );
-		} else {
-			update_option( 'cookie_notice_options', $options );
-		}
+		// $cn->options['general'] was loaded by the constructor using the same claim, so
+		// the in-memory copy and the row written cannot disagree about scope.
+		//
+		// store_option_keys() writes only $changes, removes any stored key that is not a
+		// plugin-owned field (#2264), and fires cn_configuration_updated once (caching
+		// plugins purge). A connection change purges a second time, after its pull (below).
+		$cn->settings->store_option_keys( $changes, $network );
 
 		// Connection changed — refresh cached app data for the new app id.
 		//
@@ -1418,13 +1982,16 @@ class Cookie_Notice_React_Admin_Ajax {
 		// reconnected from a Free to a Pro app keeps showing the Free-plan visit-limit
 		// notice -- and the app_blocking cap applied above -- until the cron next runs.
 		// Mirrors the legacy form path in Settings::validate_options().
-		$new_app_id = isset( $options['app_id'] ) ? $options['app_id'] : '';
-
-		if ( $new_app_id !== '' && ! empty( $options['app_key'] ) && $new_app_id !== $old_app_id ) {
+		//
+		// get_app_config() can rewrite app_blocking (the posture sync), so the React admin
+		// must treat this save as a config pull: src/admin-react/api/index.js PULL_FIELDS
+		// lists the keys that trigger it. Changing what triggers a pull here? Update that list.
+		if ( $new_app_id !== '' && ! empty( $new_app_key ) && $new_app_id !== $old_app_id ) {
 			// Mirror the just-persisted credentials into the in-memory options so the
 			// config/token requests below authenticate as the new app, exactly as the
 			// legacy form path does after register_setting() writes the new options.
-			$cn->options['general'] = $options;
+			$cn->options['general']['app_id']  = $new_app_id;
+			$cn->options['general']['app_key'] = $new_app_key;
 
 			$app_data = $cn->welcome_api->get_app_config( $new_app_id, true, false );
 
@@ -1434,13 +2001,199 @@ class Cookie_Notice_React_Admin_Ajax {
 			if ( is_array( $app_data ) && isset( $app_data['status'] ) && $cn->check_status( $app_data['status'] ) === 'active' ) {
 				// get_app_analytics authenticates with the just-saved credentials via the
 				// analytics_app_data shim ( welcome-api.php 'get_analytics' request branch ).
-				$cn->settings->set_analytics_app_data( [ 'id' => $new_app_id, 'key' => $options['app_key'] ] );
+				$cn->settings->set_analytics_app_data( [ 'id' => $new_app_id, 'key' => $new_app_key ] );
 				$cn->welcome_api->get_app_analytics( $new_app_id, true, false );
 				$cn->settings->set_analytics_app_data( [] );
 			}
+
+			// Purge page caches again, after the whole refresh. store_option_keys() purged
+			// before the pull, so a page cached while it ran would keep the old app's banner.
+			// Unconditional: with force_action false the pull purges at most early (its
+			// Autoblocking write comes before its status write), get_app_analytics() rewrites
+			// the status after it, and a pull that returns null still needs this. As the
+			// classic form, which purges after its pull.
+			$cn->settings->configuration_updated( (array) Cookie_Notice_Store::get( 'cookie_notice_options', [], $network ) );
 		}
 
-		wp_send_json_success( [ 'message' => __( 'Settings saved.', 'cookie-notice' ) ] );
+		// What is stored now, read back: the freeze above, the preference guard on the
+		// option write and the connection refresh can each leave a value other than the one
+		// posted. Always the two blocking switches, so the toggles show the stored row.
+		$stored = (array) Cookie_Notice_Store::get( 'cookie_notice_options', [], $network );
+
+		wp_send_json_success( [
+			'message'           => __( 'Settings saved.', 'cookie-notice' ),
+			'options'           => array_intersect_key( $stored, array_flip( array_merge( self::posted_option_keys(), [ 'message_text', 'app_blocking', 'app_blocking_engine' ] ) ) ),
+			'blocking_paused'   => (bool) $cn->threshold_exceeded(),
+			'compliance_active' => $cn->settings->compliance_active(),
+			// The 3-way status ('' | 'pending' | 'active'), so the admin's not-live wording is current.
+			'status'            => $cn->get_status(),
+		] );
+	}
+
+	/**
+	 * Return the stored plugin options (read-only), for the React store to re-read what is
+	 * stored after a write whose outcome it could not confirm, or after a config sync that
+	 * may have rewritten app_blocking (welcome-api.php base posture sync).
+	 *
+	 * Exactly what the page bootstrap exposes as cnReactData.options (react_options()),
+	 * plus whether the stored Autoblocking preference is paused by the visit limit,
+	 * whether Cookie Compliance is active (Settings::compliance_active()) and its status.
+	 *
+	 * @return void
+	 */
+	public function get_plugin_options() {
+		$this->verify_request();
+
+		$cn = Cookie_Notice();
+
+		wp_send_json_success( [
+			'options'           => $cn->settings->react_options(),
+			'blocking_paused'   => (bool) $cn->threshold_exceeded(),
+			'compliance_active' => $cn->settings->compliance_active(),
+			// The 3-way status ('' | 'pending' | 'active'), so the admin's not-live wording is current.
+			'status'            => $cn->get_status(),
+			// The banner (engine, style, managed): this re-read follows every config pull, so the
+			// React store's copy is current after a pull of any kind (store/pluginOptions.js).
+			'banner'            => $cn->get_banner_summary(),
+		] );
+	}
+
+	/**
+	 * Top-level option keys a React save POST carried (color_* / bar_opacity → colors).
+	 *
+	 * @return string[]
+	 */
+	private static function posted_option_keys() {
+		$keys = [];
+
+		foreach ( array_keys( $_POST ) as $key ) {
+			if ( strpos( $key, 'color_' ) === 0 || $key === 'bar_opacity' ) {
+				$key = 'colors';
+			}
+
+			$keys[] = $key;
+		}
+
+		return array_values( array_unique( $keys ) );
+	}
+
+	/**
+	 * Reset the banner and plugin settings to their defaults (React "Reset to defaults").
+	 *
+	 * Keeps the connection, the React admin, the network and blocking switches and the
+	 * plugin's notice bookkeeping (Settings::get_reset_options()); the connection status
+	 * and the Privacy Consent settings are separate rows and are not touched. Unlike the
+	 * legacy reset, which also disconnects the site and returns it to the legacy screen.
+	 *
+	 * @return void
+	 */
+	public function reset_options() {
+		$this->verify_request();
+		Cookie_Notice()->settings->verify_not_network_managed();
+
+		$cn      = Cookie_Notice();
+		$network = Cookie_Notice()->is_network_admin();
+
+		// The kept keys come from the row as stored NOW, not this request's cached copy of
+		// it (loaded when this reset request started): otherwise a connection or blocking
+		// switch another request saved in between is reset to what it was then. The row is
+		// still written whole — a reset must empty lists and drop keys, which writing only
+		// changed keys cannot.
+		$cn->drop_cached_general_options( $network );
+
+		$current = (array) Cookie_Notice_Store::get( 'cookie_notice_options', [], $network );
+		$options = $cn->settings->get_reset_options( $current );
+
+		// The kept app_blocking is the stored one, so the #2272 guard is pointed at it:
+		// over quota it would otherwise turn a stored false (the Portal's "off", pulled by
+		// another request) back into the true this request started with, and push that.
+		// store_options() fires cn_configuration_updated once (caching plugins purge).
+		$cn->write_with_stored_posture( $options, $network, function () use ( $cn, $options, $network ) {
+			$cn->settings->store_options( $options, $network );
+		} );
+
+		$cn->options['general'] = $options;
+
+		// The whole stored row, read back (incl. the kept connection and blocking switches)
+		// by the builder of cnReactData.options: React replaces its state with it, so it
+		// has exactly the bootstrap's shape.
+		wp_send_json_success( [
+			'message'           => __( 'Settings restored to defaults.', 'cookie-notice' ),
+			'options'           => $cn->settings->react_options(),
+			'blocking_paused'   => (bool) $cn->threshold_exceeded(),
+			'compliance_active' => $cn->settings->compliance_active(),
+			// The 3-way status ('' | 'pending' | 'active'), so the admin's not-live wording is current.
+			'status'            => $cn->get_status(),
+		] );
+	}
+
+	/**
+	 * Save the Network Admin's two network settings, Global Settings Override and Global
+	 * Cookie — the React counterpart of the legacy network form's save
+	 * (Settings::validate_network_options()), which it mirrors step by step.
+	 *
+	 * Writes those keys (and update_notice, as legacy) to the network row and nothing else;
+	 * the rest of the network row is saved by save_options(). Runs get_app_config(), so the
+	 * React admin treats it as a config pull (src/admin-react/api/index.js PULL_ACTIONS).
+	 *
+	 * @return void
+	 */
+	public function save_network_options() {
+		$this->verify_request();
+
+		$cn = Cookie_Notice();
+
+		if ( ! $cn->is_network_admin() || ! $cn->can_write_at_scope( true ) )
+			wp_send_json_error( [ 'error' => $cn->network_scope_denied_message() ], 403 );
+
+		$override = ! empty( $_POST['global_override'] );
+
+		// legacy disables Global Cookie on a path-based network (Settings::cn_global_cookie())
+		$global_cookie = ! empty( $_POST['global_cookie'] ) && is_subdomain_install();
+
+		// the network row as loaded, not merged with the defaults
+		$app_id  = isset( $cn->network_options['general']['app_id'] ) ? (string) $cn->network_options['general']['app_id'] : '';
+		$app_key = isset( $cn->network_options['general']['app_key'] ) ? (string) $cn->network_options['general']['app_key'] : '';
+
+		// As legacy: a connected network pulls its config with the override forced on, so the
+		// pull reads and writes the network rows. Legacy also refreshes the analytics when the
+		// app id CHANGES, which this save never does.
+		if ( $app_id !== '' && $app_key !== '' ) {
+			$cn->network_options['general']['global_override'] = true;
+
+			$cn->welcome_api->get_app_config( $app_id, true, false );
+		} else {
+			Cookie_Notice_Store::set( 'cookie_notice_status', $cn->defaults['data'], true );
+
+			// …and the engine it ran: reconnecting, even to the same App ID, is a first connect.
+			$cn->forget_banner_engine( true );
+		}
+
+		$cn->network_options['general']['global_override'] = $override;
+
+		// Fresh read, these keys only. The write passes through validate_options(), which
+		// fires cn_configuration_updated once.
+		$cn->update_general_option_keys( [
+			'global_override' => $override,
+			'global_cookie'   => $global_cookie,
+			'update_notice'   => $override && ! $cn->options['general']['update_notice_diss'],
+		], true );
+
+		// The network row as stored now (the pull may have written it too), then the status
+		// it selects.
+		$cn->options['general'] = $cn->network_options['general'] = $cn->multi_array_merge( $cn->defaults['general'], (array) Cookie_Notice_Store::get( 'cookie_notice_options', $cn->defaults['general'], true ) );
+
+		$cn->set_status_data();
+
+		wp_send_json_success( [
+			'message' => __( 'Settings saved.', 'cookie-notice' ),
+			'options' => [
+				'global_override' => (bool) $cn->network_options['general']['global_override'],
+				'global_cookie'   => (bool) $cn->network_options['general']['global_cookie'],
+			],
+			'status'  => $cn->get_status(),
+			'banner'  => $cn->get_banner_summary(),
+		] );
 	}
 
 	/**

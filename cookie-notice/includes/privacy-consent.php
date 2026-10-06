@@ -15,6 +15,17 @@ class Cookie_Notice_Privacy_Consent {
 	public $form_active_types = [];
 
 	/**
+	 * True while this class writes cookie_notice_privacy_consent itself.
+	 *
+	 * update_option() runs the registered sanitize callback, validate_options(), which
+	 * fires cn_configuration_updated. The writers below fire it themselves, once, after
+	 * the whole write — this keeps validate_options() from firing a second one.
+	 *
+	 * @var bool
+	 */
+	private $internal_write = false;
+
+	/**
 	 * Class constructor.
 	 *
 	 * @return void
@@ -45,6 +56,222 @@ class Cookie_Notice_Privacy_Consent {
 	 */
 	public function get_source( $source_id ) {
 		return array_key_exists( $source_id, $this->sources ) ? $this->sources[$source_id] : [];
+	}
+
+	/**
+	 * Get the module instance of a source.
+	 *
+	 * @param string $source_id
+	 *
+	 * @return object|null
+	 */
+	public function get_instance( $source_id ) {
+		return array_key_exists( $source_id, $this->instances ) ? $this->instances[$source_id] : null;
+	}
+
+	/**
+	 * Get the site's privacy consent settings row, completed with defaults.
+	 *
+	 * Always the SITE row. $cn->options['privacy_consent'] is the network row on an
+	 * admin-ajax request under Global Settings Override (cookie-notice.php, options
+	 * loading), so reading it here would decide on one row and write another. The legacy
+	 * settings page reads and saves this same site row.
+	 *
+	 * Defaults first: a sub-site created after network activation, or a site migrated
+	 * from 2.4.18 or older, may have no row at all.
+	 *
+	 * @return array
+	 */
+	public function get_settings_row() {
+		$row = get_option( 'cookie_notice_privacy_consent', [] );
+
+		return array_merge( Cookie_Notice()->defaults['privacy_consent'], is_array( $row ) ? $row : [] );
+	}
+
+	/**
+	 * Get the stored per-form statuses of a source, from the row the admin screen shows.
+	 *
+	 * The Network Admin under Global Settings Override shows the network row; everywhere
+	 * else it is the site row, which is also the row every per-form write goes to.
+	 *
+	 * @param string $source_id
+	 *
+	 * @return array
+	 */
+	public function get_form_statuses( $source_id ) {
+		$cn = Cookie_Notice();
+
+		if ( is_multisite() && $cn->is_network_admin() && $cn->is_plugin_network_active() && ! empty( $cn->network_options['general']['global_override'] ) )
+			$data = get_site_option( 'cookie_notice_privacy_consent_' . $source_id, [] );
+		else
+			$data = get_option( 'cookie_notice_privacy_consent_' . $source_id, [] );
+
+		return is_array( $data ) ? $data : [];
+	}
+
+	/**
+	 * Write the site's privacy consent settings row.
+	 *
+	 * A site with no row gets one added not autoloaded, as plugin activation adds it.
+	 *
+	 * @param array $value
+	 *
+	 * @return void
+	 */
+	private function write_settings_row( $value ) {
+		$this->internal_write = true;
+
+		try {
+			if ( get_option( 'cookie_notice_privacy_consent', null ) === null )
+				add_option( 'cookie_notice_privacy_consent', $value, '', false );
+			else
+				update_option( 'cookie_notice_privacy_consent', $value );
+		} finally {
+			$this->internal_write = false;
+		}
+	}
+
+	/**
+	 * Save source settings (on/off and all/selected forms) to the site row.
+	 *
+	 * The React counterpart of the legacy settings form save. $submitted holds only what
+	 * the admin changed, per source: [ '<id>' => [ 'active' => bool, 'active_type' => string ] ].
+	 * Each source's values are built from defaults, then the stored site row, then the
+	 * submitted change, so a source the admin did not touch keeps its stored state.
+	 *
+	 * The module validate() decides "on" with isset(), which is also true for a key set
+	 * to false. So the input handed to it carries '<id>_active' only for sources that are
+	 * on — the shape of a legacy form post, where an unticked checkbox is not submitted.
+	 * A source whose plugin is unavailable is saved off: legacy renders its checkbox
+	 * disabled, so it is never submitted either.
+	 *
+	 * @param array $submitted
+	 *
+	 * @return array|WP_Error The stored row.
+	 */
+	public function save_source_settings( $submitted ) {
+		$cn = Cookie_Notice();
+
+		if ( ! current_user_can( apply_filters( 'cn_manage_cookie_notice_cap', 'manage_options' ) ) )
+			return new WP_Error( 'cn_privacy_consent_capability', __( 'Insufficient permissions.', 'cookie-notice' ) );
+
+		// legacy has no network save for privacy consent
+		if ( $cn->is_network_admin() )
+			return new WP_Error( 'cn_privacy_consent_network', __( 'Privacy Consent settings are managed on each site of the network.', 'cookie-notice' ) );
+
+		$submitted = is_array( $submitted ) ? $submitted : [];
+		$row = $this->get_settings_row();
+		$input = [];
+
+		foreach ( $this->sources as $source_id => $source ) {
+			$active = ! empty( $row[$source_id . '_active'] );
+			$type = isset( $row[$source_id . '_active_type'] ) && is_string( $row[$source_id . '_active_type'] ) ? $row[$source_id . '_active_type'] : null;
+
+			$change = isset( $submitted[$source_id] ) && is_array( $submitted[$source_id] ) ? $submitted[$source_id] : [];
+
+			if ( array_key_exists( 'active', $change ) )
+				$active = filter_var( $change['active'], FILTER_VALIDATE_BOOLEAN );
+
+			if ( array_key_exists( 'active_type', $change ) )
+				$type = is_string( $change['active_type'] ) ? sanitize_key( $change['active_type'] ) : null;
+
+			if ( ! $source['availability'] )
+				$active = false;
+
+			if ( $active )
+				$input[$source_id . '_active'] = '1';
+
+			if ( $type !== null )
+				$input[$source_id . '_active_type'] = $type;
+		}
+
+		foreach ( $this->sources as $source_id => $source ) {
+			$input = $this->instances[$source_id]->validate( $input );
+		}
+
+		$this->write_settings_row( $input );
+
+		do_action( 'cn_configuration_updated', 'privacy-consent', $input );
+
+		return $input;
+	}
+
+	/**
+	 * Set the status of a single form. Shared by the legacy and the React admin.
+	 *
+	 * Reads the source's on/off from the same site row it writes. Ticking a form of a
+	 * source that is off turns the source on for SELECTED forms only — never 'all', which
+	 * would start capturing every form of that source. Unticking never turns a source on.
+	 *
+	 * @param string $source_id
+	 * @param int|string $form_id
+	 * @param bool $status
+	 *
+	 * @return array|WP_Error The form status and the source state after the write.
+	 */
+	public function update_form_status( $source_id, $form_id, $status ) {
+		$cn = Cookie_Notice();
+
+		if ( ! current_user_can( apply_filters( 'cn_manage_cookie_notice_cap', 'manage_options' ) ) )
+			return new WP_Error( 'cn_privacy_consent_capability', __( 'Insufficient permissions.', 'cookie-notice' ) );
+
+		// legacy has no network save for privacy consent
+		if ( $cn->is_network_admin() )
+			return new WP_Error( 'cn_privacy_consent_network', __( 'Privacy Consent settings are managed on each site of the network.', 'cookie-notice' ) );
+
+		$source_id = sanitize_key( $source_id );
+
+		// available source?
+		if ( ! array_key_exists( $source_id, $this->sources ) || ! $this->sources[$source_id]['availability'] )
+			return new WP_Error( 'cn_privacy_consent_source', __( 'This form source is not available.', 'cookie-notice' ) );
+
+		// sanitize form id
+		if ( $this->sources[$source_id]['id_type'] === 'integer' )
+			$form_id = (int) $form_id;
+		elseif ( $this->sources[$source_id]['id_type'] === 'string' )
+			$form_id = (string) sanitize_key( $form_id );
+		else
+			return new WP_Error( 'cn_privacy_consent_form', __( 'This form does not exist.', 'cookie-notice' ) );
+
+		// valid form?
+		if ( ! $this->instances[$source_id]->form_exists( $form_id ) )
+			return new WP_Error( 'cn_privacy_consent_form', __( 'This form does not exist.', 'cookie-notice' ) );
+
+		$status = (bool) $status;
+		$row = $this->get_settings_row();
+
+		// ticking a form of an inactive source activates it for selected forms
+		if ( $status && empty( $row[$source_id . '_active'] ) ) {
+			$row[$source_id . '_active'] = true;
+			$row[$source_id . '_active_type'] = 'selected';
+
+			$this->write_settings_row( $row );
+		}
+
+		// get source data
+		$data = get_option( 'cookie_notice_privacy_consent_' . $source_id, [] );
+
+		if ( ! is_array( $data ) )
+			$data = [];
+
+		if ( ! isset( $data[$form_id] ) || ! is_array( $data[$form_id] ) )
+			$data[$form_id] = [];
+
+		// update status of specified form
+		$data[$form_id]['status'] = $status;
+
+		update_option( 'cookie_notice_privacy_consent_' . $source_id, $data );
+
+		// purge page caches, so a cached page stops capturing an unticked form
+		do_action( 'cn_configuration_updated', 'privacy-consent', $row );
+
+		return [
+			'source'		=> $source_id,
+			'form_id'		=> $form_id,
+			'status'		=> $status,
+			'active'		=> ! empty( $row[$source_id . '_active'] ),
+			'active_type'	=> $row[$source_id . '_active_type']
+		];
 	}
 
 	/**
@@ -296,42 +523,54 @@ class Cookie_Notice_Privacy_Consent {
 		else
 			$url = admin_url( 'admin.php?page=cookie-notice' );
 
+		// the Admin Portal, on this site's own app ( the portal reads app-id from the query inside its # route, as the upgrade links do )
+		$app_id = (string) $cn->options['general']['app_id'];
+
+		$portal_url = $cn->get_url( 'host', '?utm_campaign=configure&utm_source=wordpress&utm_medium=button#/dashboard' . ( $app_id !== '' ? '?app-id=' . rawurlencode( $app_id ) : '' ) );
+
+		// an App ID but no status: connected, the last configuration pull did not confirm the state
+		if ( $app_status !== 'active' && $app_status !== 'pending' && $app_id !== '' )
+			$app_status = 'unconfirmed';
+
 		switch ( $app_status ) {
 			case 'active':
 				echo '
 				<div id="cn_app_status">
-					<div class="cn_compliance_status"><span class="cn-status-label">' . esc_html__( 'Privacy Consent', 'cookie-notice' ) . '</span>: <span class="cn-status cn-active"><span class="cn-icon"></span> ' . esc_html__( 'Active', 'cookie-notice' ) . '</span></div>
-					<div class="cn_compliance_status"><span class="cn-status-label">' . esc_html__( 'Privacy Consent Storage', 'cookie-notice' ) . '</span>: <span class="cn-status cn-active"><span class="cn-icon"></span> ' . esc_html__( 'Active', 'cookie-notice' ) . '</span></div>
-					<div class="cn_compliance_status"><span class="cn-status-label">' . esc_html__( 'Proof-of-Consent', 'cookie-notice' ) . '</span>: <span class="cn-status cn-active"><span class="cn-icon"></span> ' . esc_html__( 'Active', 'cookie-notice' ) . '</span></div>
+					<div class="cn_compliance_status"><span class="cn-status-label">' . esc_html__( 'Connection', 'cookie-notice' ) . '</span>: <span class="cn-status cn-active"><span class="cn-icon"></span> ' . esc_html__( 'Connected', 'cookie-notice' ) . '</span></div>
 				</div>
 				<div id="cn_app_actions">
-					<a href="' . esc_url( $cn->get_url( 'host', '?utm_campaign=configure&utm_source=wordpress&utm_medium=button#/dashboard' ) ) . '" class="button button-primary button-hero cn-button" target="_blank">' . esc_html__( 'Log in & Configure', 'cookie-notice' ) . '</a>
-					<p class="description">' . esc_html__( 'Log in to the Cookie Compliance Admin Portal to explore, configure and manage its functionalities.', 'cookie-notice' ) . '</p>
+					<a href="' . esc_url( $portal_url ) . '" class="button button-primary button-hero cn-button" target="_blank">' . esc_html__( 'Open Admin Portal', 'cookie-notice' ) . '</a>
 				</div>';
 				break;
 
 			case 'pending':
 				echo '
 				<div id="cn_app_status">
-					<div class="cn_compliance_status"><span class="cn-status-label">' . esc_html__( 'Privacy Consent', 'cookie-notice' ) . '</span>: <span class="cn-status cn-pending"><span class="cn-icon"></span> ' . esc_html__( 'Pending', 'cookie-notice' ) . '</span></div>
-					<div class="cn_compliance_status"><span class="cn-status-label">' . esc_html__( 'Privacy Consent Storage', 'cookie-notice' ) . '</span>: <span class="cn-status cn-pending"><span class="cn-icon"></span> ' . esc_html__( 'Pending', 'cookie-notice' ) . '</span></div>
-					<div class="cn_compliance_status"><span class="cn-status-label">' . esc_html__( 'Proof-of-Consent', 'cookie-notice' ) . '</span>: <span class="cn-status cn-pending"><span class="cn-icon"></span> ' . esc_html__( 'Pending', 'cookie-notice' ) . '</span></div>
+					<div class="cn_compliance_status"><span class="cn-status-label">' . esc_html__( 'Connection', 'cookie-notice' ) . '</span>: <span class="cn-status cn-pending"><span class="cn-icon"></span> ' . esc_html__( 'Pending', 'cookie-notice' ) . '</span></div>
 				</div>
 				<div id="cn_app_actions">
-					<a href="' . esc_url( $cn->get_url( 'host', '?utm_campaign=configure&utm_source=wordpress&utm_medium=button#/dashboard' ) ) . '" class="button button-primary button-hero cn-button" target="_blank">' . esc_html__( 'Log in & Configure', 'cookie-notice' ) . '</a>
-					<p class="description">' . esc_html__( 'Log in to the Cookie Compliance Admin Portal and complete the setup process.', 'cookie-notice' ) . '</p>
+					<a href="' . esc_url( $portal_url ) . '" class="button button-primary button-hero cn-button" target="_blank">' . esc_html__( 'Open Admin Portal', 'cookie-notice' ) . '</a>
+					<p class="description">' . esc_html__( 'Sign in to the Cookie Compliance Admin Portal and complete the setup process.', 'cookie-notice' ) . '</p>
+				</div>';
+				break;
+
+			case 'unconfirmed':
+				echo '
+				<div id="cn_app_status">
+					<div class="cn_compliance_status"><span class="cn-status-label">' . esc_html__( 'Connection', 'cookie-notice' ) . '</span>: <span class="cn-status cn-inactive"><span class="cn-icon"></span> ' . esc_html__( 'Not confirmed', 'cookie-notice' ) . '</span></div>
+				</div>
+				<div id="cn_app_actions">
+					<a href="' . esc_url( $portal_url ) . '" class="button button-primary button-hero cn-button" target="_blank">' . esc_html__( 'Open Admin Portal', 'cookie-notice' ) . '</a>
 				</div>';
 				break;
 
 			default:
 				echo '
 				<div id="cn_app_status">
-					<div class="cn_compliance_status"><span class="cn-status-label">' . '<span class="cn-status-label">' . esc_html__( 'Privacy Consent', 'cookie-notice' ) . '</span>: <span class="cn-status cn-inactive"><span class="cn-icon"></span> ' . esc_html__( 'Inactive', 'cookie-notice' ) . '</span></div>
-					<div class="cn_compliance_status"><span class="cn-status-label">' . '<span class="cn-status-label">' . esc_html__( 'Privacy Consent Storage', 'cookie-notice' ) . '</span>: <span class="cn-status cn-inactive"><span class="cn-icon"></span> ' . esc_html__( 'Inactive', 'cookie-notice' ) . '</span></div>
-					<div class="cn_compliance_status"><span class="cn-status-label">' . esc_html__( 'Proof-of-Consent', 'cookie-notice' ) . '</span>: <span class="cn-status cn-inactive"><span class="cn-icon"></span> ' . esc_html__( 'Inactive', 'cookie-notice' ) . '</span></div>
+					<div class="cn_compliance_status"><span class="cn-status-label">' . esc_html__( 'Connection', 'cookie-notice' ) . '</span>: <span class="cn-status cn-inactive"><span class="cn-icon"></span> ' . esc_html__( 'Not connected', 'cookie-notice' ) . '</span></div>
 				</div>
 				<div id="cn_app_actions">
-					<a href="' . esc_url( $url ) . '" class="button button-primary button-hero cn-button cn-run-welcome">' . esc_html__( 'Try Cookie Compliance free', 'cookie-notice' ) . '</a>
+					<a href="' . esc_url( $url ) . '" class="button button-primary button-hero cn-button cn-run-welcome">' . esc_html__( 'Connect Your Site', 'cookie-notice' ) . '</a>
 					<p class="description">' . sprintf( esc_html__( 'Sign up to %s and enable Privacy Consent support.', 'cookie-notice' ), '<a href="https://cookie-compliance.co/?utm_campaign=sign-up&utm_source=wordpress&utm_medium=textlink" target="_blank">Cookie Compliance</a>' ) . '</p>
 				</div>';
 		}
@@ -537,45 +776,12 @@ class Cookie_Notice_Privacy_Consent {
 		if ( ! current_user_can( apply_filters( 'cn_manage_cookie_notice_cap', 'manage_options' ) ) )
 			wp_send_json_error();
 
-		// sanitize source
-		$source = sanitize_key( $_POST['source'] );
+		$result = $this->update_form_status( $_POST['source'], $_POST['form_id'], (bool) (int) $_POST['status'] );
 
-		// active source?
-		if ( array_key_exists( $source, $this->sources ) && $this->sources[$source]['availability'] ) {
-			// sanitize form id
-			if ( $this->sources[$source]['id_type'] === 'integer' )
-				$form_id = (int) $_POST['form_id'];
-			elseif ( $this->sources[$source]['id_type'] === 'string' )
-				$form_id = (string) sanitize_key( $_POST['form_id'] );
+		if ( is_wp_error( $result ) )
+			wp_send_json_error();
 
-			// valid form?
-			if ( $this->instances[$source]->form_exists( $form_id ) ) {
-				// inactive source?
-				if ( ! $this->sources[$source]['status'] ) {
-					// get privacy consent data
-					$data = get_option( 'cookie_notice_privacy_consent' );
-
-					// activate source
-					$data[$source . '_active'] = true;
-
-					// update privacy consent
-					update_option( 'cookie_notice_privacy_consent', $data );
-				}
-
-				// get source data
-				$data = get_option( 'cookie_notice_privacy_consent_' . $source );
-
-				// update status of specified form
-				$data[$form_id]['status'] = (bool) (int) $_POST['status'];
-
-				// update source
-				update_option( 'cookie_notice_privacy_consent_' . $source, $data );
-
-				wp_send_json_success();
-			}
-		}
-
-		wp_send_json_error();
+		wp_send_json_success();
 	}
 
 	/**
@@ -653,6 +859,10 @@ class Cookie_Notice_Privacy_Consent {
 	 * @return array
 	 */
 	public function validate_options( $input ) {
+		// written by this class, which fires cn_configuration_updated itself
+		if ( $this->internal_write )
+			return $input;
+
 		if ( ! current_user_can( apply_filters( 'cn_manage_cookie_notice_cap', 'manage_options' ) ) )
 			return $input;
 

@@ -38,6 +38,10 @@ class Cookie_Notice_Consent_Logs {
 		if ( ! current_user_can( apply_filters( 'cn_manage_cookie_notice_cap', 'manage_options' ) ) )
 			wp_send_json_error();
 
+		// only where the screen shows consent logs (multisite: the scope that serves the app)
+		if ( ! Cookie_Notice()->settings->consent_logs_in_scope() )
+			wp_send_json_error( Cookie_Notice()->settings->consent_logs_scope_message() );
+
 		// sanitize date
 		$date = preg_replace( '[^\d-]', '', $_POST['date'] );
 

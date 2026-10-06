@@ -329,6 +329,219 @@
 			return formResult;
 		};
 
+		// Two-step verification: the code step of the sign-in. The server keeps the partial token;
+		// all this holds is what to ask for.
+		var cnLoginCode = { methods: [], emailSent: false, timer: null };
+
+		var cnLoginCodeForm = function() {
+			return $( 'form.cn-form[data-action="login_code"]' );
+		};
+
+		// show one method: its hint, its field type, and the links to the others
+		var cnLoginCodeSetMethod = function( method ) {
+			var form = cnLoginCodeForm();
+
+			form.find( 'input[name="method"]' ).val( method );
+			form.find( 'input[name="code"]' ).val( '' ).attr( 'inputmode', method === 'backup' ? 'text' : 'numeric' );
+			form.find( '.cn-login-code-hint' ).hide().filter( '[data-method="' + method + '"]' ).show();
+			form.find( '.cn-login-code-resend' ).toggle( method === 'email' );
+
+			form.find( '.cn-login-code-method' ).each( function() {
+				var other = $( this ).data( 'method' );
+
+				$( this ).toggle( other !== method && $.inArray( other, cnLoginCode.methods ) !== -1 );
+			} );
+		};
+
+		// back to the password form, with the reason if there is one
+		var cnLoginCodeBack = function( message ) {
+			var loginForm = $( 'form.cn-form[data-action="login"]' );
+
+			clearInterval( cnLoginCode.timer );
+
+			cnLoginCodeForm().hide().find( 'input[name="code"]' ).val( '' );
+			loginForm.show();
+
+			if ( message )
+				cnDisplayError( message, loginForm );
+		};
+
+		// the resend link counts down the seconds before another code may be asked for
+		var cnLoginCodeCountdown = function( form, seconds ) {
+			var link = form.find( '.cn-login-code-resend' );
+			var label = link.data( 'label' );
+
+			clearInterval( cnLoginCode.timer );
+			link.data( 'wait', seconds );
+
+			var tick = function() {
+				var left = link.data( 'wait' );
+
+				if ( left <= 0 ) {
+					clearInterval( cnLoginCode.timer );
+					link.text( label );
+
+					return;
+				}
+
+				link.text( label + ' (' + left + ')' ).data( 'wait', left - 1 );
+			};
+
+			cnLoginCode.timer = setInterval( tick, 1000 );
+			tick();
+		};
+
+		// ask for an emailed code ( the server allows one a minute )
+		var cnLoginCodeSend = function( form ) {
+			var ajaxArgs = {
+				action: 'cn_api_request',
+				request: 'login_code_resend',
+				nonce: cnWelcomeArgs.nonce
+			};
+
+			if ( cnWelcomeArgs.network === '1' )
+				ajaxArgs.cn_network = 1;
+
+			form.find( '.cn-form-feedback' ).addClass( 'cn-hidden' );
+			form.find( '.cn-login-code-sent' ).hide();
+
+			return $.ajax( {
+				url: cnWelcomeArgs.ajaxURL,
+				type: 'POST',
+				dataType: 'json',
+				data: ajaxArgs
+			} ).done( function( response ) {
+				if ( response && response.hasOwnProperty( 'error' ) ) {
+					if ( response.expired )
+						cnLoginCodeBack( response.error );
+					else
+						cnDisplayError( response.error, form );
+				} else if ( response && response.code_sent ) {
+					cnLoginCode.emailSent = true;
+
+					form.find( '.cn-login-code-sent' ).show();
+					cnLoginCodeCountdown( form, response.retry_after || 60 );
+				}
+			} ).fail( function() {
+				cnDisplayError( cnWelcomeArgs.error, form );
+			} );
+		};
+
+		// the password was right and the account has a second step: turn the form into the code step
+		var cnLoginCodeShow = function( loginForm, reply ) {
+			var form = cnLoginCodeForm();
+
+			cnLoginCode.methods = $.isArray( reply.methods ) ? reply.methods : [];
+			cnLoginCode.emailSent = !! reply.code_sent;
+
+			form.find( '.cn-code-email' ).text( reply.email || '' );
+			form.find( '.cn-form-feedback' ).addClass( 'cn-hidden' );
+			form.find( '.cn-login-code-sent' ).hide();
+
+			loginForm.find( 'input[name="pass"]' ).val( '' );
+			loginForm.hide();
+			form.show();
+
+			cnLoginCodeSetMethod( cnLoginCode.methods[0] || 'email' );
+
+			if ( ( cnLoginCode.methods[0] || 'email' ) === 'email' && ! cnLoginCode.emailSent )
+				cnLoginCodeSend( form );
+		};
+
+		$( document ).on( 'click', '.cn-login-code-resend', function( e ) {
+			e.preventDefault();
+
+			if ( $( this ).data( 'wait' ) > 0 )
+				return;
+
+			cnLoginCodeSend( cnLoginCodeForm() );
+		} );
+
+		$( document ).on( 'click', '.cn-login-code-method', function( e ) {
+			var method = $( this ).data( 'method' );
+
+			e.preventDefault();
+
+			cnLoginCodeSetMethod( method );
+			cnLoginCodeForm().find( '.cn-form-feedback' ).addClass( 'cn-hidden' );
+
+			if ( method === 'email' && ! cnLoginCode.emailSent )
+				cnLoginCodeSend( cnLoginCodeForm() );
+		} );
+
+		$( document ).on( 'click', '.cn-login-code-back', function( e ) {
+			e.preventDefault();
+
+			cnLoginCodeBack();
+		} );
+
+		// Which app to use: the account has apps and none is this site's. Nothing is chosen for the
+		// visitor ( no option starts selected ). Names and domains are the account's text: they are set
+		// with .text() and .val(), never as markup.
+		var cnLoginAppForm = function() {
+			return $( 'form.cn-form[data-action="login_app"]' );
+		};
+
+		// back to the password form, with the reason if there is one
+		var cnLoginAppBack = function( message ) {
+			var loginForm = $( 'form.cn-form[data-action="login"]' );
+
+			cnLoginAppForm().hide().find( '.cn-login-app-list' ).empty();
+			loginForm.show();
+
+			if ( message )
+				cnDisplayError( message, loginForm );
+		};
+
+		// the server asked: turn the sign-in into the question
+		var cnLoginAppShow = function( reply ) {
+			var form = cnLoginAppForm();
+			var list = form.find( '.cn-login-app-list' ).empty();
+			var addOption = function( id, name, domain, current ) {
+				var label = $( '<label class="cn-login-app-option"></label>' );
+
+				label.append( $( '<input type="radio" name="app_id">' ).val( id ) );
+				label.append( $( '<span class="cn-login-app-name"></span>' ).text( name ) );
+
+				if ( domain )
+					label.append( $( '<span class="cn-login-app-domain"></span>' ).text( domain ) );
+
+				if ( current )
+					label.append( $( '<span class="cn-login-app-badge"></span>' ).text( form.attr( 'data-current-label' ) ) );
+
+				list.append( label );
+			};
+
+			$.each( $.isArray( reply.apps ) ? reply.apps : [], function( i, app ) {
+				var name = app.name || app.domain || app.id;
+
+				addOption( app.id, name, app.domain && app.domain !== app.name ? app.domain : '', app.id === reply.current_app_id );
+			} );
+
+			addOption( '__new__', form.attr( 'data-new-label' ), '', false );
+
+			form.find( '.cn-app-site' ).text( reply.site_domain || '' );
+			form.find( '.cn-login-app-note' ).show();
+			form.find( '.cn-form-feedback' ).addClass( 'cn-hidden' );
+
+			clearInterval( cnLoginCode.timer );
+
+			$( 'form.cn-form[data-action="login"]' ).hide().find( 'input[name="pass"]' ).val( '' );
+			cnLoginCodeForm().hide().find( 'input[name="code"]' ).val( '' );
+			form.show();
+		};
+
+		// the note is about an existing app's settings: not shown for a new one
+		$( document ).on( 'change', 'form.cn-login-app-form input[name="app_id"]', function() {
+			$( this ).closest( 'form' ).find( '.cn-login-app-note' ).toggle( $( this ).val() !== '__new__' );
+		} );
+
+		$( document ).on( 'click', '.cn-login-app-back', function( e ) {
+			e.preventDefault();
+
+			cnLoginAppBack();
+		} );
+
 		// handle screen loading
 		$( document ).on( 'click', '.cn-screen-button', function( e ) {
 			var form = $( e.target ).closest( 'form' );
@@ -442,13 +655,39 @@
 			if ( formAction === 'payment' && formData.plan === 'license' )
 				return result;
 
+			// the question about apps needs an answer: nothing is chosen for the visitor
+			if ( formAction === 'login_app' && ! formData.hasOwnProperty( 'app_id' ) ) {
+				cnDisplayError( $( form[0] ).attr( 'data-choose-message' ), $( form[0] ) );
+
+				if ( $( e.target ).find( '.cn-spinner' ).length )
+					$( e.target ).find( '.cn-spinner' ).removeClass( 'spin' );
+
+				return false;
+			}
+
+			// one answer at a time: a second Continue while the first is in flight would show the
+			// second reply ( the choice is used up: 'expired' ) over the first one's success
+			if ( formAction === 'login_app' ) {
+				if ( $( form[0] ).data( 'cnAnswering' ) )
+					return false;
+
+				$( form[0] ).data( 'cnAnswering', true );
+			}
+
 			// get form and process it
 			result = cnWelcomeForm( form );
 
 			result.done( function( response ) {
 				// error
 				if ( response.hasOwnProperty( 'error' ) ) {
-					cnDisplayError( response.error, $( form[0] ) );
+					// the sign-in waiting for its code is gone: start again from the password
+					if ( formAction === 'login_code' && response.expired )
+						cnLoginCodeBack( response.error );
+					// the choice is used up whatever the answer was: start again from the password
+					else if ( formAction === 'login_app' )
+						cnLoginAppBack( response.error );
+					else
+						cnDisplayError( response.error, $( form[0] ) );
 
 					return false;
 				// message
@@ -456,9 +695,22 @@
 					cnDisplayError( response.message, $( form[0] ) );
 
 					return false;
+				// two-step verification: not signed in yet, the code comes first ( before the success branch )
+				} else if ( response.hasOwnProperty( 'needs_code' ) ) {
+					cnLoginCodeShow( $( form[0] ), response );
+
+					return false;
+				// which app to use: not connected yet, and not a sign-in either ( before the success branch )
+				} else if ( response.hasOwnProperty( 'choose_app' ) ) {
+					cnLoginAppShow( response );
+
+					return false;
 				// all good
 				} else {
 					switch ( formAction ) {
+						// logged in with the code, or with the chosen app, same as logged in
+						case 'login_code':
+						case 'login_app':
 						// logged in, go to success or billing
 						case 'login':
 						// register complete, go to success or billing
@@ -521,6 +773,9 @@
 			result.always( function( response ) {
 				if ( $( e.target ).find( '.cn-spinner' ).length )
 					$( e.target ).find( '.cn-spinner' ).removeClass( 'spin' );
+
+				if ( formAction === 'login_app' )
+					$( form[0] ).data( 'cnAnswering', false );
 
 				// after invalid payment?
 				if ( formAction === 'payment' ) {
