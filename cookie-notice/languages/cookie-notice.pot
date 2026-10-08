@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-06T20:18:43+00:00\n"
+"POT-Creation-Date: 2026-10-07T12:07:53+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: cookie-notice\n"
@@ -181,8 +181,6 @@ msgid "Cookie Compliance - Deactivation survey"
 msgstr ""
 
 #: cookie-notice.php:2759
-#: assets/react-admin/cn-admin-react.js
-#: assets/react-admin/cn-admin-react.js
 msgid "Settings"
 msgstr ""
 
@@ -291,24 +289,20 @@ msgstr ""
 
 #: includes/consent-logs-list-table.php:42
 #: assets/react-admin/cn-admin-react.js
-#: assets/react-admin/cn-admin-react.js
 msgid "Basic Operations"
 msgstr ""
 
 #: includes/consent-logs-list-table.php:45
-#: assets/react-admin/cn-admin-react.js
 #: assets/react-admin/cn-admin-react.js
 msgid "Content Personalization"
 msgstr ""
 
 #: includes/consent-logs-list-table.php:48
 #: assets/react-admin/cn-admin-react.js
-#: assets/react-admin/cn-admin-react.js
 msgid "Site Optimization"
 msgstr ""
 
 #: includes/consent-logs-list-table.php:51
-#: assets/react-admin/cn-admin-react.js
 #: assets/react-admin/cn-admin-react.js
 #: assets/react-admin/cn-admin-react.js
 #: assets/react-admin/cn-admin-react.js
@@ -346,7 +340,7 @@ msgstr ""
 
 #: includes/consent-logs-list-table.php:75
 #: includes/privacy-consent-logs-list-table.php:343
-#: includes/react-admin-ajax.php:1126
+#: includes/react-admin-ajax.php:943
 msgid "GMT"
 msgstr ""
 
@@ -396,7 +390,7 @@ msgid "%s hours old"
 msgstr ""
 
 #: includes/dashboard.php:111
-#: includes/dashboard.php:1098
+#: includes/dashboard.php:1230
 #: includes/settings.php:1059
 msgid "Compliance status"
 msgstr ""
@@ -469,9 +463,9 @@ msgstr ""
 #: includes/dashboard.php:301
 #: includes/dashboard.php:313
 #: includes/dashboard.php:325
-#: includes/dashboard.php:1209
-#: includes/dashboard.php:1210
-#: includes/dashboard.php:1211
+#: includes/dashboard.php:1406
+#: includes/dashboard.php:1407
+#: includes/dashboard.php:1408
 #, php-format
 msgid "Level %s"
 msgstr ""
@@ -480,22 +474,22 @@ msgstr ""
 msgid "Privacy Content Logs"
 msgstr ""
 
-#: includes/dashboard.php:713
+#: includes/dashboard.php:801
 msgid "Turn on with Pro →"
 msgstr ""
 
-#: includes/dashboard.php:719
+#: includes/dashboard.php:808
 #: includes/settings.php:238
 #: assets/react-admin/cn-admin-react.js
 #: assets/react-admin/cn-admin-react.js
 msgid "Banner"
 msgstr ""
 
-#: includes/dashboard.php:721
+#: includes/dashboard.php:810
 msgid "Showing"
 msgstr ""
 
-#: includes/dashboard.php:722
+#: includes/dashboard.php:811
 #: includes/settings.php:1210
 #: includes/settings.php:1222
 #: includes/settings.php:1224
@@ -509,17 +503,17 @@ msgstr ""
 msgid "Active"
 msgstr ""
 
-#: includes/dashboard.php:745
-#: includes/dashboard.php:750
-#: includes/dashboard.php:763
-#: includes/dashboard.php:841
-#: includes/dashboard.php:850
-#: includes/dashboard.php:892
-#: includes/dashboard.php:899
-#: includes/dashboard.php:911
-#: includes/dashboard.php:957
-#: includes/dashboard.php:961
-#: includes/dashboard.php:974
+#: includes/dashboard.php:834
+#: includes/dashboard.php:839
+#: includes/dashboard.php:852
+#: includes/dashboard.php:948
+#: includes/dashboard.php:958
+#: includes/dashboard.php:1003
+#: includes/dashboard.php:1011
+#: includes/dashboard.php:1024
+#: includes/dashboard.php:1071
+#: includes/dashboard.php:1075
+#: includes/dashboard.php:1090
 #: includes/settings.php:1214
 #: assets/react-admin/cn-admin-react.js
 #: assets/react-admin/cn-admin-react.js
@@ -527,7 +521,7 @@ msgstr ""
 msgid "Off"
 msgstr ""
 
-#: includes/dashboard.php:746
+#: includes/dashboard.php:835
 #: includes/privacy-consent.php:570
 #: assets/react-admin/cn-admin-react.js
 #: assets/react-admin/cn-admin-react.js
@@ -536,78 +530,77 @@ msgstr ""
 msgid "Not connected"
 msgstr ""
 
-#: includes/dashboard.php:747
-#: includes/dashboard.php:752
+#: includes/dashboard.php:836
+#: includes/dashboard.php:841
 msgid "Not blocking"
 msgstr ""
 
-#: includes/dashboard.php:751
-#: includes/dashboard.php:959
+#: includes/dashboard.php:840
+#: includes/dashboard.php:1073
 msgid "Nothing is held"
 msgstr ""
 
-#: includes/dashboard.php:764
+#: includes/dashboard.php:853
 msgid "Limit reached"
 msgstr ""
 
-#: includes/dashboard.php:765
+#: includes/dashboard.php:854
 #: includes/settings.php:1207
-#: assets/react-admin/cn-admin-react.js
 #: assets/react-admin/cn-admin-react.js
 msgid "Paused"
 msgstr ""
 
-#: includes/dashboard.php:776
-#: includes/dashboard.php:778
+#: includes/dashboard.php:869
+#: includes/dashboard.php:871
 msgid "Default allow"
 msgstr ""
 
-#: includes/dashboard.php:777
+#: includes/dashboard.php:870
 msgid "Held after a decline"
 msgstr ""
 
-#: includes/dashboard.php:783
-#: includes/dashboard.php:792
-#: includes/dashboard.php:800
+#: includes/dashboard.php:883
+#: includes/dashboard.php:897
+#: includes/dashboard.php:906
 #: includes/settings.php:1075
 msgid "Script blocking"
 msgstr ""
 
-#: includes/dashboard.php:794
+#: includes/dashboard.php:899
 msgid "On · at risk"
 msgstr ""
 
-#: includes/dashboard.php:795
+#: includes/dashboard.php:900
 msgid "Off at 100%"
 msgstr ""
 
-#: includes/dashboard.php:796
+#: includes/dashboard.php:901
 msgid "Ends soon"
 msgstr ""
 
-#: includes/dashboard.php:802
-#: includes/dashboard.php:803
-#: includes/dashboard.php:858
-#: includes/dashboard.php:885
-#: includes/dashboard.php:886
-#: includes/dashboard.php:968
-#: includes/dashboard.php:998
+#: includes/dashboard.php:908
+#: includes/dashboard.php:909
+#: includes/dashboard.php:967
+#: includes/dashboard.php:995
+#: includes/dashboard.php:996
+#: includes/dashboard.php:1083
+#: includes/dashboard.php:1116
 #: assets/react-admin/cn-admin-react.js
 #: assets/react-admin/cn-admin-react.js
 #: assets/react-admin/cn-admin-react.js
 msgid "On"
 msgstr ""
 
-#: includes/dashboard.php:839
-#: includes/dashboard.php:848
-#: includes/dashboard.php:855
+#: includes/dashboard.php:946
+#: includes/dashboard.php:956
+#: includes/dashboard.php:964
 msgid "Google Consent Mode"
 msgstr ""
 
-#: includes/dashboard.php:842
-#: includes/dashboard.php:893
-#: includes/dashboard.php:912
-#: includes/dashboard.php:988
+#: includes/dashboard.php:949
+#: includes/dashboard.php:1004
+#: includes/dashboard.php:1025
+#: includes/dashboard.php:1105
 #: includes/settings.php:1265
 #: includes/settings.php:1266
 #: includes/settings.php:1267
@@ -616,41 +609,41 @@ msgstr ""
 msgid "Inactive"
 msgstr ""
 
-#: includes/dashboard.php:851
+#: includes/dashboard.php:959
 msgid "Not configured"
 msgstr ""
 
-#: includes/dashboard.php:857
+#: includes/dashboard.php:966
 msgid "v2 active"
 msgstr ""
 
-#: includes/dashboard.php:883
-#: includes/dashboard.php:890
-#: includes/dashboard.php:897
+#: includes/dashboard.php:993
+#: includes/dashboard.php:1001
+#: includes/dashboard.php:1009
 msgid "Meta & Microsoft"
 msgstr ""
 
-#: includes/dashboard.php:901
+#: includes/dashboard.php:1013
 msgid "Pixels uncovered"
 msgstr ""
 
-#: includes/dashboard.php:909
-#: includes/dashboard.php:955
-#: includes/dashboard.php:965
-#: includes/dashboard.php:972
+#: includes/dashboard.php:1022
+#: includes/dashboard.php:1069
+#: includes/dashboard.php:1080
+#: includes/dashboard.php:1088
 msgid "GPC signal"
 msgstr ""
 
-#: includes/dashboard.php:960
-#: includes/dashboard.php:975
+#: includes/dashboard.php:1074
+#: includes/dashboard.php:1091
 msgid "Not honored"
 msgstr ""
 
-#: includes/dashboard.php:967
+#: includes/dashboard.php:1082
 msgid "Honored"
 msgstr ""
 
-#: includes/dashboard.php:976
+#: includes/dashboard.php:1092
 #: includes/welcome.php:357
 #: assets/react-admin/cn-admin-react.js
 #: assets/react-admin/cn-admin-react.js
@@ -658,55 +651,59 @@ msgstr ""
 msgid "Recommended"
 msgstr ""
 
-#: includes/dashboard.php:985
+#: includes/dashboard.php:1102
 msgid "Visits"
 msgstr ""
 
-#: includes/dashboard.php:995
-#: includes/dashboard.php:1026
+#: includes/dashboard.php:1113
+#: includes/dashboard.php:1145
 msgid "Visit limit"
 msgstr ""
 
-#: includes/dashboard.php:997
+#: includes/dashboard.php:1115
 msgid "Unlimited"
 msgstr ""
 
 #. translators: 1: visits used, 2: visit threshold
-#: includes/dashboard.php:1020
+#: includes/dashboard.php:1138
 #, php-format
 msgid "%1$s / %2$s visits"
 msgstr ""
 
-#: includes/dashboard.php:1031
+#: includes/dashboard.php:1150
 msgid "Go unlimited →"
 msgstr ""
 
-#: includes/dashboard.php:1101
+#: includes/dashboard.php:1233
 msgid "Upgrade to Pro →"
 msgstr ""
 
-#: includes/dashboard.php:1206
+#: includes/dashboard.php:1245
+msgid "Autoblocking is also off, so upgrading restores holding scripts after a decline, not before."
+msgstr ""
+
+#: includes/dashboard.php:1403
 msgid "Consent & traffic analytics"
 msgstr ""
 
-#: includes/dashboard.php:1259
+#: includes/dashboard.php:1456
 msgid "Cookie Compliance Status"
 msgstr ""
 
-#: includes/dashboard.php:1274
+#: includes/dashboard.php:1471
 msgid "Your site does not have Cookie Compliance"
 msgstr ""
 
-#: includes/dashboard.php:1276
+#: includes/dashboard.php:1473
 msgid "Run Compliance Check to determine your site's compliance with updated data processing and consent rules under GDPR, CCPA and other international data privacy laws."
 msgstr ""
 
-#: includes/dashboard.php:1277
+#: includes/dashboard.php:1474
 msgid "Run Compliance Check"
 msgstr ""
 
-#: includes/dashboard.php:1280
-#: includes/dashboard.php:1292
+#: includes/dashboard.php:1477
+#: includes/dashboard.php:1489
 #: includes/settings.php:399
 #: assets/react-admin/cn-admin-react.js
 #: assets/react-admin/cn-admin-react.js
@@ -714,15 +711,15 @@ msgstr ""
 msgid "Compliance"
 msgstr ""
 
-#: includes/dashboard.php:1286
+#: includes/dashboard.php:1483
 msgid "Cookie Compliance is active"
 msgstr ""
 
-#: includes/dashboard.php:1288
+#: includes/dashboard.php:1485
 msgid "Cookie Compliance is configured with active Cookie Compliance protection. Your site is collecting consent in accordance with GDPR, CCPA, and other applicable privacy laws."
 msgstr ""
 
-#: includes/dashboard.php:1289
+#: includes/dashboard.php:1486
 msgid "View compliance dashboard"
 msgstr ""
 
@@ -908,19 +905,19 @@ msgstr ""
 
 #: includes/privacy-consent.php:160
 #: includes/privacy-consent.php:220
-#: includes/react-admin-ajax.php:1154
+#: includes/react-admin-ajax.php:971
 #: assets/react-admin/cn-admin-react.js
 msgid "Privacy Consent settings are managed on each site of the network."
 msgstr ""
 
 #: includes/privacy-consent.php:226
-#: includes/react-admin-ajax.php:933
+#: includes/react-admin-ajax.php:750
 msgid "This form source is not available."
 msgstr ""
 
 #: includes/privacy-consent.php:234
 #: includes/privacy-consent.php:238
-#: includes/react-admin-ajax.php:1004
+#: includes/react-admin-ajax.php:821
 msgid "This form does not exist."
 msgstr ""
 
@@ -1005,7 +1002,6 @@ msgstr ""
 #: assets/react-admin/cn-admin-react.js
 #: assets/react-admin/cn-admin-react.js
 #: assets/react-admin/cn-admin-react.js
-#: assets/react-admin/cn-admin-react.js
 msgid "Not confirmed"
 msgstr ""
 
@@ -1022,8 +1018,8 @@ msgid "Enable to apply privacy consent support for %s forms."
 msgstr ""
 
 #: includes/privacy-consent.php:875
-#: includes/react-admin-ajax.php:2024
-#: includes/react-admin-ajax.php:2189
+#: includes/react-admin-ajax.php:1797
+#: includes/react-admin-ajax.php:1962
 #: includes/settings.php:3015
 #: assets/react-admin/cn-admin-react.js
 #: assets/react-admin/cn-admin-react.js
@@ -1031,49 +1027,52 @@ msgid "Settings saved."
 msgstr ""
 
 #: includes/privacy-consent.php:879
-#: includes/react-admin-ajax.php:2121
+#: includes/react-admin-ajax.php:1894
 #: includes/settings.php:3019
 #: assets/react-admin/cn-admin-react.js
 msgid "Settings restored to defaults."
 msgstr ""
 
-#: includes/react-admin-ajax.php:443
-#: includes/react-admin-ajax.php:860
-#: includes/react-admin-ajax.php:1065
+#: includes/react-admin-ajax.php:497
+#: includes/react-admin-ajax.php:677
+#: includes/react-admin-ajax.php:882
 msgid "We could not load your consent records. Please try again in a moment."
 msgstr ""
 
-#: includes/react-admin-ajax.php:1157
+#: includes/react-admin-ajax.php:974
 #: assets/react-admin/cn-admin-react.js
 msgid "Privacy Consent requires an active Cookie Compliance connection."
 msgstr ""
 
-#: includes/react-admin-ajax.php:1649
+#: includes/react-admin-ajax.php:1422
 msgid "Could not save: the settings payload could not be decoded. Please retry."
 msgstr ""
 
-#: includes/react-admin-ajax.php:2230
+#: includes/react-admin-ajax.php:2003
 #: includes/settings.php:3853
 msgid "Front Page"
 msgstr ""
 
-#: includes/react-admin-ajax.php:2231
+#: includes/react-admin-ajax.php:2004
 #: includes/settings.php:3854
 msgid "Home Page"
 msgstr ""
 
-#: includes/react-admin-ajax.php:2266
+#: includes/react-admin-ajax.php:2039
 #: includes/settings.php:3865
 msgid "Logged in"
 msgstr ""
 
-#: includes/react-admin-ajax.php:2267
+#: includes/react-admin-ajax.php:2040
 #: includes/settings.php:3866
 msgid "Guest"
 msgstr ""
 
 #: includes/settings.php:166
 #: includes/settings.php:404
+#: assets/react-admin/cn-admin-react.js
+#: assets/react-admin/cn-admin-react.js
+#: assets/react-admin/cn-admin-react.js
 msgid "Cookie Consent"
 msgstr ""
 
@@ -1087,6 +1086,11 @@ msgstr ""
 #: includes/settings.php:168
 #: includes/settings.php:406
 #: includes/settings.php:993
+#: assets/react-admin/cn-admin-react.js
+#: assets/react-admin/cn-admin-react.js
+#: assets/react-admin/cn-admin-react.js
+#: assets/react-admin/cn-admin-react.js
+#: assets/react-admin/cn-admin-react.js
 msgid "Consent Logs"
 msgstr ""
 
@@ -1662,7 +1666,6 @@ msgid "Autoblocking"
 msgstr ""
 
 #: includes/settings.php:1044
-#: assets/react-admin/cn-admin-react.js
 msgid "Excluded Script Handles"
 msgstr ""
 
@@ -1861,7 +1864,6 @@ msgid "This option has been temporarily disabled because your website has reache
 msgstr ""
 
 #: includes/settings.php:1450
-#: assets/react-admin/cn-admin-react.js
 msgid "Enter WordPress script handles to exclude from autoblocking, one per line. These scripts will be marked as Essential (Category 1) so they are never blocked."
 msgstr ""
 
@@ -3021,15 +3023,8 @@ msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
 #: assets/react-admin/cn-admin-react.js
-msgid "Protection"
-msgstr ""
-
 #: assets/react-admin/cn-admin-react.js
-#: assets/react-admin/cn-admin-react.js
-#: assets/react-admin/cn-admin-react.js
-#: assets/react-admin/cn-admin-react.js
-#: assets/react-admin/cn-admin-react.js
-msgid "Audit Trail"
+msgid "Overview"
 msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
@@ -3046,12 +3041,10 @@ msgstr ""
 msgid "Cookie categories clearly defined"
 msgstr ""
 
+#. translators: %s: why the consent banner is not live, e.g. "Not active: visitors see a basic notice only".
 #: assets/react-admin/cn-admin-react.js
-msgid "Cookie categories — some trackers still uncategorized"
-msgstr ""
-
-#: assets/react-admin/cn-admin-react.js
-msgid "Cookie categories — run a script scan to assess"
+#, js-format
+msgid "Cookie categories — %s"
 msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
@@ -3063,7 +3056,7 @@ msgid "DPO contact details — verify in Admin Portal"
 msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
-msgid "Do Not Sell / Share signal — enable GPC in Consent Modes"
+msgid "Do Not Sell / Share signal — enable GPC in Consent Signals"
 msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
@@ -3101,35 +3094,22 @@ msgid "Prior consent — %s"
 msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
-msgid "Prior consent — uncategorized trackers firing without consent"
+msgid "Prior consent — known trackers held until visitors agree"
 msgstr ""
 
-#: assets/react-admin/cn-admin-react.js
-msgid "Prior consent — run a script scan to assess"
-msgstr ""
-
-#: assets/react-admin/cn-admin-react.js
-msgid "Prior consent obtained before non-essential cookies"
-msgstr ""
-
-#: assets/react-admin/cn-admin-react.js
 #: assets/react-admin/cn-admin-react.js
 msgid "Autoblocking off — trackers may fire unblocked"
 msgstr ""
 
-#: assets/react-admin/cn-admin-react.js
-#: assets/react-admin/cn-admin-react.js
 #: assets/react-admin/cn-admin-react.js
 msgid "Autoblocking paused — visit limit reached"
 msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
 #: assets/react-admin/cn-admin-react.js
-#: assets/react-admin/cn-admin-react.js
 msgid "Saving autoblocking…"
 msgstr ""
 
-#: assets/react-admin/cn-admin-react.js
 #: assets/react-admin/cn-admin-react.js
 #: assets/react-admin/cn-admin-react.js
 #: assets/react-admin/cn-admin-react.js
@@ -3730,7 +3710,6 @@ msgid "Choose your protection level"
 msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
-#: assets/react-admin/cn-admin-react.js
 msgid "Google tools detected."
 msgstr ""
 
@@ -3908,11 +3887,6 @@ msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
 #: assets/react-admin/cn-admin-react.js
-msgid "Your Compliance Dashboard"
-msgstr ""
-
-#: assets/react-admin/cn-admin-react.js
-#: assets/react-admin/cn-admin-react.js
 #: assets/react-admin/cn-admin-react.js
 msgid "Domain Info"
 msgstr ""
@@ -3923,7 +3897,6 @@ msgstr ""
 msgid "Domain"
 msgstr ""
 
-#: assets/react-admin/cn-admin-react.js
 #: assets/react-admin/cn-admin-react.js
 #: assets/react-admin/cn-admin-react.js
 #: assets/react-admin/cn-admin-react.js
@@ -3986,22 +3959,6 @@ msgid "Script blocking, consent records, regulatory alerts & more"
 msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
-msgid "laws"
-msgstr ""
-
-#. translators: %d: number of trackers that have not been categorised yet.
-#: assets/react-admin/cn-admin-react.js
-#, js-format
-msgid "%d uncategorized tracker"
-msgid_plural "%d uncategorized trackers"
-msgstr[0] ""
-msgstr[1] ""
-
-#: assets/react-admin/cn-admin-react.js
-msgid "Google Consent Mode review"
-msgstr ""
-
-#: assets/react-admin/cn-admin-react.js
 msgid "Your banner is live."
 msgstr ""
 
@@ -4011,18 +3968,6 @@ msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
 msgid "Preview your live banner"
-msgstr ""
-
-#: assets/react-admin/cn-admin-react.js
-msgid "Still missing:"
-msgstr ""
-
-#: assets/react-admin/cn-admin-react.js
-msgid "Review Google Consent Mode before you consider setup complete."
-msgstr ""
-
-#: assets/react-admin/cn-admin-react.js
-msgid "Review consent modes"
 msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
@@ -4050,6 +3995,7 @@ msgstr ""
 #: assets/react-admin/cn-admin-react.js
 #: assets/react-admin/cn-admin-react.js
 #: assets/react-admin/cn-admin-react.js
+#: assets/react-admin/cn-admin-react.js
 msgid "Facebook"
 msgstr ""
 
@@ -4057,6 +4003,7 @@ msgstr ""
 msgid "Required if you run Facebook Ads — stops Meta Pixel from firing before visitors agree"
 msgstr ""
 
+#: assets/react-admin/cn-admin-react.js
 #: assets/react-admin/cn-admin-react.js
 #: assets/react-admin/cn-admin-react.js
 #: assets/react-admin/cn-admin-react.js
@@ -4221,6 +4168,7 @@ msgid "If you use Google Analytics, Google Ads, or Tag Manager, this tells Googl
 msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
+#: assets/react-admin/cn-admin-react.js
 msgid "Google"
 msgstr ""
 
@@ -4323,25 +4271,25 @@ msgid "These settings were updated elsewhere while this panel was open — in th
 msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
-msgid "Platform Integrations"
+msgid "Ad Platforms"
 msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
 msgid "Browser Signals"
 msgstr ""
 
-#. translators: 1: number of consent modes enabled, 2: their names, comma-separated.
+#. translators: 1: number of consent signals enabled, 2: their names, comma-separated.
 #: assets/react-admin/cn-admin-react.js
 #, js-format
 msgid "%1$d enabled: %2$s"
 msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
-msgid "No consent modes enabled"
+msgid "No consent signals enabled"
 msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
-msgid "Consent Protection Settings"
+msgid "Consent Signals"
 msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
@@ -4349,9 +4297,11 @@ msgid "Banner style"
 msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
+#: assets/react-admin/cn-admin-react.js
 msgid "Laws"
 msgstr ""
 
+#: assets/react-admin/cn-admin-react.js
 #: assets/react-admin/cn-admin-react.js
 msgid "Languages"
 msgstr ""
@@ -4377,31 +4327,7 @@ msgid "Choose your laws and languages to finalize your setup."
 msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
-msgid "Checking site for trackers…"
-msgstr ""
-
-#. translators: %d: number of trackers found on the site.
-#: assets/react-admin/cn-admin-react.js
-#, js-format
-msgid "We found %d tracker on your site. "
-msgid_plural "We found %d trackers on your site. "
-msgstr[0] ""
-msgstr[1] ""
-
-#. translators: %d: number of trackers not yet categorised.
-#: assets/react-admin/cn-admin-react.js
-#, js-format
-msgid "When done, you will be guided to select your consent modes and review %d uncategorized tracker."
-msgid_plural "When done, you will be guided to select your consent modes and review %d uncategorized trackers."
-msgstr[0] ""
-msgstr[1] ""
-
-#: assets/react-admin/cn-admin-react.js
-msgid "When done, you will be guided to select your consent modes and review your trackers."
-msgstr ""
-
-#: assets/react-admin/cn-admin-react.js
-msgid "When done, you will be guided to select your consent modes and set up your tracker protection."
+msgid "When done, you will be guided to select your consent signals."
 msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
@@ -4500,150 +4426,155 @@ msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
 #: assets/react-admin/cn-admin-react.js
-msgid "Managed by your network administrator — this site uses the network settings."
+msgid "See plans"
 msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
-msgid "Cookie Compliance is not active on your site — trackers are not blocked."
+msgid "Review consent signals"
 msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
+msgid "Choose the privacy laws your site follows, so the banner asks the right visitors the right way."
+msgstr ""
+
+#: assets/react-admin/cn-admin-react.js
+msgid "Choose laws"
+msgstr ""
+
+#: assets/react-admin/cn-admin-react.js
+msgid "Google tools detected. Google Consent Mode is off."
+msgstr ""
+
+#: assets/react-admin/cn-admin-react.js
+msgid "Facebook Pixel detected. Facebook consent signals are off."
+msgstr ""
+
+#: assets/react-admin/cn-admin-react.js
+msgid "Facebook Pixel detected. Facebook consent signals need the Pro plan."
+msgstr ""
+
+#: assets/react-admin/cn-admin-react.js
+msgid "Microsoft Clarity detected. Microsoft consent signals are off."
+msgstr ""
+
+#: assets/react-admin/cn-admin-react.js
+msgid "Microsoft Clarity detected. Microsoft consent signals need the Pro plan."
+msgstr ""
+
+#. translators: %s: comma-separated form plugin names, e.g. "Contact Form 7, WPForms".
+#: assets/react-admin/cn-admin-react.js
+#, js-format
+msgid "These form plugins are not recording proof of consent yet: %s."
+msgstr ""
+
+#: assets/react-admin/cn-admin-react.js
+msgid "Open Privacy Consent"
+msgstr ""
+
+#: assets/react-admin/cn-admin-react.js
+msgid "Next steps"
+msgstr ""
+
+#: assets/react-admin/cn-admin-react.js
+msgid "Numbers"
+msgstr ""
+
+#: assets/react-admin/cn-admin-react.js
+msgid "visits this cycle"
+msgstr ""
+
+#: assets/react-admin/cn-admin-react.js
+msgid "consent in the last 7 days"
+msgid_plural "consents in the last 7 days"
+msgstr[0] ""
+msgstr[1] ""
+
+#: assets/react-admin/cn-admin-react.js
+msgid "No consents recorded in the last 7 days"
+msgstr ""
+
+#. translators: %s: date and time in UTC, e.g. "2026-10-07 08:15".
+#: assets/react-admin/cn-admin-react.js
+#, js-format
+msgid "Last fetched %s UTC"
+msgstr ""
+
+#: assets/react-admin/cn-admin-react.js
+msgid "View consent logs"
+msgstr ""
+
+#: assets/react-admin/cn-admin-react.js
+#: assets/react-admin/cn-admin-react.js
+msgid "Checking…"
+msgstr ""
+
 #: assets/react-admin/cn-admin-react.js
 msgid "Checking the saved autoblocking setting…"
 msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
 #: assets/react-admin/cn-admin-react.js
-#: assets/react-admin/cn-admin-react.js
 msgid "Not confirmed — reload the page to see the saved autoblocking setting."
 msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
-msgid "No regulations selected — add laws to activate consent enforcement"
+msgid "Loading your status…"
 msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
-msgid "Autoblocking disabled — trackers may load before consent"
+msgid "Your status could not be loaded. Reload the page to try again."
 msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
-msgid "All protections active — trackers blocked, consent recorded"
+msgid "Updating your status…"
 msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
-msgid "Your visitors’ choices are being recorded — trackers are blocked."
+msgid "Not confirmed — reload the page to see your current status."
 msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
-msgid "Your visitors’ choices are being recorded."
+msgid "Compact banner"
 msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
-msgid "Essential for your site to function"
+msgid "Standard banner"
 msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
-msgid "Personalize content for visitors"
-msgstr ""
-
-#: assets/react-admin/cn-admin-react.js
-msgid "Measure traffic and performance"
-msgstr ""
-
-#: assets/react-admin/cn-admin-react.js
-msgid "Show targeted advertising"
-msgstr ""
-
-#: assets/react-admin/cn-admin-react.js
-msgid "Uncategorized"
-msgstr ""
-
-#: assets/react-admin/cn-admin-react.js
-msgid "These trackers run before visitors agree — highest compliance risk"
-msgstr ""
-
-#: assets/react-admin/cn-admin-react.js
-msgid "Categorized"
-msgstr ""
-
-#: assets/react-admin/cn-admin-react.js
-msgid "Fires without consent"
-msgstr ""
-
-#: assets/react-admin/cn-admin-react.js
-msgid "Firing without consent"
-msgstr ""
-
-#: assets/react-admin/cn-admin-react.js
-msgid "Your banner shows — but trackers run before visitors agree"
+msgid "Banner settings"
 msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
 #: assets/react-admin/cn-admin-react.js
-msgid "Your Trackers"
+#: assets/react-admin/cn-admin-react.js
+msgid "Consent signals"
 msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
-msgid "Manage trackers in Admin Portal"
+msgid "Review autoblocking"
 msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
-msgid "Loading script data…"
+msgid "Review GPC setting"
 msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
-msgid "No known trackers found in the provider database for your site. Your banner is active and blocking is configured."
+msgid "Can't see your banner?"
 msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
-msgid "No known trackers found in the provider database for your site."
-msgstr ""
-
 #: assets/react-admin/cn-admin-react.js
-msgid "Your domain was recently added. Tracker data typically populates within 24–48 hours as your configuration syncs. Use Pull latest settings in the sidebar to check now."
+msgid "Can't see your banner on your own site? That's often normal. It stays hidden when your browser sends Global Privacy Control, when your visitor's region doesn't require a banner, or when you've already made a choice. Preview shows it anyway. Nothing is saved."
 msgstr ""
 
-#. translators: %d: number of trackers detected on the site.
+#. translators: %d: number of status boxes that need attention.
 #: assets/react-admin/cn-admin-react.js
 #, js-format
-msgid "%d tracker detected"
-msgid_plural "%d trackers detected"
+msgid "%d thing to fix"
+msgid_plural "%d things to fix"
 msgstr[0] ""
 msgstr[1] ""
-
-#. translators: %d: number of trackers that have been categorised.
-#: assets/react-admin/cn-admin-react.js
-#, js-format
-msgid "%d categorized"
-msgstr ""
-
-#. translators: %d: number of trackers not yet categorised.
-#: assets/react-admin/cn-admin-react.js
-#, js-format
-msgid "%d uncategorized"
-msgstr ""
-
-#. translators: %s: timestamp of the last tracker refresh.
-#: assets/react-admin/cn-admin-react.js
-#, js-format
-msgid "Last refreshed: %s"
-msgstr ""
-
-#: assets/react-admin/cn-admin-react.js
-msgid "Not yet synced"
-msgstr ""
-
-#. translators: %d: number of trackers firing before consent.
-#: assets/react-admin/cn-admin-react.js
-#, js-format
-msgid "%d tracker firing without consent —"
-msgid_plural "%d trackers firing without consent —"
-msgstr[0] ""
-msgstr[1] ""
-
-#: assets/react-admin/cn-admin-react.js
-msgid "manage in Admin Portal"
-msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
 msgid "Automated script blocking before visitor consent"
@@ -4666,7 +4597,7 @@ msgid "Google Consent Mode v2 (Facebook & Microsoft on Pro)"
 msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
-msgid "Plugin Settings"
+msgid "Managed by your network administrator — this site uses the network settings."
 msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
@@ -4674,27 +4605,7 @@ msgid "Connect your site to enable consent management features."
 msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
-msgid "Manage your banner, laws, consent modes, and languages."
-msgstr ""
-
-#: assets/react-admin/cn-admin-react.js
-msgid "Advanced Settings"
-msgstr ""
-
-#: assets/react-admin/cn-admin-react.js
-msgid "Excluded scripts, script blocking"
-msgstr ""
-
-#: assets/react-admin/cn-admin-react.js
-msgid "Script Blocking"
-msgstr ""
-
-#: assets/react-admin/cn-admin-react.js
-msgid "Scripts categorized"
-msgstr ""
-
-#: assets/react-admin/cn-admin-react.js
-msgid "Unblocked"
+msgid "Manage your banner, laws, consent signals, and languages."
 msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
@@ -4840,7 +4751,6 @@ msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
 #: assets/react-admin/cn-admin-react.js
-#: assets/react-admin/cn-admin-react.js
 msgid "Not active"
 msgstr ""
 
@@ -4907,6 +4817,38 @@ msgid "Sets the link for your banner's default language. Other languages: Admin 
 msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
+msgid "Laws, languages & signals"
+msgstr ""
+
+#: assets/react-admin/cn-admin-react.js
+msgid "No laws selected"
+msgstr ""
+
+#: assets/react-admin/cn-admin-react.js
+msgid "Edit laws"
+msgstr ""
+
+#: assets/react-admin/cn-admin-react.js
+msgid "Add laws"
+msgstr ""
+
+#. translators: %d: number of banner languages.
+#: assets/react-admin/cn-admin-react.js
+#, js-format
+msgid "%d language"
+msgid_plural "%d languages"
+msgstr[0] ""
+msgstr[1] ""
+
+#: assets/react-admin/cn-admin-react.js
+msgid "Manage languages"
+msgstr ""
+
+#: assets/react-admin/cn-admin-react.js
+msgid "None switched on"
+msgstr ""
+
+#: assets/react-admin/cn-admin-react.js
 msgid "Advanced features require a connection"
 msgstr ""
 
@@ -4931,7 +4873,6 @@ msgstr ""
 msgid "Managed in Admin Portal"
 msgstr ""
 
-#: assets/react-admin/cn-admin-react.js
 #: assets/react-admin/cn-admin-react.js
 msgid "Edit in Admin Portal"
 msgstr ""
@@ -5283,6 +5224,10 @@ msgid "Sync failed. Please try again."
 msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
+msgid "Protection"
+msgstr ""
+
+#: assets/react-admin/cn-admin-react.js
 #: assets/react-admin/cn-admin-react.js
 msgid "Free Plan"
 msgstr ""
@@ -5355,59 +5300,6 @@ msgid "Close"
 msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
-msgid "Banner active"
-msgstr ""
-
-#: assets/react-admin/cn-admin-react.js
-msgid "Compact banner"
-msgstr ""
-
-#: assets/react-admin/cn-admin-react.js
-msgid "Standard banner"
-msgstr ""
-
-#: assets/react-admin/cn-admin-react.js
-#: assets/react-admin/cn-admin-react.js
-msgid "Add your applicable laws below"
-msgstr ""
-
-#. translators: %s: comma-separated regions the selected laws cover, e.g. "EU, California".
-#: assets/react-admin/cn-admin-react.js
-#, js-format
-msgid "Covering %s"
-msgstr ""
-
-#: assets/react-admin/cn-admin-react.js
-msgid "Configured in Admin Portal"
-msgstr ""
-
-#: assets/react-admin/cn-admin-react.js
-#: assets/react-admin/cn-admin-react.js
-msgid "Checking…"
-msgstr ""
-
-#: assets/react-admin/cn-admin-react.js
-msgid "Not protected"
-msgstr ""
-
-#: assets/react-admin/cn-admin-react.js
-#: assets/react-admin/cn-admin-react.js
-msgid "Managed by your network administrator"
-msgstr ""
-
-#: assets/react-admin/cn-admin-react.js
-msgid "Cookie Compliance is not active on your site — trackers are not blocked"
-msgstr ""
-
-#: assets/react-admin/cn-admin-react.js
-msgid "Protected"
-msgstr ""
-
-#: assets/react-admin/cn-admin-react.js
-msgid "Banner settings"
-msgstr ""
-
-#: assets/react-admin/cn-admin-react.js
 msgid "Progress"
 msgstr ""
 
@@ -5423,6 +5315,14 @@ msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
 msgid "Dismiss this notice."
+msgstr ""
+
+#: assets/react-admin/cn-admin-react.js
+msgid "GPC"
+msgstr ""
+
+#: assets/react-admin/cn-admin-react.js
+msgid "DNT"
 msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
@@ -5815,6 +5715,10 @@ msgstr ""
 
 #: assets/react-admin/cn-admin-react.js
 msgid "Set per site"
+msgstr ""
+
+#: assets/react-admin/cn-admin-react.js
+msgid "Managed by your network administrator"
 msgstr ""
 
 #: assets/react-admin/cn-admin-react.js

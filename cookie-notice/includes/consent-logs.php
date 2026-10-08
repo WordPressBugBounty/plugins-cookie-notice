@@ -43,7 +43,7 @@ class Cookie_Notice_Consent_Logs {
 			wp_send_json_error( Cookie_Notice()->settings->consent_logs_scope_message() );
 
 		// sanitize date
-		$date = preg_replace( '[^\d-]', '', $_POST['date'] );
+		$date = preg_replace( '/[^\d-]/', '', $_POST['date'] );
 
 		// get datetime
 		$dt = DateTime::createFromFormat( 'Y-m-d', $date );

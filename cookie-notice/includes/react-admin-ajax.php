@@ -70,11 +70,9 @@ class Cookie_Notice_React_Admin_Ajax {
 		// against the legacy form submit. The mode of the row the page renders from, which
 		// under Global Settings Override is not $cn->options on admin-ajax.
 		if ( Cookie_Notice()->settings->rendered_ui_mode() === 'react' ) {
-			add_action( 'wp_ajax_cn_react_script_update',       [ $this, 'update_script' ] );
 			add_action( 'wp_ajax_cn_react_save_options',        [ $this, 'save_options' ] );
 			add_action( 'wp_ajax_cn_react_reset_options',       [ $this, 'reset_options' ] );
 			add_action( 'wp_ajax_cn_react_save_network_options', [ $this, 'save_network_options' ] );
-			add_action( 'wp_ajax_cn_react_rescan_scripts',      [ $this, 'rescan_scripts' ] );
 			add_action( 'wp_ajax_cn_react_rule_values',         [ $this, 'get_rule_values' ] );
 			add_action( 'wp_ajax_cn_react_save_privacy_consent', [ $this, 'save_privacy_consent' ] );
 			add_action( 'wp_ajax_cn_react_privacy_consent_form_status', [ $this, 'set_privacy_consent_form_status' ] );
@@ -251,6 +249,12 @@ class Cookie_Notice_React_Admin_Ajax {
 		$data_token    = Cookie_Notice_Store::get_transient( 'cookie_notice_app_token', $network );
 		$account_email = ! empty( $data_token->email ) ? sanitize_email( $data_token->email ) : '';
 
+		// The WP dashboard widget's verdict, through the same call the widget renders
+		// (Cookie_Notice_Dashboard::get_scorecard()), so Overview and the widget agree.
+		// Built HERE, after the analytics pull above: that pull can clear the quota
+		// verdict mid-request, and the scorecard must judge the site as it now stands.
+		$scorecard = $cn->dashboard->get_scorecard();
+
 		wp_send_json_success( [
 			'analytics'        => [
 				'cycleUsage' => [
@@ -270,7 +274,57 @@ class Cookie_Notice_React_Admin_Ajax {
 			'appConfig'        => $this->dashboard_app_config(),
 			// The banner as stored after any pull above (React's store adopts it: api/index.js PULL_ACTIONS).
 			'banner'           => $cn->get_banner_summary(),
+			// Normal reply only — the empty replies (send_empty_dashboard()) make no claim.
+			'scorecard'        => $scorecard,
+			'consents7d'       => $this->compute_consents_7d( isset( $analytics_raw['consentActivities'] ) ? $analytics_raw['consentActivities'] : [] ),
+			// When THIS SITE last fetched the analytics row ('Y-m-d H:i:s', GMT, no zone),
+			// not how old the figures are. Label it "fetched", never "as of"; '' = never.
+			'analyticsFetchedAt' => isset( $analytics_raw['lastUpdated'] ) ? (string) $analytics_raw['lastUpdated'] : '',
 		] );
+	}
+
+	/**
+	 * Consents recorded in the last 7 days, from the cached consentActivities rows.
+	 *
+	 * No remote call: the rows are the daily series cookie_notice_app_analytics already
+	 * holds (one row per day and consent level; eventdt is the day). The window is the
+	 * 7 COMPLETE UTC days before today — today is excluded, as the WP dashboard widget's
+	 * 30-day chart excludes it, because a partial day would be counted as a whole one.
+	 * Same level mapping as consentBreakdown (compute_consent_breakdown()).
+	 *
+	 * @param mixed    $activities consentActivities rows (objects or arrays).
+	 * @param int|null $now        Unix time; defaults to now.
+	 * @return array { total, acceptRate, customRate, rejectRate, levelLabels }
+	 */
+	private function compute_consents_7d( $activities, $now = null ) {
+		$now   = $now === null ? time() : (int) $now;
+		$today = gmdate( 'Y-m-d', $now );
+		$from  = gmdate( 'Y-m-d', $now - 7 * DAY_IN_SECONDS );
+
+		$level_totals = [ 1 => 0, 2 => 0, 3 => 0 ];
+
+		if ( is_array( $activities ) ) {
+			foreach ( $activities as $entry ) {
+				$entry = (object) $entry;
+
+				if ( ! isset( $entry->eventdt, $entry->consentlevel, $entry->totalrecd ) )
+					continue;
+
+				// The day, whatever the serialisation ("2026-10-06" or an ISO timestamp).
+				// Y-m-d strings compare correctly as strings.
+				$day = substr( (string) $entry->eventdt, 0, 10 );
+
+				if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $day ) || $day < $from || $day >= $today )
+					continue;
+
+				$lvl = (int) $entry->consentlevel;
+
+				if ( isset( $level_totals[ $lvl ] ) )
+					$level_totals[ $lvl ] += (int) $entry->totalrecd;
+			}
+		}
+
+		return $this->compute_consent_breakdown( $level_totals );
 	}
 
 	/**
@@ -473,243 +527,6 @@ class Cookie_Notice_React_Admin_Ajax {
 			'totalPages'       => $total_pages,
 			'consentBreakdown' => $result['consent_breakdown'],
 		] );
-	}
-
-	/**
-	 * Add, edit, or remove a script provider.
-	 *
-	 * For 'edit' operations, updates the provider's CategoryID and propagates
-	 * the change to all patterns belonging to that provider.
-	 *
-	 * @return void
-	 */
-	public function update_script() {
-		$this->verify_request();
-		Cookie_Notice()->settings->verify_not_network_managed();
-
-		$operation = isset( $_POST['operation'] ) ? sanitize_text_field( $_POST['operation'] ) : '';
-
-		if ( ! in_array( $operation, [ 'add', 'edit', 'remove' ], true ) ) {
-			wp_send_json_error( [ 'error' => 'Invalid operation.' ] );
-		}
-
-		if ( $operation === 'edit' ) {
-			$provider_id = isset( $_POST['provider_id'] ) ? sanitize_text_field( $_POST['provider_id'] ) : '';
-			$category_id = isset( $_POST['category_id'] ) ? absint( $_POST['category_id'] ) : 0;
-
-			if ( empty( $provider_id ) ) {
-				wp_send_json_error( [ 'error' => 'Missing provider_id.' ] );
-			}
-
-			if ( ! in_array( $category_id, [ 1, 2, 3, 4 ], true ) ) {
-				wp_send_json_error( [ 'error' => 'Invalid category_id.' ] );
-			}
-
-			$cn      = Cookie_Notice();
-			$network = $cn->is_network_options();
-
-			// is_network_options() is network-active && global_override — server state, so
-			// nothing here is forged. That is the trap: on such a network it resolves to
-			// network scope for EVERY caller, while verify_request() above proves only
-			// manage_options. Without this, any subsite administrator edits the autoblocking
-			// catalogue for every site, which is the pre-consent blocking guarantee.
-			if ( ! $cn->can_write_at_scope( $network ) )
-				wp_send_json_error( [ 'error' => $cn->network_scope_denied_message() ], 403 );
-
-			$blocking = Cookie_Notice_Store::get( 'cookie_notice_app_blocking', [], $network );
-
-			if ( empty( $blocking ) || ! isset( $blocking['providers'] ) ) {
-				wp_send_json_error( [ 'error' => 'No blocking configuration found.' ] );
-			}
-
-			// Update the provider's CategoryID.
-			$found = false;
-
-			foreach ( $blocking['providers'] as &$provider ) {
-				$pid = is_object( $provider ) ? $provider->ProviderID : ( isset( $provider['ProviderID'] ) ? $provider['ProviderID'] : '' );
-
-				if ( (string) $pid === (string) $provider_id ) {
-					if ( is_object( $provider ) ) {
-						$provider->CategoryID = $category_id;
-					} else {
-						$provider['CategoryID'] = $category_id;
-					}
-					$found = true;
-					break;
-				}
-			}
-			unset( $provider );
-
-			if ( ! $found ) {
-				wp_send_json_error( [ 'error' => 'Provider not found.' ] );
-			}
-
-			// Propagate CategoryID to all patterns belonging to this provider.
-			if ( isset( $blocking['patterns'] ) && is_array( $blocking['patterns'] ) ) {
-				foreach ( $blocking['patterns'] as &$pattern ) {
-					$pat_pid = is_object( $pattern ) ? $pattern->ProviderID : ( isset( $pattern['ProviderID'] ) ? $pattern['ProviderID'] : '' );
-
-					if ( (string) $pat_pid === (string) $provider_id ) {
-						if ( is_object( $pattern ) ) {
-							$pattern->CategoryID = $category_id;
-						} else {
-							$pattern['CategoryID'] = $category_id;
-						}
-					}
-				}
-				unset( $pattern );
-			}
-
-			// Save back.
-			Cookie_Notice_Store::set( 'cookie_notice_app_blocking', $blocking, $network );
-		}
-
-		if ( $operation === 'add' ) {
-			$provider_name   = isset( $_POST['provider_name'] ) ? sanitize_text_field( $_POST['provider_name'] ) : '';
-			$provider_url    = isset( $_POST['provider_url'] )  ? esc_url_raw( $_POST['provider_url'] )           : '';
-			$category_id     = isset( $_POST['category_id'] )   ? absint( $_POST['category_id'] )                  : 0;
-			$description     = isset( $_POST['description'] )   ? sanitize_text_field( $_POST['description'] )     : '';
-			$script_patterns = isset( $_POST['script_patterns'] ) && is_array( $_POST['script_patterns'] ) ? $_POST['script_patterns'] : [];
-			$iframe_patterns = isset( $_POST['iframe_patterns'] ) && is_array( $_POST['iframe_patterns'] ) ? $_POST['iframe_patterns'] : [];
-
-			if ( empty( $provider_name ) ) {
-				wp_send_json_error( [ 'error' => 'Provider name is required.' ] );
-			}
-
-			if ( ! in_array( $category_id, [ 1, 2, 3, 4 ], true ) ) {
-				wp_send_json_error( [ 'error' => 'Invalid category_id.' ] );
-			}
-
-			$cn      = Cookie_Notice();
-			$network = $cn->is_network_options();
-
-			// is_network_options() is network-active && global_override — server state, so
-			// nothing here is forged. That is the trap: on such a network it resolves to
-			// network scope for EVERY caller, while verify_request() above proves only
-			// manage_options. Without this, any subsite administrator edits the autoblocking
-			// catalogue for every site, which is the pre-consent blocking guarantee.
-			if ( ! $cn->can_write_at_scope( $network ) )
-				wp_send_json_error( [ 'error' => $cn->network_scope_denied_message() ], 403 );
-
-			$blocking = Cookie_Notice_Store::get( 'cookie_notice_app_blocking', [], $network );
-
-			if ( ! is_array( $blocking ) ) {
-				$blocking = [];
-			}
-			if ( ! isset( $blocking['providers'] ) ) {
-				$blocking['providers'] = [];
-			}
-			if ( ! isset( $blocking['patterns'] ) ) {
-				$blocking['patterns'] = [];
-			}
-
-			// Generate a unique provider ID from the name + timestamp.
-			$provider_id = 'custom-' . sanitize_title( $provider_name ) . '-' . time();
-
-			// Append the new provider.
-			$blocking['providers'][] = (object) [
-				'ProviderID'   => $provider_id,
-				'ProviderName' => $provider_name,
-				'ProviderURL'  => $provider_url,
-				'CategoryID'   => $category_id,
-				'IsCustom'     => true,
-			];
-
-			// Find current max CookieID so new patterns get unique IDs.
-			$max_cookie_id = 0;
-			foreach ( $blocking['patterns'] as $p ) {
-				$cid = is_object( $p ) ? (int) $p->CookieID : (int) ( isset( $p['CookieID'] ) ? $p['CookieID'] : 0 );
-				if ( $cid > $max_cookie_id ) {
-					$max_cookie_id = $cid;
-				}
-			}
-
-			// Append script patterns.
-			foreach ( $script_patterns as $pattern_str ) {
-				$pattern_str = sanitize_text_field( stripslashes( $pattern_str ) );
-				if ( empty( $pattern_str ) ) {
-					continue;
-				}
-				$max_cookie_id++;
-				$blocking['patterns'][] = (object) [
-					'CookieID'      => $max_cookie_id,
-					'ProviderID'    => $provider_id,
-					'CategoryID'    => $category_id,
-					'PatternType'   => 'script',
-					'PatternFormat' => 'wildcard',
-					'Pattern'       => $pattern_str,
-				];
-			}
-
-			// Append iframe patterns.
-			foreach ( $iframe_patterns as $pattern_str ) {
-				$pattern_str = sanitize_text_field( stripslashes( $pattern_str ) );
-				if ( empty( $pattern_str ) ) {
-					continue;
-				}
-				$max_cookie_id++;
-				$blocking['patterns'][] = (object) [
-					'CookieID'      => $max_cookie_id,
-					'ProviderID'    => $provider_id,
-					'CategoryID'    => $category_id,
-					'PatternType'   => 'iframe',
-					'PatternFormat' => 'wildcard',
-					'Pattern'       => $pattern_str,
-				];
-			}
-
-			Cookie_Notice_Store::set( 'cookie_notice_app_blocking', $blocking, $network );
-
-			wp_send_json_success( [
-				'message'     => 'Script provider added.',
-				'provider_id' => $provider_id,
-			] );
-		}
-
-		if ( $operation === 'remove' ) {
-			$provider_id = isset( $_POST['provider_id'] ) ? sanitize_text_field( $_POST['provider_id'] ) : '';
-
-			if ( empty( $provider_id ) ) {
-				wp_send_json_error( [ 'error' => 'Missing provider_id.' ] );
-			}
-
-			$cn      = Cookie_Notice();
-			$network = $cn->is_network_options();
-
-			// is_network_options() is network-active && global_override — server state, so
-			// nothing here is forged. That is the trap: on such a network it resolves to
-			// network scope for EVERY caller, while verify_request() above proves only
-			// manage_options. Without this, any subsite administrator edits the autoblocking
-			// catalogue for every site, which is the pre-consent blocking guarantee.
-			if ( ! $cn->can_write_at_scope( $network ) )
-				wp_send_json_error( [ 'error' => $cn->network_scope_denied_message() ], 403 );
-
-			$blocking = Cookie_Notice_Store::get( 'cookie_notice_app_blocking', [], $network );
-
-			if ( empty( $blocking ) || ! isset( $blocking['providers'] ) ) {
-				wp_send_json_error( [ 'error' => 'No blocking configuration found.' ] );
-			}
-
-			// Remove the provider entry.
-			$blocking['providers'] = array_values( array_filter( $blocking['providers'], function( $p ) use ( $provider_id ) {
-				$pid = is_object( $p ) ? $p->ProviderID : ( isset( $p['ProviderID'] ) ? $p['ProviderID'] : '' );
-				return (string) $pid !== (string) $provider_id;
-			} ) );
-
-			// Remove all patterns belonging to this provider.
-			if ( isset( $blocking['patterns'] ) && is_array( $blocking['patterns'] ) ) {
-				$blocking['patterns'] = array_values( array_filter( $blocking['patterns'], function( $p ) use ( $provider_id ) {
-					$pid = is_object( $p ) ? $p->ProviderID : ( isset( $p['ProviderID'] ) ? $p['ProviderID'] : '' );
-					return (string) $pid !== (string) $provider_id;
-				} ) );
-			}
-
-			Cookie_Notice_Store::set( 'cookie_notice_app_blocking', $blocking, $network );
-
-			wp_send_json_success( [ 'message' => 'Script provider removed.' ] );
-		}
-
-		wp_send_json_success( [ 'message' => 'Script provider updated.' ] );
 	}
 
 	/**
@@ -1250,50 +1067,6 @@ class Cookie_Notice_React_Admin_Ajax {
 		}
 
 		return [ 'items' => $items, 'total' => $total, 'page' => $page, 'maxPages' => $max_pages ];
-	}
-
-	/**
-	 * Rescan scripts from the Designer API.
-	 *
-	 * Forces a fresh fetch of the app blocking config from the remote
-	 * Designer API, then returns the updated blocking data in the same
-	 * shape as get_config().
-	 *
-	 * @return void
-	 */
-	public function rescan_scripts() {
-		$this->verify_request();
-		Cookie_Notice()->settings->verify_not_network_managed();
-
-		$cn = Cookie_Notice();
-
-		// Force a fresh sync from the Designer API.
-		$cn->welcome_api->get_app_config( '', true );
-
-		// Re-read the now-updated local cache and return it.
-		$network  = $cn->is_network_options();
-		$blocking = Cookie_Notice_Store::get( 'cookie_notice_app_blocking', [], $network );
-
-		// CN_DEV_MODE: inject sample trackers when the real scan returns empty,
-		// so the UI can be tested without real third-party scripts on the page.
-		if ( defined( 'CN_DEV_MODE' ) && CN_DEV_MODE && empty( $blocking['providers'] ) ) {
-			$sample_providers = [
-				(object) [ 'ProviderID' => 'google-analytics', 'ProviderName' => 'Google Analytics', 'ProviderURL' => 'analytics.google.com', 'CategoryID' => 0 ],
-				(object) [ 'ProviderID' => 'hotjar',           'ProviderName' => 'Hotjar',           'ProviderURL' => 'hotjar.com',            'CategoryID' => 0 ],
-				(object) [ 'ProviderID' => 'meta-pixel',       'ProviderName' => 'Meta Pixel',       'ProviderURL' => 'facebook.com',          'CategoryID' => 0 ],
-				(object) [ 'ProviderID' => 'hubspot',          'ProviderName' => 'HubSpot',          'ProviderURL' => 'hubspot.com',           'CategoryID' => 1 ],
-				(object) [ 'ProviderID' => 'linkedin-insight',  'ProviderName' => 'LinkedIn Insight', 'ProviderURL' => 'linkedin.com',         'CategoryID' => 0 ],
-			];
-
-			if ( ! is_array( $blocking ) ) {
-				$blocking = [];
-			}
-
-			$blocking['providers'] = $sample_providers;
-		}
-
-		// …and the banner as that pull left it (React's store adopts it: api/index.js PULL_ACTIONS).
-		wp_send_json_success( $this->build_blocking_response( $blocking ) + [ 'banner' => $cn->get_banner_summary() ] );
 	}
 
 	/**
@@ -2315,8 +2088,7 @@ class Cookie_Notice_React_Admin_Ajax {
 	/**
 	 * Build the standardised blocking + config response shape.
 	 *
-	 * Shared by get_config() and rescan_scripts() to avoid maintaining the
-	 * 7-key blocking object in two places.
+	 * The 7-key blocking object get_config() answers with.
 	 *
 	 * @param array $blocking Raw blocking option (cookie_notice_app_blocking).
 	 * @return array { 'blocking' => [...], 'config' => object }

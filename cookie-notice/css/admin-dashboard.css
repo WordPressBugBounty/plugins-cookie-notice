@@ -38,6 +38,8 @@
 }
 #cn_dashboard_stats .cn-sc-hero.hero--warn { background: linear-gradient(180deg, #fcf6e6, #fff); }
 #cn_dashboard_stats .cn-sc-hero.hero--crit { background: linear-gradient(180deg, #fcebec, #fff); }
+/* information, not a gap — never the green brand wash the base hero carries */
+#cn_dashboard_stats .cn-sc-hero.hero--neutral { background: linear-gradient(180deg, #f3f4f6, #fff); }
 #cn_dashboard_stats .cn-sc-hero__top {
 	display: flex;
 	align-items: center;

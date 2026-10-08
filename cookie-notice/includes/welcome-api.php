@@ -1381,8 +1381,59 @@ class Cookie_Notice_Welcome_API {
 				break;
 		}
 
-		echo wp_json_encode( $response );
+		echo wp_json_encode( $this->reply_text_as_text( $response ) );
 		exit;
+	}
+
+	/**
+	 * The reply's `error` and `message` as text, never markup.
+	 *
+	 * Both legacy sinks write them with jQuery .html(): cnDisplayError() in admin-welcome.js and
+	 * the sync_config notice in admin.js. Many are the platform's own words: a license refusal,
+	 * a declined card's Braintree message, every sign-in refusal passed on as the raw API object.
+	 * Escaped once, where the reply leaves api_request(), so a branch added later cannot forget.
+	 *
+	 * esc_html() does not double-encode, so a message built with esc_html__() comes out the same,
+	 * and 'email_exists' has nothing to escape. Only strings change: a non-string error is walked,
+	 * every other field is left alone. React renders these as text, so a platform message holding
+	 * & ' " < or > shows the entity there, as every esc_html__() message already does.
+	 *
+	 * @param mixed $response The reply api_request() is about to print.
+	 * @return mixed
+	 */
+	private function reply_text_as_text( $response ) {
+		$escape = function ( $value ) {
+			return is_string( $value ) ? esc_html( $value ) : $value;
+		};
+
+		foreach ( [ 'error', 'message' ] as $key ) {
+			if ( is_array( $response ) && isset( $response[ $key ] ) )
+				$response[ $key ] = map_deep( $response[ $key ], $escape );
+			elseif ( is_object( $response ) && isset( $response->$key ) )
+				$response->$key = map_deep( $response->$key, $escape );
+		}
+
+		return $response;
+	}
+
+	/**
+	 * What a debug log may say about a platform reply: its status and how much came back.
+	 *
+	 * Never the body. The bodies these logs used to dump carry the app's whole config, the
+	 * platform's own error text and, after a write, what the admin sent. The debug log is a file
+	 * on the site's disk, which hosts, support tools and backups copy around.
+	 *
+	 * @param mixed $reply What request() returned.
+	 * @return string
+	 */
+	private function debug_reply_summary( $reply ) {
+		if ( ! is_object( $reply ) )
+			return 'no answer (transport error or non-JSON reply)';
+
+		$status = isset( $reply->status ) && is_numeric( $reply->status ) ? (int) $reply->status : 'none';
+		$fields = isset( $reply->data ) && ( is_array( $reply->data ) || is_object( $reply->data ) ) ? count( (array) $reply->data ) : 0;
+
+		return 'status ' . $status . ', ' . $fields . ' data fields';
 	}
 
 	/**
@@ -2733,7 +2784,7 @@ class Cookie_Notice_Welcome_API {
 			return true;
 
 		if ( Cookie_Notice()->options['general']['debug_mode'] )
-			error_log( '[Cookie Notice] new app ' . $app_id . ': switch to the New engine not confirmed (app stays Classic unless the platform completed it late): ' . wp_json_encode( $result ) );
+			error_log( '[Cookie Notice] new app ' . $app_id . ': switch to the New engine not confirmed (app stays Classic unless the platform completed it late): ' . $this->debug_reply_summary( $result ) );
 
 		return false;
 	}
@@ -4538,8 +4589,8 @@ class Cookie_Notice_Welcome_API {
 		//
 		// Several user-driven entry points reach here holding only manage_options, a
 		// site-level capability every subsite administrator has: ajax_purge_cache()
-		// (includes/settings.php:2965), rescan_scripts() (includes/react-admin-ajax.php:770),
-		// save_options() (:1404), validate_options() (includes/settings.php:2147),
+		// (includes/settings.php), save_options() (includes/react-admin-ajax.php),
+		// validate_options() (includes/settings.php),
 		// react_update_design(), react_save_banner_style(), and api_request()'s configure and
 		// sync_config. Each passes $force_update = true, which also skips the once-per-hour
 		// throttle below. react_apply_languages() does NOT reach here and is guarded at its
@@ -4607,10 +4658,10 @@ class Cookie_Notice_Welcome_API {
 			]
 		);
 
-		// debug: log raw Designer API response
+		// debug: the Designer API's status, never the body
 		if ( $cn->options['general']['debug_mode'] ) {
 			error_log( '[Cookie Notice] get_app_config - AppID: ' . $app_id );
-			error_log( '[Cookie Notice] get_app_config - Designer API response: ' . wp_json_encode( $response ) );
+			error_log( '[Cookie Notice] get_app_config - Designer API response: ' . $this->debug_reply_summary( $response ) );
 		}
 
 		// get status data
@@ -5037,7 +5088,7 @@ class Cookie_Notice_Welcome_API {
 			if ( $cn->options['general']['debug_mode'] ) {
 				error_log( '[Cookie Notice] get_app_config - Stored providers count: ' . count( $result['providers'] ) );
 				error_log( '[Cookie Notice] get_app_config - Stored patterns count: ' . count( $result['patterns'] ) );
-				error_log( '[Cookie Notice] get_app_config - Stored blocking data: ' . wp_json_encode( $result ) );
+				error_log( '[Cookie Notice] get_app_config - Stored blocking fields: ' . count( $result ) );
 			}
 		} else {
 			if ( $cn->options['general']['debug_mode'] ) {
@@ -5483,9 +5534,9 @@ class Cookie_Notice_Welcome_API {
 
 		$result = $this->request( $write_type, $params );
 
-		// debug: log raw API response for consent mode debugging.
+		// debug: the API's status for consent mode debugging, never the body
 		if ( $cn->options['general']['debug_mode'] ) {
-			error_log( 'react_update_design API result: ' . var_export( $result, true ) );
+			error_log( 'react_update_design API result: ' . $this->debug_reply_summary( $result ) );
 		}
 
 		// Design record not yet created — fall back to quick_config to seed it.

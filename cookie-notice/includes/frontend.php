@@ -16,6 +16,12 @@ class Cookie_Notice_Frontend {
 	/** Memoised banner-admin capability for this request. null = not yet asked. See is_banner_admin(). */
 	private $banner_admin = null;
 
+	/** Memoised "admin asked for ?cn_preview=1" for this request. null = not yet asked. See is_admin_preview(). */
+	private $admin_preview = null;
+
+	/** Memoised "is this a preview-shaped request" for this request. null = not yet asked. See is_preview_request(). */
+	private $preview_request = null;
+
 	/**
 	 * Class constructor.
 	 *
@@ -25,6 +31,7 @@ class Cookie_Notice_Frontend {
 		// general actions
 		add_action( 'init', [ $this, 'early_init' ], 9 );
 		add_action( 'wp', [ $this, 'init' ] );
+		add_action( 'template_redirect', [ $this, 'mark_preview_uncacheable' ], 0 );
 		add_action( 'rest_api_init', [ $this, 'register_purge_route' ] );
 		add_action( 'cookie_notice_deferred_purge', [ $this, 'run_deferred_purge' ] );
 		add_action( 'wp_head', [ $this, 'wp_print_header_scripts' ] );
@@ -104,6 +111,37 @@ class Cookie_Notice_Frontend {
 		}
 		// ── End admin cache-bypass
 
+		// ── Begin admin preview cache-bypass
+		//
+		// "Preview on my site" opens the site with ?cn_preview=1. For an administrator that
+		// page carries forceShow and cnPreview in huOptions (get_cc_options()): the banner
+		// shows whatever the visitor's region, GPC signal or earlier choice, and choices are
+		// not recorded. If a page cache stored that copy and served it to visitors, they would
+		// see the banner on every page and their choices would go unrecorded.
+		//
+		// So it is marked uncacheable here, on `init`, before any output — not at wp_head,
+		// where the flags are written, because a cache plugin may already have decided by
+		// then. Not gated on compliance or on is_banner_admin(): the question is exactly the
+		// one get_cc_options() asks (is_admin_preview()), so the page that gets the flags is
+		// always a page marked uncacheable.
+		//
+		// ⚠️ This stops the cache being WRITTEN. DONOTCACHEPAGE alone cannot evict a copy
+		// already stored (a cached page is served without running PHP), which is why the
+		// widget honours the new cnPreview key rather than forceShow on Classic: an old
+		// cached forceShow page stays inert.
+		//
+		// nocache_headers() also tells a proxy or CDN not to store it. Core already sends
+		// these headers for a logged-in user in WP::send_headers(); sending them here, before
+		// core, is harmless (core's own Last-Modified on a feed comes later, so it is not
+		// stripped) and does not rely on that core behaviour.
+		if ( ! is_admin() && $this->is_admin_preview() ) {
+			if ( ! defined( 'DONOTCACHEPAGE' ) )
+				define( 'DONOTCACHEPAGE', true );
+
+			nocache_headers();
+		}
+		// ── End admin preview cache-bypass
+
 		// cookie compliance initialization
 		if ( $this->compliance ) {
 			// amp compatibility
@@ -161,6 +199,84 @@ class Cookie_Notice_Frontend {
 			$this->banner_admin = current_user_can( apply_filters( 'cn_manage_cookie_notice_cap', 'manage_options' ) );
 
 		return $this->banner_admin;
+	}
+
+	/**
+	 * Whether this request is an administrator's "Preview on my site" (?cn_preview=1).
+	 *
+	 * Asked twice: early_init() marks the page uncacheable, get_cc_options() writes
+	 * forceShow / cnPreview into huOptions. MEMOISED so both bind the same answer — a page
+	 * carrying the preview flags must never be a page left cacheable (see
+	 * is_banner_admin() for the same reasoning). The capability is plain manage_options,
+	 * as it always was for the preview; it does not follow cn_manage_cookie_notice_cap.
+	 *
+	 * @return bool
+	 */
+	public function is_admin_preview() {
+		if ( $this->admin_preview === null )
+			$this->admin_preview = isset( $_GET['cn_preview'] ) && $_GET['cn_preview'] === '1' && current_user_can( 'manage_options' );
+
+		return $this->admin_preview;
+	}
+
+	/**
+	 * Whether this request has a shape that strips the banner: ?cn_preview_mode (any value),
+	 * ?fl_builder (Beaver Builder), or a JSON request (wp_is_json_request()).
+	 *
+	 * The request-shape half of is_preview_mode(): these three can be decided from the
+	 * request alone, before output. Asked twice: mark_preview_uncacheable() on
+	 * template_redirect, and is_preview_mode() when the banner is about to be printed.
+	 * MEMOISED so both bind the same answer — a page that loses its banner must never be a
+	 * page left cacheable (see is_banner_admin() for the same reasoning).
+	 *
+	 * Presence, not value, for cn_preview_mode: welcome-frontend.php strips the notice for
+	 * any value, ?cn_preview_mode=0 included. wp_is_json_request() is guarded because it
+	 * arrived in WP 5.0 and the plugin supports 4.9.6.
+	 *
+	 * @return bool
+	 */
+	public function is_preview_request() {
+		if ( $this->preview_request === null )
+			$this->preview_request = isset( $_GET['cn_preview_mode'] ) || isset( $_GET['fl_builder'] ) || ( function_exists( 'wp_is_json_request' ) && wp_is_json_request() );
+
+		return $this->preview_request;
+	}
+
+	/**
+	 * Mark a preview-shaped request uncacheable, before any output.
+	 *
+	 * @return void
+	 */
+	public function mark_preview_uncacheable() {
+		// ── Begin preview-mode cache-bypass
+		//
+		// is_preview_mode() strips the banner — huOptions and the widget script are never
+		// printed — for ?cn_preview_mode, ?fl_builder and JSON requests. A page cache that
+		// keys on the URL (and ignores the Accept header) can store that stripped copy and
+		// serve it to visitors: no banner, and nothing blocked before consent. Anyone can
+		// send such a request; no login is needed.
+		//
+		// So it is marked uncacheable here, on template_redirect: after the query is parsed,
+		// before any output. Not on init (would also run for REST and admin-ajax, which
+		// print no page) and not inside maybe_display_banner() (runs at wp_head, after a
+		// cache may have decided). REST requests exit in parse_request and admin-ajax never
+		// runs wp(), so neither reaches this hook.
+		//
+		// Only the request-shape cases (is_preview_request()). The rest of is_preview_mode()
+		// — WP previews, the Customizer, IFRAME_REQUEST, and the Elementor / Divi filters,
+		// which register inside maybe_display_banner() — is not asked here. Not gated on
+		// compliance: the classic notice is stripped the same way.
+		//
+		// ⚠️ This stops the cache being WRITTEN; it cannot evict a copy already stored.
+		// nocache_headers() also tells a proxy or CDN not to store it; it drops core's
+		// Last-Modified on these requests, which is right for a response nobody may cache.
+		if ( $this->is_preview_request() ) {
+			if ( ! defined( 'DONOTCACHEPAGE' ) )
+				define( 'DONOTCACHEPAGE', true );
+
+			nocache_headers();
+		}
+		// ── End preview-mode cache-bypass
 	}
 
 	/**
@@ -312,7 +428,7 @@ class Cookie_Notice_Frontend {
 	 * @return bool
 	 */
 	public function is_preview_mode() {
-		return isset( $_GET['cn_preview_mode'] ) || is_preview() || is_customize_preview() || defined( 'IFRAME_REQUEST' ) || ( function_exists( 'wp_is_json_request' ) && wp_is_json_request() ) || isset( $_GET[ 'fl_builder' ] ) || apply_filters( 'cn_is_preview_mode', false );
+		return $this->is_preview_request() || is_preview() || is_customize_preview() || defined( 'IFRAME_REQUEST' ) || apply_filters( 'cn_is_preview_mode', false );
 	}
 
 	/**
@@ -962,9 +1078,18 @@ class Cookie_Notice_Frontend {
 			// ── End Posture seeding (huOptions.config)
 		}
 
-		if ( isset( $_GET['cn_preview'] ) && $_GET['cn_preview'] === '1' && current_user_can( 'manage_options' ) ) {
+		// ── Begin admin preview flags
+		//
+		// "Preview on my site" (?cn_preview=1, an administrator only). Two keys, one per
+		// widget: forceShow is the New engine's (v2), cnPreview the Classic engine's (v1).
+		// Classic reads cnPreview rather than forceShow on purpose: pages cached before
+		// early_init() marked preview pages uncacheable may carry forceShow, and those must
+		// stay inert. The page was marked uncacheable in early_init() on the same answer.
+		if ( $this->is_admin_preview() ) {
 			$options['forceShow'] = true;
+			$options['cnPreview'] = true;
 		}
+		// ── End admin preview flags
 
 		return $options;
 	}
@@ -979,9 +1104,11 @@ class Cookie_Notice_Frontend {
 		// The optimizer/CDN skip attributes below are the literal twin of
 		// Cookie_Notice::optimizer_skip_attrs() — kept inline here for the heredoc.
 		// If that set changes, change these tags too.
+		// JSON_HEX_TAG writes < and > as \u003C / \u003E, so no value in huOptions can close
+		// this <script> tag early (a "</script>" in a string); the parsed object is unchanged.
 		$output = '
 		<!-- Cookie Compliance -->
-		<script type="text/javascript" id="hu-banner-options" data-cfasync="false" data-nowprocket data-noptimize="1" data-no-optimize="1" nitro-exclude data-jetpack-boost="ignore" data-no-minify>var huOptions = ' . wp_json_encode( $options, JSON_UNESCAPED_SLASHES ) . '; // nowprocket</script>
+		<script type="text/javascript" id="hu-banner-options" data-cfasync="false" data-nowprocket data-noptimize="1" data-no-optimize="1" nitro-exclude data-jetpack-boost="ignore" data-no-minify>var huOptions = ' . wp_json_encode( $options, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG ) . '; // nowprocket</script>
 		<script type="text/javascript" id="hu-banner-js" data-cfasync="false" data-nowprocket data-noptimize="1" data-no-optimize="1" nitro-exclude data-jetpack-boost="ignore" data-no-minify src="' . esc_url( ( is_ssl() ? 'https:' : 'http:' ) . Cookie_Notice()->get_url( 'widget' ) ) . '"></script>';
 
 		return apply_filters( 'cn_cookie_compliance_output', $output, $options );

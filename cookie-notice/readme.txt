@@ -4,7 +4,7 @@ Tags: gdpr, compliance, cookies, privacy, google consent mode
 Requires at least: 4.9.6
 Requires PHP: 7.4
 Tested up to: 7.0
-Stable tag: 3.1.13
+Stable tag: 3.1.14
 License: MIT License
 License URI: http://opensource.org/licenses/MIT
 
@@ -212,6 +212,14 @@ Yes. Point an MCP-capable assistant (Claude Code, Cursor, and others) at https:/
 4. Cookie Compliance settings
 
 == Changelog ==
+
+= 3.1.14 =
+* New: An Overview tab shows your protection status in plain words, your last 7 days of consents, and a one-click fix for anything that needs attention.
+* New: Preview shows your banner even when it would be hidden for you, and says why.
+* Improvement: Tabs are now Overview, Cookie Consent, Privacy Consent and Consent Logs. Laws, languages and Consent Signals (formerly consent mode) sit together on the Cookie Consent tab.
+* Improvement: Compliance evidence follows your live banner and blocking settings, with no scan to wait for. The tracker list is removed, as it only showed trackers added by hand. Blocking is unchanged.
+* Fix: With page caching on, preview, page-builder and JSON requests are no longer cached, so visitors always get the banner. If your cache may hold such a page, purge it once.
+* Security: Account messages, such as sign-in or payment errors, show as plain text, and debug logs no longer store full account replies.
 
 = 3.1.13 =
 * New: Sites on the classic interface can move to the new admin interface from a card in the sidebar. Your settings, connection and banner stay exactly as they are.

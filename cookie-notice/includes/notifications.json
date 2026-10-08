@@ -152,6 +152,28 @@
 			"description": "Autoblocking is set to allow by default, and the laws you selected ask for consent first. Scripts are still held once someone declines or sends a Global Privacy Control signal.",
 			"cta": { "label": "Review your autoblocking setting \u2192", "action": "openWelcomeModal" },
 			"ctaSmall": "Required where you have selected an opt-in law"
+		},
+		{
+			"id": "dashboard-no-laws",
+			"type": "info",
+			"priority": 30,
+			"slot": "wpDashboard",
+			"condition": { "state": "no_laws" },
+			"title": "Check which laws apply",
+			"gapLabel": "Setup not finished",
+			"description": "We can\u2019t see which privacy laws your site follows. Check them so we can tell you whether your setup fits.",
+			"cta": { "label": "Check your laws \u2192", "action": "openPluginPage" }
+		},
+		{
+			"id": "dashboard-posture-allow",
+			"type": "info",
+			"priority": 25,
+			"slot": "wpDashboard",
+			"condition": { "state": "posture_allow" },
+			"title": "Scripts run until a visitor says no",
+			"gapLabel": "Allowed by default",
+			"description": "Autoblocking is off, which the laws you selected allow. Scripts are held once someone declines or sends a Global Privacy Control signal.",
+			"cta": { "label": "Review autoblocking \u2192", "action": "openPluginPage" }
 		}
 	]
 }
