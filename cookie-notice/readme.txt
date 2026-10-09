@@ -4,7 +4,7 @@ Tags: gdpr, compliance, cookies, privacy, google consent mode
 Requires at least: 4.9.6
 Requires PHP: 7.4
 Tested up to: 7.0
-Stable tag: 3.1.14
+Stable tag: 3.1.15
 License: MIT License
 License URI: http://opensource.org/licenses/MIT
 
@@ -12,90 +12,47 @@ Consent management for WordPress — GDPR, CCPA & ePrivacy, autoblocking, Google
 
 == Description ==
 
-This is <strong>Cookie Compliance for WordPress</strong> — the WordPress component of <strong>Cookie Compliance</strong>, the consent management platform by Hu-manity.co. (Previously published as "Compliance by Hu-manity.co", and before that "Cookie Notice".) One product: this plugin runs the consent banner on your WordPress site, and the Cookie Compliance dashboard is where you configure it, manage every domain you own, and keep your consent records.
+<strong>Cookie Compliance for WordPress</strong> puts a clear, fair consent banner on your site and connects it to <strong>Cookie Compliance</strong>, the consent management platform by Hu-manity.co. (Previously published as "Compliance by Hu-manity.co", and before that "Cookie Notice".) The plugin runs the banner on your site; the Cookie Compliance dashboard is where you configure it, manage every domain you own and keep your consent records.
 
-<strong>Cookie Compliance</strong> is a fully featured Consent Management Platform (CMP) that provides automated compliance features and enhanced design controls in a state-of-the-art web application. Cookie Compliance enables websites to <strong>take a proactive approach to data protection and consent laws</strong>. It is the first solution to offer Intentional Consent, a new consent framework that incorporates the latest guidelines from over 100+ countries, and emerging standards from leading international organizations like the IEEE and European Center for Digital Rights (noyb.eu). Cookie Compliance provides a beautiful, multi-level experience and includes new choices and controls for site visitors to better understand and engage in data privacy decisions.
+Built around <strong>Intentional Consent</strong>, the banner gives visitors three equal choices — accept none, some or all — so people can decide with confidence and you avoid the one-sided "dark pattern" designs that privacy regulators look at closely.
 
-You can run this plugin two ways. In <strong>Banner Only mode</strong> it works on its own, with no account, and gives you the consent banner and its settings. In <strong>Connected mode</strong> — free or paid — you sign in to Cookie Compliance from inside WordPress and the plugin unlocks the platform features listed below: automatic script blocking, purpose categories, consent records, Google Consent Mode (every plan), Facebook and Microsoft consent modes (Professional plan), multilingual banners and multi-domain management. The two lists below say exactly which features belong to which mode.
+= Two ways to use it =
 
-> Our Cookie Compliance web application introduces a more ethical, proactive way to capture and manage consent.  This early version of the emerging Intentional Consent framework is a result of Hu-manity.co’s ongoing work with top Fortune 500 companies, governments, and standards organizations, who believe that the imbalanced relationship between consumers and corporations is unsustainable when it comes to data privacy and consent online. We are making it available for all website owners and operators who share this belief and support our mission to eliminate the dark patterns in online consent.<br>
-> Matt Sinderbrand - Chief Platform Officer, Hu-manity.co
+* <strong>Banner Only mode</strong> works on its own, with no account. You get the consent banner and its settings.
+* <strong>Connected mode</strong> (free or paid) signs you in to Cookie Compliance from inside WordPress and adds automatic script blocking, purpose categories, consent records, Google Consent Mode, multilingual banners and multi-domain management.
 
-## Banner Only mode (this plugin on its own, no account)
-
-Cookie Compliance for WordPress provides a simple, customizable website banner to help your website comply with certain cookie consent requirements.
-
-= Banner features: =
+= Banner Only mode =
 
 * Customizable notice message
 * Consent on click, scroll or close
 * Multiple cookie expiry options
-* Link to Privacy Policy page
-* WordPress Privacy Policy page synchronization
+* Link to your Privacy Policy page, synchronized with the WordPress Privacy Policy page
 * WPML and Polylang compatible
 * SEO friendly
-* <strong>WP Consent API integration</strong> registers Cookie Compliance as the active Consent Management Platform under the [WP Consent API](https://wordpress.org/plugins/wp-consent-api/) when that free companion plugin is active — no account required — so cooperative plugins such as WooCommerce, Google Site Kit, Burst Statistics, WP Statistics, AddToAny and Pixel Manager for WooCommerce automatically gate themselves on the consent your visitors give in the banner.
+* <strong>WP Consent API integration</strong> registers Cookie Compliance as the active Consent Management Platform under the [WP Consent API](https://wordpress.org/plugins/wp-consent-api/) when that free companion plugin is active, so cooperative plugins such as WooCommerce, Google Site Kit, Burst Statistics, WP Statistics, AddToAny and Pixel Manager for WooCommerce follow the choice your visitors make in the banner — no account needed.
 
-## Connected mode (this plugin + the Cookie Compliance dashboard)
+= Connected mode =
 
-Signed in to Cookie Compliance, on a free or paid plan, you get access to the most up-to-date formatting guidelines and technical compliance requirements for over 100 countries and legal jurisdictions.
+Signed in to Cookie Compliance, on a free or paid plan, you also get:
 
-= Banner features: =
+* <strong>Intentional Consent</strong> — three equal buttons that let visitors accept none, some or all cookies through packaged Data Access Levels. Supports the equal-choice principle in GDPR and other data protection laws.
+* <strong>Cookie purpose categories</strong> — visitors choose by category, supporting opt-in consent.
+* <strong>Consent duration selector</strong> — visitors control how long their consent lasts, in line with EU authority guidance of no more than 6 months.
+* <strong>Consent metrics</strong> — the visitor's consent record and a list of blocked and allowed third parties, shown in the banner. Reflects guidance from authorities such as CNIL (France) and the ICO (UK).
+* <strong>Customizable Privacy Paper and Privacy Contact</strong> — summarize your privacy notice and give visitors your privacy contact and links to data subject request forms, supporting the "informed" principle of valid consent.
+* <strong>Automatic script blocking</strong> — holds non-essential scripts and iframes until the visitor chooses. To be compliant, your site must record consent before setting or sending cookies.
+* <strong>Google Consent Mode v2</strong> (every plan) — adjusts how Google services (ad_storage, analytics_storage, ad_user_data, ad_personalization) behave according to visitor consent.
+* <strong>Facebook Consent Mode</strong> and <strong>Microsoft Consent Mode</strong> (Professional plan) — apply visitor choices to Meta and Microsoft advertising (UET) signals the same way.
+* <strong>Global Privacy Control (GPC) and Do Not Track</strong> — a visitor's browser-level opt-out is applied to the Marketing category as soon as the banner can read it, with no extra click.
+* <strong>Consent record storage</strong> — every consent is recorded and available for export, supporting proof-of-consent requirements.
+* <strong>Consent analytics dashboard</strong> — visits, a "trust score" and a consent activity graph, so you can tune the banner and track your acceptance rate.
+* <strong>Default configurations</strong> for GDPR, CCPA and more, ready to deploy and fully customizable to match your site.
+* <strong>Multilingual support</strong> — banner text is translated automatically, and you can customize every string.
+* <strong>Multidomain management</strong> — manage additional Free or Professional domains under one account, each with its own banner configuration and design.
 
-* <strong>Intentional Consent</strong> provides 3 equal buttons to give site visitors the ability to accept none, some, or all cookies through packaged choices called Data Access Levels. Data Access Levels improve consent conversion and eliminate the dark pattern of deceptive, non-equal choices in the first layer. <em>Complies with equal choice principle prescribed under GDPR and other data protection laws.</em>
-* <strong>Consent duration selector</strong> gives visitor control over how long their consent remains valid for your site.  <em>Enables your site to align with recent guidelines from EU Data Protection Authorities, which state that cookie consent should be valid for no longer than a period of 6 months.</em>
-* <strong>Cookie purpose categories</strong> make it easy for website visitors to customize their consent by category. <em>Complies with affirmative, opt-in consent requirements prescribed under GDPR and other data protection laws.</em>
-* <strong>Consent metrics</strong> displays the visitor's consent record and a list of blocked / allowed 3rd parties directly in the expanded level of the banner. <em>Complies with latest guidance from EU Data Protection Authorities like CNIL (France) and ICO (UK). </em>
-* <strong>Customizable Privacy Paper</strong> provides helpful information to improve visitor comprehension and understanding of the data sharing risks and benefits. Allows you to summarize core components of your sites privacy notice and <em>aligns with the informed principle prescribed by GDPR rules for valid consent capture. </em>
-* <strong>Configurable Privacy Contact</strong> allows you to provide contact information for a business’ data privacy admin, as well as helpful links to data subject request forms and other data privacy resources. <em>Aligns with the informed principle prescribed by GDPR rules for valid consent capture.</em>
+= Built for the laws that apply to you =
 
-= Cookie Compliance dashboard features: =
-
-* <strong>Consent analytics dashboard</strong> shows event data for number of visits and provides a “trust score” to help you track how site visitors are setting their consent. Make adjustments to your banner to improve your cookie acceptance rate and monitor progress via the consent activity graph.
-* <strong>Default configurations</strong> for GDPR, CCPA and more help to remove dark patterns and allow for quick and easy deployment of the consent banner without any guesswork. Customize the design of any default configuration to match the look and feel of your site.
-* <strong>Automatic script blocking</strong> blocks all non-essential cookie scripts and iFrames by default and <em>complies with valid consent rules under GDPR and other data protection laws</em>; in order to be compliant, your site must record visitor consent before setting or sending cookies.
-* <strong>Google Consent Mode v2</strong> ensures that your website can still gather valuable insights and perform effectively while respecting users' privacy preferences by <em>dynamically adjusting the behavior of Google services (ad_storage, analytics_storage, ad_user_data, ad_personalization) according to user consent.</em>
-* <strong>Facebook Consent Mode</strong> (Professional plan) allows your website to <em>measure the impact of your ads on Facebook</em>, track website activities and conversions and automatically deliver ads to Facebook if the user has agreed to.
-* <strong>Microsoft Consent Mode</strong> (Professional plan) holds Microsoft advertising (UET) signals until a visitor consents, then applies their choice automatically — the same way Google and Facebook consent modes do.
-* <strong>Global Privacy Control (GPC) & Do Not Track</strong> automatically applies a visitor's browser-level opt-out signal to the Marketing category as soon as the banner can read it — no visitor interaction required.
-* <strong>WP Consent API integration</strong> registers Cookie Compliance as the active Consent Management Platform under the [WP Consent API](https://wordpress.org/plugins/wp-consent-api/) — in Banner Only mode or connected — when that free companion plugin is active, so cooperative plugins such as WooCommerce, Google Site Kit, Burst Statistics, WP Statistics, AddToAny and Pixel Manager for WooCommerce automatically gate themselves on the consent your visitors give in the banner, with no extra configuration.
-* <strong>Consent record storage</strong> automatically stores a record of each consent and makes these records available for export. <em>Complies with proof-of-consent requirements prescribed under GDPR and other data protection laws.</em>
-* <strong>Multilingual support</strong> automatically translates all banner text strings and allows you to provide custom translations for every text field to ensure visitors get a consistent consent experience.
-* <strong>Multidomain management</strong> allows you to manage additional Free or Professional domains under a single account and enables you to customize banner configuration and design for each domain independently.
-
-= Cookie Compliance proactive approach: =
-
-For all businesses, the resources required to stay ahead of the latest regulations increases with the passage of each new law. With enforcement of compliance violations increasing daily, we believe it is critical for us as a trusted consent vendor to do everything in our power to help you stay ahead of these laws and remove the risk to your business
-
-<strong>Cookie Compliance covers all current and upcoming regulations:</strong>
-
-* GDPR (EU)
-* ePrivacy Directive (EU)
-* ePrivacy Regulation (EU)
-* PECR (UK)
-* LGPD (Brazil)
-* PIPEDA (Canada)
-* PDPB (India)
-* CCPA (California, US)
-* VCDPA (Virginia, US)
-* Colorado Privacy Act (US)
-* CPRA (California, US)
-
-<strong>Cookie Compliance incorporates all recent formatting guidance:</strong>
-
-* European Data Protection Supervisor (EDPS)
-* ICO (United Kingdom)
-* CNIL (France)
-* GPDP (Italy)
-* BfDl (Germany)
-* AEPD (Spain)
-* European Center for Digital Rights (noyb.eu)
-
-<strong>Cookie Compliance targets dark patterns</strong>
-
-Dark Patterns are user interface (UI) techniques that push site visitors to make decisions (such as agreeing to the installation of cookies on their devices) that they might not otherwise make. The most common Dark Pattern is the lack of an equal “reject all” button on the first layer of the consent notice. Dark Patterns are explicitly banned under GDPR and other data protection laws.
-
-As a part of our proactive approach, Cookie Compliance is configured by default to prevent Dark Patterns through our unique Intentional Consent design.
+Cookie Compliance gives you configurable defaults and technical controls for GDPR and the ePrivacy Directive (EU), PECR (UK), LGPD (Brazil), PIPEDA (Canada), CCPA and CPRA (California), VCDPA (Virginia) and the Colorado Privacy Act, and follows guidance from authorities including the EDPS, ICO, CNIL, GPDP (Italy), BfDI (Germany), AEPD (Spain) and noyb.eu. Whether your site is fully compliant depends on how you configure it and how your site uses personal data.
 
 == Installation ==
 
@@ -212,6 +169,9 @@ Yes. Point an MCP-capable assistant (Claude Code, Cursor, and others) at https:/
 4. Cookie Compliance settings
 
 == Changelog ==
+
+= 3.1.15 =
+* Docs: Refreshed the plugin page. Older version history now lives in changelog.txt. No change to your banner or settings.
 
 = 3.1.14 =
 * New: An Overview tab shows your protection status in plain words, your last 7 days of consents, and a one-click fix for anything that needs attention.
@@ -369,476 +329,9 @@ Yes. Point an MCP-capable assistant (Claude Code, Cursor, and others) at https:/
 * Improvement: Email-exists recovery flow guides users who try to register with an existing account.
 * Fix: Domain URL normalization on login prevents duplicate app registrations.
 
-= 2.5.16 =
-* Fix: Multisite with global override now correctly reads blocking data and cache-purge transients from network storage
-* Fix: Custom patterns and providers are now always included in huOptions regardless of autoblocking state
-
-= 2.5.15 =
-* Fix: Multisite with global override now correctly loads custom blocking patterns and providers on the frontend
-
-= 2.5.12 =
-* New: Added pull configuration option to sync on demand instead of waiting for cron
-
-= 2.5.11 =
-* Security: Enforce TLS verification for platform API requests.
-* Security: Require capability + nonce for cache purge and privacy consent/conditional rule AJAX handlers.
-* Tweak: Switch admin notice JS to vanilla to avoid jQuery conflicts and ensure notices can be closed.
-
-= 2.5.10 =
-* Fix: Make close icon keyboard-focusable (Enter/Space handler, tabindex, focus outline)
-* Fix: Ensure policy link uses href/target and data attrs so "Message" position opens correctly
-* Fix: Enqueue frontend JS when [cookies_revoke] shortcode is present to allow reopen links for logged-in sessions
-* Fix: Guard legacy options fallback to avoid PHP 8 fatal on non-array settings
-
-= 2.5.9 =
-* Security: Fixed Stored XSS vulnerability in [cookies_accepted] shortcode via HTML entity resurrection
-* New: Easy Digital Downloads privacy consent support
-* Fix: Improved bot detection and object cache compatibility
-
-= 2.5.8 =
-* New: Microsoft Clarity Consent API v2 support
-* Fix: Prevent loading banner in Beaver Builder
-* Fix: Improved bot detection and object cache compatibility
-* Fix: Close icon accessibility by switching to button
-
-= 2.5.7 =
-* New: Microsoft Consent Mode support
-* Tweak: Convert banner links to buttons (for accessibility)
-* Tweak: Improved compatibility with caching plugins
-* Fix: Displaying cookie notice in admin
-
-= 2.5.6 =
-* New: Added Form and Source columns to Privacy Consents table
-* Fix: WooCommerce render block issue
-* Tweak: Updated WooCommerce Blocks Checkout handling
-* Tweak: Disable Privacy Consent cupport when there are no forms available
-* Tweak: Updated Chart.js to 4.4.8
-
-= 2.5.5 =
-* New: Added Privacy Consent activity chart
-* Fix: Hummingbird caching plugin compatibility
-
-= 2.5.4 =
-* New: Option to handle all or selected forms in Privacy Consent
-* Fix: Undefined array key "form_type" when switching WooCommerce forms
-
-= 2.5.3 =
-* Fix: Undefined huOptions variable
-* Fix: Prevent loading Privacy Consent modules without Cookie Compliance
-* Tweak: Updated Chart.js to 4.4.6
-
-= 2.5.2 =
-* Fix: Fatal error on pages with embedded contact form 7 forms
-
-= 2.5.1 =
-* Fix: Missing one of the plugin files
-
-= 2.5.0 =
-* New: Introducing Privacy Consent
-* Tweak: UI updates for the Consent Logs page
-* Tweak: Onboarding screen UI improvements
-* Tweak: Switch from local to GMT time for consent logs display
-* Tweak: Admin menu reorganization
-
-= 2.4.18 =
-* Fix: Potential security issue with escaping textarea fields
-* Fix: Saving link target for Privacy Policy page
-* Fix: Force protocol for widget URL
-
-= 2.4.17 =
-* New: SpeedyCache caching plugin compatibility
-* New: Breeze caching plugin compatibility
-* Fix: Improved WP Rocket plugin compatibility
-* Fix: Improved Speed Optimize plugin compatibility
-* Fix: Network settings override switching
-* Tweak: Chart.js updated to 4.4.3
-
-= 2.4.16 =
-* New: Option to enable/disable bot detection
-* Fix: Typo in wp_die() function calls
-* Tweak: Improved escaping text strings
-
-= 2.4.15 =
-* New: Passing Google Consent default parameters (Cookie Compliance only)
-* Fix: Invalid Norwegian language locale code
-
-= 2.4.14 =
-* New: Google Consent V2 support (Cookie Compliance only)
-* New: Added scripts option to Compliance Settings
-
-= 2.4.13 =
-* Fix: Removed unneeded parameter from WP Fastest Cache compatibility fix
-
-= 2.4.12 =
-* New: WP Optimize caching plugin compatibility
-* Fix: WP Fastest Cache plugin compatibility
-
-= 2.4.11 =
-* New: Dedicated Consent Logs page
-* New: Google AMP support for Cookie Compliance
-* New: Settings navigation through tabs and menu items
-* Fix: Saving App ID/Key not working in edge cases
-* Tweak: Chart.js updated to 4.4.0
-
-= 2.4.10 =
-* New: Option to enable/disable caching compatibility
-* New: WP Fastest Cache plugin compatibility
-* Fix: Potential security issue with purging cache
-* Fix: Improved refreshing Compliance analytics data
-* Tweak: Chart.js updated to 4.3.2
-
-= 2.4.9 =
-* New: WP Rocket plugin compatibility
-* New: LiteSpeed Cache plugin compatibility
-* New: Google Consent Mode support (Cookie Compliance only)
-* New: Facebook Pixel Consent Mode support (Cookie Compliance only)
-
-= 2.4.8 =
-* New: Added Pages to Conditional display
-* Fix: Homepage display issue
-* Fix: Background color issue
-* Tweak: Improved WP Rocket support
-* Tweak: Improved SG Optimizer support
-
-= 2.4.7 =
-* New: Conditional display of the banner
-* Tweak: Improved sanitization and validation of data
-* Tweak: PHP 8.1 and 8.2 compatibility
-* Tweak: Added async attribute when autoblocking is disabled
-
-= 2.4.6 =
-* Fix: Cookie Compliance inactive status issue
-
-= 2.4.5 =
-* Tweak: Remove the notice from the Elementor page builder
-* Tweak: Remove the notice from widgets screen
-* Fix: Improved Contact Form 7 reCaptcha compatibility
-
-= 2.4.4 =
-* Fix: Undefined index: status and subscription
-
-= 2.4.3 =
-* Fix: Deprecated preg_replace() notice in PHP 8.1
-
-= 2.4.2 =
-* New: Compatibility with Autoptimize plugin
-* Fix: Improved Contact Form 7 reCaptcha support
-* Fix: Fixed non-static method cookies_set()
-
-= 2.4.1 =
-* New: Contact Form 7 reCaptcha support
-* Tweak: Switched health status from critical to recommended when Cookie Compliance is not integrated
-* Tweak: Add SimeSite=Lax for created cookies
-
-= 2.4.0 =
-* New: Advanced Multisite support
-* Fix: Polylang translation not working for shortcode
-* Fix: Parse error: syntax error, unexpected ‘[‘
-
-= 2.3.1 =
-* New: Option to run consent banner in debug mode
-* Fix: Invalid validation of dismissable notices
-
-= 2.3.0 =
-* New: Compliance Multi-license pricing options
-* Tweak: WordPress 6.0 compatibility
-
-= 2.2.3 =
-* Fix: Undefined notice in WP dashboard
-* Fix: Close icon event not firing
-* Tweak: Remove aria-label from the close icon
-* Tweak: CSS tweaks in the admin
-
-= 2.2.2 =
-* Fix: Uncrawlable close notice link
-* Tweak: WordPress 5.9 compatibility
-* Tweak: Prevent displaying the notice in an iframe
-* Tweak: Send site language to a web app on signup
-
-= 2.2.1 =
-* Fix: Missing variable definition in frontend
-
-= 2.2.0 =
-* New: Option to hide banner for logged in users (Compliance only)
-
-= 2.1.5 =
-* Tweak: Additional sanitization applied
-
-= 2.1.4 =
-* Fix: Wordpress 5.8 widgets compatibility
-
-= 2.1.3 =
-* Fix: HTML attributes removed from text strings
-* Tweak: Improved sanitization of options
-
-= 2.1.2 =
-* Tweak: Improved escaping of button labels
-
-= 2.1.1 =
-* Fix: Security bug related to compliance caching
-
-= 2.1.0 =
-* New: Introducing Cookie Compliance Free plan
-
-= 2.0.4 =
-* Fix: Undefined constant HOURS_IN_SECONDS
-* Fix: Button style none adding CSS classes "cn-set-cookie cn-button"
-* Tweak: Switched the behavior of close icon from accept to reject
-* Tweak: Minified frontend and admin js files
-
-= 2.0.3 =
-* Fix: Cookies accepted function issue when Compliance activated
-
-= 2.0.2 =
-* Tweak: UI/UX improvements
-
-= 2.0.1 =
-* Fix: Pending Compliance update blocking the notice
-* Fix: PHP Warning: Cannot modify header information
-* Tweak: UI/UX fixes for the settings screen
-
-= 2.0.0 =
-* New: Introducing Cookie Compliance for GDPR/CCPA
-
-= 1.3.2 =
-* Tweak: Speed up Corona Banner loading by moving JS file to footer with async parameter
-* Tweak: Improve buttons CSS padding
-* Tweak: Accessibility improvements on links
-
-= 1.3.1 =
-* Fix: Unable to select Privacy policy link
-* Fix: Blank Cookies policy link in a message
-* Fix: Undefined index: on_click
-* Tweak: Adjusted default opacity back to 100
-
-= 1.3.0 =
-* New: Introducing Corona Banner that displays data about Coronavirus pandemia and five steps recommended by the WHO (World Health Organization)
-* New: Option to set bar opacity
-* New: Accept the notice with close icon
-* Fix: Policy link added to message without policy option enabled
-
-= 1.2.51 =
-* Fix: Problems with iOS and OK/Reject button
-* Tweak: Added Separate cookie expiry for Reject, props Carlos Buchart
-
-= 1.2.50 =
-* Fix: The body css class always set to "cookies-refused"
-* Tweak: Improve IE & Safari CustomEvent and ClassList support
-* Tweak: Change the plugin js init event
-
-= 1.2.49 =
-* New: Option to accept the notice with any page click
-* Tweak: Remove jQuery dependency
-* Tweak: Swtich from jQuery to CSS3 animations
-* Tweak: Improve the CSS and HTML structure
-
-= 1.2.48 =
-* Fix: HTML tags stripped from cookie message
-* Fix: Link target not accepted in inline privacy link
-
-= 1.2.47 =
-* New: Option to select the privacy policy link position
-* Tweak: Do not relad the page on refuse button click
-* Tweak: Added aria-label attribute to cookie notice container
-
-= 1.2.46 =
-* Tweak: Remove WP Super Cache cookie on deactivation
-* Tweak: Remove plugin version from the db on deactivation
-
-= 1.2.45 =
-* Tweak: Improved WP Super Cache support
-* Tweak: CSS container style issue and media query for mobile
-
-= 1.2.44 =
-* Fix: The text of the revoke button ignored in shortcode
-* Fix: Revoke consent button not displayed automatically in top position
-* Tweak: Add shortcode parsing for content of [cookies_accepted], thanks to [dsturm](https://github.com/dsturm)
-
-= 1.2.43 =
-* New: Option to revoke the user consent
-* New: Script blocking extended to header and footer
-* New: Synchronization with WordPress 4.9.6 Privacy Policy page
-* New: Custom button class option
-* Tweak: Added 1 hour cookie expiry option
-
-= 1.2.42 =
-* New: Introducing [cookies_accepted][/cookies_accepted] shortcode
-* Fix: Infinite cookie expiry issue
-
-= 1.2.41 =
-* Fix: Infinite redirection loop with scroll enabled
-
-= 1.2.40 =
-* Fix: Div align center on some themes
-* Tweak: Extended list of allowed HTML tags in refuse code
-* Tweak: Minified CSS and JS
-
-= 1.2.39 =
-* New: Option to reload the page after cookies are accepted
-
-= 1.2.38 =
-* Tweak: Move frontend cookie js functions before the document ready call, thanks to [fgreinus](https://github.com/fgreinus)
-* Tweak: Adjust functional javascript code handling
-* Fix: Chhromium infinity expiration date not valid
-* Fix: Remove deprecated screen_icon() function
-
-= 1.2.37 =
-* Tweak: Add aria landmark role="banner"
-* Tweak: Extend cn_cookie_notice_args with button class
-
-= 1.2.36.1 =
-* Fix: Repository upload issue with 1.2.36
-
-= 1.2.36 =
-* Fix: String translation support for WMPL 3.2+
-* Fix: Global var possible conflict with other plugins
-* Tweak: Add $options array to "cn_cookie_notice_output" filter, thanks to [chesio](https://github.com/chesio).
-* Tweak: Removed local translation files in favor of WP repository translations.
-
-= 1.2.35 =
-* Tweak: Use html_entity_decode on non-functional code block
-* Tweak: get_pages() function placement optimization
-* Tweak: Filterable manage cookie notice capability
-
-= 1.2.34 =
-* Fix: Empty href in links HTML validation issue
-
-= 1.2.33 =
-* New: Greek translation thanks to Elias Stefanidis
-
-= 1.2.32 =
-* Fix: Accept cookie button hidden on acceptance instead of the cookie message container
-
-= 1.2.31 =
-* New: Non functional Javascript code field
-* Fix: Minified Javascript caching issue
-
-= 1.2.30 =
-* Fix: jQuery error after accepting cookies
-
-= 1.2.29 =
-* Tweak: Add class to body element when displayed
-* Tweak: Italian translation update
-
-= 1.2.28 =
-* New: Option to set on scroll offset
-
-= 1.2.27 =
-* Tweak: Correctly remove scroll event, limit possible conflicts
-* Tweak: Italian translation update
-
-= 1.2.26 =
-* Fix: Accept cookies on scroll option working unchecked.
-* Fix: call_user_func() warning on lower version of WP
-
-= 1.2.25 =
-* New: Option to accept cookies on scroll, thanks to [Cristian Pascottini](http://cristian.pascottini.net/)
-
-= 1.2.24 =
-* New: Option to refuse to accept cookies
-* New: setCookieNotice custom jQuery event
-* Tweak: Italian translation updated, thanks to Luca Speranza
-
-= 1.2.23 =
-* New: Finnish translation, thanks to [Daniel Storgards](www.danielstorgards.com)
-
-= 1.2.22 =
-* Tweak: Swedish translation updated, thx to Ove Kaufeldt
-
-= 1.2.21 =
-* New: Plugin development moved to [dFactory GitHub Repository](https://github.com/dfactoryplugins)
-* Tweak: Code cleanup
-
-= 1.2.20 =
-* New: Option to select scripts placement, header or footer
-
-= 1.2.19 =
-* New: Danish translation, thanks to Lui Wallentin Gottler
-
-= 1.2.18.1 =
-* Fix: Quick fix for 1.2.18 print_r in code
-
-= 1.2.18 =
-* New: More info link target option
-* Tweak: Additional HTML ids, for more flexible customization
-
-= 1.2.17 =
-* New: Hebrew translation, thanks to [Ahrale Shrem](http://atar4u.com/)
-
-= 1.2.16 =
-* Tweak: Dutch translation missing due to a typo
-
-= 1.2.15 =
-* New: Danish translation, thanks to Hans C. Jorgensen
-* Fix: Notice bar not visible if no animation selected
-
-= 1.2.14 =
-* New: Hungarian translation, thanks to [Surbma](http://surbma.hu)
-
-= 1.2.13 =
-* New: Croatian translation, thanks to [Marko Beus](http://www.markobeus.com/)
-
-= 1.2.12 =
-* New: Slovenian translation, thanks to Thomas Cuk
-
-= 1.2.11 =
-* New: Swedish translation, thanks to [Daniel Storgards](http://www.danielstorgards.com/)
-
-= 1.2.10 =
-* New: Italian translation, thanks to [Luca](http://www.lucacicca.it)
-* Tweak: Confirmed WP 4.0 compatibility
-
-= 1.2.9.1 =
-* Tweak: Enable HTML in cookie message text
-* New: Option to donate this plugin :)
-
-= 1.2.8 =
-* New: Czech translation, thanks to [Adam Laita](http://laita.cz)
-
-= 1.2.7 =
-* New: French translation, thanks to [Laura Orsal](http://www.traductrice-independante.fr)
-* New: Deleting plugin settings on deactivation as an option
-
-= 1.2.6 =
-* New: German translation, thanks to Alex Ernst
-
-= 1.2.5 =
-* New: Spanish translation, thanks to Fernando Blasco
-
-= 1.2.4 =
-* New: Added filter hooks to customize where and how display the cookie notice
-
-= 1.2.3 =
-* New: Portuguese translation, thanks to Luis Maia
-
-= 1.2.2 =
-* Fix: Read more linking to default site language in WPML & Polylang
-
-= 1.2.1 =
-* Tweak: UI improvements for WP 3.8
-
-= 1.2.0 =
-* Fix: Cookie not saving in IE
-* Fix: Notice hidden under Admin bar bug
-* Tweak: Improved WPML & Polylang compatibility
-
-= 1.1.0 =
-* New: Rewritten cookie setting method to pure JS
-* Fix: Compatibility with WP Super Cache and other caching plugins
-
-= 1.0.2 =
-* New: Dutch translation, thanks to Heleen van den Bos
-
-= 1.0.1 =
-* Tweak: Changed setting cookie mode from AJAX to JS driven
-
-= 1.0.0 =
-Initial release
+Older versions: see changelog.txt in the plugin folder.
 
 == Upgrade Notice ==
 
-= 2.5.12 =
-Added pull configuration option to sync on demand instead of waiting for cron
-
-= 2.5.11 =
-Security hardening (TLS verification, admin capability checks, nonce-protected cache purge) and improved admin notices closing without jQuery conflicts
+= 3.1.15 =
+Plugin page refresh only. No change to your banner or settings.
