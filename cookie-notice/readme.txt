@@ -3,8 +3,8 @@ Contributors: humanityco
 Tags: gdpr, compliance, cookies, privacy, google consent mode
 Requires at least: 4.9.6
 Requires PHP: 7.4
-Tested up to: 7.0
-Stable tag: 3.1.15
+Tested up to: 7.1
+Stable tag: 3.1.16
 License: MIT License
 License URI: http://opensource.org/licenses/MIT
 
@@ -169,6 +169,10 @@ Yes. Point an MCP-capable assistant (Claude Code, Cursor, and others) at https:/
 4. Cookie Compliance settings
 
 == Changelog ==
+
+= 3.1.16 =
+* Improvement: Simpler, more reliable privacy policy link. On connected sites, choose your policy page and turn on Sync to use it on your banner; set the link text in the Admin Portal. In Banner Only mode, the policy button always opens your policy.
+* Tested up to WordPress 7.1.
 
 = 3.1.15 =
 * Docs: Refreshed the plugin page. Older version history now lives in changelog.txt. No change to your banner or settings.

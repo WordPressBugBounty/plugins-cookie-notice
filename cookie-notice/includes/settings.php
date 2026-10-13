@@ -2452,12 +2452,13 @@ class Cookie_Notice_Settings {
 
 	/**
 	 * Point the WordPress privacy policy page at the banner's policy page, when synced.
+	 * With no page chosen (id 0) the site's existing privacy page is kept, never cleared.
 	 *
 	 * @param array $options Full (merged) options
 	 * @return void
 	 */
 	public function sync_privacy_policy_page( $options ) {
-		if ( $options['see_more_opt']['link_type'] === 'page' && $options['see_more_opt']['sync'] )
+		if ( $options['see_more_opt']['link_type'] === 'page' && $options['see_more_opt']['sync'] && (int) $options['see_more_opt']['id'] > 0 )
 			update_option( 'wp_page_for_privacy_policy', $options['see_more_opt']['id'] );
 	}
 
@@ -2470,6 +2471,9 @@ class Cookie_Notice_Settings {
 	public function append_policy_link_shortcode( $options ) {
 		if ( $options['see_more'] && $options['link_position'] === 'message' && strpos( $options['message_text'], '[cookies_policy_link' ) === false )
 			$options['message_text'] .= ' [cookies_policy_link]';
+		// Link position "banner": drop a bare trailing [cookies_policy_link] (left from "message" position; one the admin typed there is dropped too). Mid-message shortcodes and ones with attributes stay.
+		elseif ( $options['see_more'] && $options['link_position'] === 'banner' )
+			$options['message_text'] = rtrim( preg_replace( '/ \[cookies_policy_link\]\s*$/', '', $options['message_text'] ) );
 
 		return $options;
 	}

@@ -408,7 +408,7 @@
 
 			var cookieButtons = document.getElementsByClassName( 'cn-set-cookie' ),
 				revokeButtons = document.getElementsByClassName( 'cn-revoke-cookie' ),
-				linkButton = document.getElementById( 'cn-more-info' ),
+				linkButtons = this.noticeContainer.querySelectorAll( '.cn-more-info, .cn-privacy-policy-link' ),
 				closeButton = document.getElementById( 'cn-close-notice' );
 
 			// add effect class
@@ -455,23 +455,24 @@
 				} );
 			}
 			
-		// handle link button
-		if ( linkButton !== null ) {
-			linkButton.addEventListener( 'click', function ( e ) {
-				var linkUrl = this.dataset.linkUrl || this.getAttribute( 'href' );
-				var linkTarget = this.dataset.linkTarget || this.getAttribute( 'target' ) || '_self';
+			// handle link button
+			// the message shortcode link and the banner button can both be present
+			for ( var j = 0; j < linkButtons.length; j++ ) {
+				linkButtons[j].addEventListener( 'click', function ( e ) {
+					var linkUrl = this.dataset.linkUrl || this.getAttribute( 'href' );
+					var linkTarget = this.dataset.linkTarget || this.getAttribute( 'target' ) || '_self';
 
-				// only intercept when we have a destination
-				if ( ! linkUrl )
-					return;
+					// only intercept when we have a destination
+					if ( ! linkUrl )
+						return;
 
-				e.preventDefault();
-				// Chrome double click event fix
-				e.stopPropagation();
+					e.preventDefault();
+					// Chrome double click event fix
+					e.stopPropagation();
 
-				window.open( linkUrl, linkTarget );
-			} );
-		}
+					window.open( linkUrl, linkTarget );
+				} );
+			}
 
 		// handle close button
 		if ( closeButton !== null ) {
