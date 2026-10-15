@@ -88,10 +88,10 @@
 			"priority": 20,
 			"slot": "wpDashboard",
 			"condition": { "state": "free_under" },
-			"title": "Blocking is on, with gaps to close",
+			"title": "Blocking is on",
 			"gapLabel": "Free plan",
-			"description": "Close the gaps below to cover more of your ad stack.",
-			"cta": { "label": "Close all gaps with Pro \u2192", "action": "openWelcomeModal" },
+			"description": "Script blocking is on.",
+			"cta": { "label": "Upgrade to Pro \u2192", "action": "openWelcomeModal" },
 			"ctaSmall": "Unlimited visits \u00b7 every consent mode \u00b7 full consent history"
 		},
 		{

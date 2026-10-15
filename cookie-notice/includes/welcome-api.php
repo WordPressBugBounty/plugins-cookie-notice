@@ -39,6 +39,20 @@ class Cookie_Notice_Welcome_API {
 	const LOGIN_NEW_APP = '__new__';
 
 	/**
+	 * The privacy policy address this plugin last wrote to the banner from the settings save,
+	 * with the app it went to: [ 'app_id' => …, 'url' => … ]. Scoped like the app's other cached
+	 * rows (is_network_options()). See privacy_policy_url_push().
+	 */
+	const PRIVACY_URL_PUSHED = 'cookie_notice_privacy_policy_url_pushed';
+
+	/**
+	 * Last company country this site read or saved: [ 'code' => 'DE', 'name' => 'Germany' ].
+	 * The sign-in that can write the company lasts a day, so the laws screen still shows
+	 * the country after that token is gone. Scoped like the token (is_network_admin()).
+	 */
+	const COMPANY_COUNTRY = 'cookie_notice_company_country';
+
+	/**
 	 * Constructor.
 	 *
 	 * @return void
@@ -73,6 +87,8 @@ class Cookie_Notice_Welcome_API {
 			add_action( 'wp_ajax_cn_react_update_design', [ $this, 'react_update_design' ] );
 			add_action( 'wp_ajax_cn_react_save_banner_style', [ $this, 'react_save_banner_style' ] );
 			add_action( 'wp_ajax_cn_react_apply_languages', [ $this, 'react_apply_languages' ] );
+			add_action( 'wp_ajax_cn_react_company_country', [ $this, 'react_company_country' ] );
+			add_action( 'wp_ajax_cn_react_save_company_country', [ $this, 'react_save_company_country' ] );
 		}
 	}
 
@@ -736,8 +752,12 @@ class Cookie_Notice_Welcome_API {
 				if ( ! array_key_exists( 'text', $params ) )
 					$params['text'] = new stdClass();
 
-				// add privacy policy url
-				$params['text']->privacyPolicyUrl = get_privacy_policy_url();
+				// The new app's privacy policy link: WordPress's privacy policy page, never an
+				// empty value (no key at all when WordPress has none).
+				$privacy_policy_url = (string) get_privacy_policy_url();
+
+				if ( $privacy_policy_url !== '' )
+					$params['text']->privacyPolicyUrl = $privacy_policy_url;
 
 				// add translations if needed
 				if ( $locale_code[0] !== 'en' )
@@ -971,6 +991,11 @@ class Cookie_Notice_Welcome_API {
 
 				$options = [];
 
+				// The laws stored before this save and their scope, read by cn_laws below: a
+				// failed write puts them back (see the error return after the PATCH).
+				$prior_laws = null;
+				$law_scope  = false;
+
 				// loop through potential config form fields
 				foreach ( $fields as $field ) {
 					switch ( $field ) {
@@ -1071,7 +1096,17 @@ class Cookie_Notice_Welcome_API {
 							// shape — on single-site all three predicates give the same
 							// answer, and the bootstrap read the same wrong row back, so
 							// a save looked like it worked.
+							//
+							// The laws stored before this save are read first, from the same row:
+							// the law defaults below apply only to laws this save newly ticks. With an
+							// app connected the row is pulled fresh first, so laws changed in the Admin
+							// Portal since the last pull count; a pull that fails leaves the cached row,
+							// which is then used as it is. (DevMode mock IDs never reach the platform.)
+							if ( ! empty( $app_id ) && $this->get_write_request_type( $app_id ) !== 'devmode' )
+								$this->get_app_config( $app_id, true, true );
+
 							$law_scope      = $cn->is_network_options();
+							$prior_laws     = Cookie_Notice_Store::get( 'cookie_notice_app_regulations', [], $law_scope );
 							$saved_law_keys = array_keys( $new_options );
 
 							if ( $law_scope )
@@ -1080,14 +1115,29 @@ class Cookie_Notice_Welcome_API {
 								update_option( 'cookie_notice_app_regulations', $saved_law_keys );
 							// ── End regulations optimistic-write scope ───────────────
 
-							// GDPR & others
-							$options['config']['privacyPolicyLink'] = true;
+							// ── Newly ticked laws ────────────────────────────────────
+							// A law's defaults are applied when it is ticked, not on every save:
+							// "Defaults are applied, not locked — the user may change anything
+							// afterwards", as the Admin Portal applies them (only on the click that
+							// ticks a law) and the Designer API (only when an app is created). Re-
+							// saving the same laws writes none of them, so it no longer undoes what
+							// the customer changed since.
+							//
+							// With no app connected every posted law is new: there is no banner yet,
+							// and the transient below is what a new app is created with. So is a
+							// first save (nothing stored).
+							$ticked = empty( $app_id ) ? $new_options : array_diff_key( $new_options, array_flip( is_array( $prior_laws ) ? $prior_laws : [] ) );
 
-							// CCPA & Other US
-							if ( array_key_exists( 'ccpa', $options['regulations'] ) || array_key_exists( 'otherus', $options['regulations'] ) )
+							// ── Begin law defaults (newly ticked laws only) ──────────
+							// GDPR & others: any newly ticked law shows the privacy policy link.
+							if ( $ticked )
+								$options['config']['privacyPolicyLink'] = true;
+
+							// CCPA & Other US. Never written false: unticking them must not hide a
+							// Do Not Sell link the customer may still want (the Admin Portal does not
+							// either).
+							if ( array_key_exists( 'ccpa', $ticked ) || array_key_exists( 'otherus', $ticked ) )
 								$options['config']['dontSellLink'] = true;
-							else
-								$options['config']['dontSellLink'] = false;
 
 							// geolocationRules is intentionally NOT written here (OBS-28).
 							// Per-jurisdiction geolocation rules are owned by the Admin Portal.
@@ -1102,11 +1152,12 @@ class Cookie_Notice_Welcome_API {
 							//
 							// Opt-in consent laws (GDPR, UKPECR, LGPD, POPIA) require prior explicit
 							// consent — implied consent via scroll/click/close is not valid under any
-							// of these frameworks. Apply the strictest safe defaults when any are selected.
+							// of these frameworks. Apply the strictest safe defaults when any is newly
+							// ticked. Every check below is of the newly ticked laws ($ticked).
 							$opt_in_laws  = [ 'gdpr', 'ukpecr', 'lgpd', 'popia' ];
-							$has_opt_in   = ! empty( array_intersect( array_keys( $options['regulations'] ), $opt_in_laws ) );
-							$has_ccpa_us  = array_key_exists( 'ccpa', $options['regulations'] ) || array_key_exists( 'otherus', $options['regulations'] );
-							$has_pipeda   = array_key_exists( 'pipeda', $options['regulations'] );
+							$has_opt_in   = ! empty( array_intersect( array_keys( $ticked ), $opt_in_laws ) );
+							$has_ccpa_us  = array_key_exists( 'ccpa', $ticked ) || array_key_exists( 'otherus', $ticked );
+							$has_pipeda   = array_key_exists( 'pipeda', $ticked );
 
 							// Designer API config keys — sent via the existing patch_by_app PATCH call below.
 							if ( $has_opt_in ) {
@@ -1119,7 +1170,7 @@ class Cookie_Notice_Welcome_API {
 							}
 
 							// GDPR only: cookie walls (uiBlocking) are non-compliant per EDPB guidance.
-							if ( array_key_exists( 'gdpr', $options['regulations'] ) ) {
+							if ( array_key_exists( 'gdpr', $ticked ) ) {
 								$options['config']['uiBlocking'] = false;
 							}
 
@@ -1139,8 +1190,9 @@ class Cookie_Notice_Welcome_API {
 								if ( $is_pro || $existing_gpc ) {
 									$options['config']['gpcSupportMode'] = true;
 									// gpcBannerMode = 'passive' surfaces a brief, non-blocking notice
-									// when GPC is honored. Set explicitly so legacy apps whose
-									// persisted value is the old 'banner' default get reset.
+									// when GPC is honored. Only when CCPA / Other U.S. State Laws is
+									// newly ticked: an app that keeps its laws keeps its mode, so a
+									// re-save no longer resets an old 'banner' value.
 									$options['config']['gpcBannerMode'] = 'passive';
 								}
 							}
@@ -1231,8 +1283,13 @@ class Cookie_Notice_Welcome_API {
 								$options['config']['uiBlocking'] = true;
 							break;
 						
+						// Only when sent, as the value sent: the legacy welcome form sends 0 or 1
+						// (a hidden 0 ahead of its checkbox). The React law editors do not send
+						// it, so a laws save leaves revokeConsent to the newly ticked laws'
+						// defaults above, or as it is. After cn_laws, so the form's choice wins.
 						case 'cn_revoke_consent':
-							$options['config']['revokeConsent'] = isset( $_POST[$field] );
+							if ( isset( $_POST[$field] ) )
+								$options['config']['revokeConsent'] = (bool) (int) $_POST[$field];
 							break;
 					}
 				}
@@ -1296,16 +1353,26 @@ class Cookie_Notice_Welcome_API {
 							$patch_result = $this->request( 'quick_config', $patch_params );
 						}
 
-						// #2160: Surface API errors back to the caller
+						// #2160: Surface API errors back to the caller — an `error` key, or a reply
+						// whose own status is not 2xx (e.g. { status: 500, message }), as the other
+						// writes in this file read a reply's status.
 						$api_error = '';
 						if ( is_object( $patch_result ) && isset( $patch_result->error ) ) {
 							$api_error = $patch_result->error;
 						} elseif ( is_array( $patch_result ) && isset( $patch_result['error'] ) ) {
 							$api_error = $patch_result['error'];
+						} elseif ( is_object( $patch_result ) && isset( $patch_result->status ) && is_numeric( $patch_result->status ) && ( (int) $patch_result->status < 200 || (int) $patch_result->status > 299 ) ) {
+							$api_error = 'status ' . (int) $patch_result->status;
 						}
 
 						if ( ! empty( $api_error ) ) {
-							$response = [ 'error' => __( 'Your laws were saved locally but could not be applied to your live site. Please try again or visit the portal.', 'cookie-notice' ), 'apiSync' => false ];
+							// The laws stored before this save come back, at the same scope: the
+							// banner still has them, and the next save must see the same laws as
+							// newly ticked so their defaults are applied then.
+							if ( $prior_laws !== null )
+								Cookie_Notice_Store::set( 'cookie_notice_app_regulations', $prior_laws, $law_scope );
+
+							$response = [ 'error' => __( 'Your laws could not be applied to your live site. Please try again or visit the portal.', 'cookie-notice' ), 'apiSync' => false ];
 							break;
 						}
 
@@ -2375,8 +2442,12 @@ class Cookie_Notice_Welcome_API {
 			if ( ! array_key_exists( 'text', $params ) )
 				$params['text'] = new stdClass();
 
-			// add privacy policy url
-			$params['text']->privacyPolicyUrl = get_privacy_policy_url();
+			// The new app's privacy policy link: WordPress's privacy policy page, never an
+			// empty value (no key at all when WordPress has none).
+			$privacy_policy_url = (string) get_privacy_policy_url();
+
+			if ( $privacy_policy_url !== '' )
+				$params['text']->privacyPolicyUrl = $privacy_policy_url;
 
 			// add translations if needed
 			if ( $locale_code[0] !== 'en' )
@@ -2886,6 +2957,7 @@ class Cookie_Notice_Welcome_API {
 			// reads
 			'get_config', 'get_analytics', 'get_cookie_consent_logs', 'get_privacy_consent_logs',
 			'list_apps', 'get_token', 'get_customer', 'get_subscriptions',
+			'get_company_country', 'get_countries',
 			// bring a NEW app or session into existence rather than mutating a shared one
 			'register', 'login', 'app_create',
 			// the second step of a sign-in: no Bearer, no app, no change to anything shared
@@ -3289,6 +3361,39 @@ class Cookie_Notice_Welcome_API {
 						'Content-Type'	=> 'application/json; charset=utf-8'
 					]
 				);
+				break;
+
+			// Country list is public. The company's own country uses the app id and
+			// secret the plugin keeps, so it still works after the login token expires.
+			// The write is not in the safe list: a subsite on a shared app cannot change it.
+			case 'get_countries':
+				$api_url = $cn->get_url( 'account_api', '/api/account/company/country' );
+				$api_args['method'] = 'GET';
+				break;
+
+			case 'get_company_country':
+			case 'set_company_country':
+				$cred_id  = isset( $cn->options['general']['app_id'] ) ? (string) $cn->options['general']['app_id'] : '';
+				$cred_key = isset( $cn->options['general']['app_key'] ) ? (string) $cn->options['general']['app_key'] : '';
+
+				if ( $cred_id === '' || $cred_key === '' )
+					return [ 'error' => __( 'Connect this site to Cookie Compliance first, then choose the country.', 'cookie-notice' ) ];
+
+				$api_url = $cn->get_url( 'account_api', '/api/account/company/by-app' );
+				$api_args['headers']['app-id'] = $cred_id;
+				$api_args['headers']['app-secret-key'] = $cred_key;
+
+				if ( $request === 'set_company_country' ) {
+					$json = true;
+					$api_args['method'] = 'PUT';
+					$api_args['headers']['Content-Type'] = 'application/json; charset=utf-8';
+					$params = [
+						'CountryCode' => isset( $params['CountryCode'] ) ? $params['CountryCode'] : '',
+					];
+				} else {
+					$api_args['method'] = 'GET';
+					$params = [];
+				}
 				break;
 		}
 
@@ -5076,6 +5181,11 @@ class Cookie_Notice_Welcome_API {
 					// editors prefill their field with it. Display data for the admin, never
 					// read by the front end.
 					$design['dontSellUrl'] = isset( $utj->dontSellUrl ) && is_string( $utj->dontSellUrl ) ? $utj->dontSellUrl : '';
+
+					// The banner's privacy policy link (default language), read only: the
+					// connected Privacy Policy section shows it, and the Settings save writes the
+					// WordPress page only where it is empty or Sync is on (privacy_policy_url_push()).
+					$design['privacyPolicyUrl'] = isset( $utj->privacyPolicyUrl ) && is_string( $utj->privacyPolicyUrl ) ? $utj->privacyPolicyUrl : '';
 				}
 
 				if ( $network )
@@ -5287,6 +5397,248 @@ class Cookie_Notice_Welcome_API {
 	 *
 	 * @return void Dies on failure.
 	 */
+	/**
+	 * Laws screen: the company country, and the list to choose from.
+	 *
+	 * @return void
+	 */
+	public function react_company_country() {
+		$this->verify_react_request();
+		wp_send_json_success( $this->read_company_country() );
+	}
+
+	/**
+	 * Laws screen: store the chosen country on the company. The row stays afterwards.
+	 *
+	 * @return void
+	 */
+	public function react_save_company_country() {
+		$this->verify_react_request();
+		Cookie_Notice()->settings->verify_not_network_managed();
+		$this->save_company_country();
+	}
+
+	/**
+	 * Whether this site still has the app id and secret that identify its company.
+	 *
+	 * @return bool
+	 */
+	private function app_credentials_present() {
+		$general = Cookie_Notice()->options['general'];
+		$id      = isset( $general['app_id'] ) ? (string) $general['app_id'] : '';
+		$key     = isset( $general['app_key'] ) ? (string) $general['app_key'] : '';
+
+		return $id !== '' && $key !== '';
+	}
+
+	/**
+	 * The country the laws screen should show. Saving uses the app credentials, not the login token.
+	 *
+	 * @return array
+	 */
+	private function read_company_country() {
+		$remembered = $this->remembered_company_country();
+		$countries  = $this->request( 'get_countries' );
+		$rows       = $this->country_rows( $this->company_api_data( $countries ) );
+
+		if ( ! $rows ) {
+			return [
+				'canSave'     => false,
+				'countryCode' => $remembered['code'],
+				'countryName' => $remembered['name'],
+				'countries'   => [],
+				'message'     => __( 'Could not load the country list.', 'cookie-notice' ),
+			];
+		}
+
+		if ( ! $this->app_credentials_present() ) {
+			return [
+				'canSave'     => false,
+				'countryCode' => $remembered['code'],
+				'countryName' => $remembered['name'],
+				'countries'   => $rows,
+				'message'     => __( 'Connect this site to Cookie Compliance first, then choose the country.', 'cookie-notice' ),
+			];
+		}
+
+		$company = $this->request( 'get_company_country' );
+		$current = $this->company_api_data( $company );
+		$code    = strtoupper( trim( $this->company_text( $current, 'CountryCode' ) ) );
+		$name    = trim( $this->company_text( $current, 'Country' ) );
+
+		if ( $code === '' ) {
+			$code = $remembered['code'];
+			$name = $remembered['name'];
+		} else {
+			foreach ( $rows as $row ) {
+				if ( $row['code'] === $code ) {
+					$name = $row['name'];
+					break;
+				}
+			}
+
+			$this->remember_company_country( $code, $name );
+		}
+
+		return [
+			'canSave'     => true,
+			'countryCode' => $code,
+			'countryName' => $name,
+			'countries'   => $rows,
+			'message'     => '',
+		];
+	}
+
+	/**
+	 * Write the chosen country. The API names the company from the app credentials.
+	 *
+	 * @return void
+	 */
+	private function save_company_country() {
+		if ( ! $this->app_credentials_present() )
+			wp_send_json_error( [ 'error' => __( 'Connect this site to Cookie Compliance first, then choose the country.', 'cookie-notice' ) ] );
+
+		$code = isset( $_POST['country_code'] ) && is_string( $_POST['country_code'] )
+			? strtoupper( sanitize_text_field( wp_unslash( $_POST['country_code'] ) ) )
+			: '';
+
+		if ( ! preg_match( '/^[A-Z]{2}$/', $code ) )
+			wp_send_json_error( [ 'error' => __( 'Choose a country.', 'cookie-notice' ) ] );
+
+		$saved = $this->request( 'set_company_country', [ 'CountryCode' => $code ] );
+
+		if ( is_object( $saved ) && isset( $saved->status ) && (int) $saved->status === 403 )
+			wp_send_json_error( [ 'error' => $this->company_api_message( $saved ) ], 403 );
+
+		$data = $this->company_api_data( $saved );
+
+		if ( ! $data )
+			wp_send_json_error( [ 'error' => $this->company_api_message( $saved ) ] );
+
+		$name = trim( $this->company_text( $data, 'Country' ) );
+		$saved_code = strtoupper( trim( $this->company_text( $data, 'CountryCode' ) ) );
+
+		if ( $saved_code === '' )
+			$saved_code = $code;
+
+		$this->remember_company_country( $saved_code, $name );
+
+		wp_send_json_success( [
+			'canSave'     => true,
+			'countryCode' => $saved_code,
+			'countryName' => $name,
+		] );
+	}
+
+	/**
+	 * @param object|array $company
+	 * @param string       $key
+	 * @return string
+	 */
+	private function company_text( $company, $key ) {
+		$value = null;
+
+		if ( is_object( $company ) && isset( $company->$key ) )
+			$value = $company->$key;
+		elseif ( is_array( $company ) && isset( $company[ $key ] ) )
+			$value = $company[ $key ];
+
+		return is_scalar( $value ) ? trim( (string) $value ) : '';
+	}
+
+	/**
+	 * @param mixed $data The country-list payload.
+	 * @return array<int, array{code: string, name: string}>
+	 */
+	private function country_rows( $data ) {
+		if ( ! is_array( $data ) )
+			return [];
+
+		$rows = [];
+
+		foreach ( $data as $row ) {
+			if ( is_object( $row ) ) {
+				$code = isset( $row->CountryCode ) ? (string) $row->CountryCode : '';
+				$name = isset( $row->Name ) ? (string) $row->Name : '';
+			} elseif ( is_array( $row ) ) {
+				$code = isset( $row['CountryCode'] ) ? (string) $row['CountryCode'] : '';
+				$name = isset( $row['Name'] ) ? (string) $row['Name'] : '';
+			} else {
+				continue;
+			}
+
+			$code = strtoupper( trim( $code ) );
+			$name = trim( $name );
+
+			if ( $code === '' || $name === '' )
+				continue;
+
+			$rows[] = [ 'code' => $code, 'name' => $name ];
+		}
+
+		usort( $rows, function ( $a, $b ) {
+			return strcasecmp( $a['name'], $b['name'] );
+		} );
+
+		return $rows;
+	}
+
+	/**
+	 * @param mixed $result What request() returned.
+	 * @return mixed The data payload, or null.
+	 */
+	private function company_api_data( $result ) {
+		if ( ! is_object( $result ) || ! isset( $result->status ) || (int) $result->status !== 200 || ! isset( $result->data ) )
+			return null;
+
+		return $result->data;
+	}
+
+	/**
+	 * @param mixed $result What request() returned.
+	 * @return string
+	 */
+	private function company_api_message( $result ) {
+		if ( is_object( $result ) && isset( $result->message ) && is_string( $result->message ) && $result->message !== '' )
+			return $result->message;
+
+		if ( is_array( $result ) && isset( $result['error'] ) )
+			return (string) $result['error'];
+
+		return __( 'Unexpected error occurred. Please try again later.', 'cookie-notice' );
+	}
+
+	/**
+	 * @return array{code: string, name: string}
+	 */
+	private function remembered_company_country() {
+		$row = Cookie_Notice_Store::get( self::COMPANY_COUNTRY, [], Cookie_Notice()->is_network_admin() );
+
+		if ( ! is_array( $row ) )
+			return [ 'code' => '', 'name' => '' ];
+
+		return [
+			'code' => isset( $row['code'] ) && is_string( $row['code'] ) ? $row['code'] : '',
+			'name' => isset( $row['name'] ) && is_string( $row['name'] ) ? $row['name'] : '',
+		];
+	}
+
+	/**
+	 * @param string $code
+	 * @param string $name
+	 * @return void
+	 */
+	private function remember_company_country( $code, $name ) {
+		Cookie_Notice_Store::set(
+			self::COMPANY_COUNTRY,
+			[ 'code' => $code, 'name' => $name ],
+			Cookie_Notice()->is_network_admin()
+		);
+	}
+
+	/**
+	 * @return void Dies on failure.
+	 */
 	private function verify_react_request() {
 		check_ajax_referer( 'cn_react_nonce', 'nonce' );
 
@@ -5316,16 +5668,17 @@ class Cookie_Notice_Welcome_API {
 	}
 
 	/**
-	 * AJAX: Push design updates to Designer API via quick_config.
+	 * AJAX: Push design / config updates to the app's banner (the by-app PATCH, quick_config
+	 * when the app has no design record yet).
 	 *
 	 * POST fields: design[position], design[displayType], design[bannerColor], etc.;
-	 * sync_privacy_policy=1 alone refreshes the banner's privacy policy link and nothing else
-	 * (the connected Settings save, PluginSettings.jsx).
+	 * sync_privacy_policy=1 is the connected Settings save (PluginSettings.jsx): it may write the
+	 * banner's privacy policy link and nothing else — see privacy_policy_url_push() for when.
+	 * No other write carries text.privacyPolicyUrl: the link is the Admin Portal's unless the
+	 * customer turned on "Sync with WordPress Privacy Page".
 	 * Requires connected app (app_id in WP options).
 	 *
-	 * Every write carries text.privacyPolicyUrl = get_privacy_policy_url(), but only when
-	 * WordPress has a privacy policy page: an empty value would wipe the link set in the
-	 * Admin Portal. A request left with nothing to send makes no request.
+	 * A request left with nothing to send makes no request.
 	 *
 	 * @return void
 	 */
@@ -5504,19 +5857,21 @@ class Cookie_Notice_Welcome_API {
 			'AppID'           => $app_id,
 			'DefaultLanguage' => 'en',
 		];
-		// The WordPress privacy policy page, never an empty one (see the docblock).
-		$privacy_policy_url = (string) get_privacy_policy_url();
-		if ( $privacy_policy_url !== '' )
-			$params['text'] = (object) [ 'privacyPolicyUrl' => $privacy_policy_url ];
+		// The privacy policy link: the Settings save only, and only when it is due.
+		// DevMode mock IDs never reach the platform, so nothing is checked or recorded for them.
+		$policy_push = $sync_policy && $this->get_write_request_type( $app_id ) !== 'devmode' ? $this->privacy_policy_url_push( $app_id ) : null;
+
+		if ( $policy_push )
+			$params['text'] = (object) [ 'privacyPolicyUrl' => $policy_push['url'] ];
 		if ( ! empty( (array) $design ) )
 			$params['design'] = $design;
 		if ( ! empty( (array) $config ) )
 			$params['config'] = $config;
 
-		// Nothing to send (e.g. the privacy policy refresh on a site with no privacy policy
-		// page): no request, no pull.
+		// Nothing to send (e.g. a Settings save with no privacy policy link due): no request,
+		// no pull. The Settings save is told the link the banner uses, as last pulled.
 		if ( ! isset( $params['text'] ) && ! isset( $params['design'] ) && ! isset( $params['config'] ) ) {
-			wp_send_json_success( [ 'status' => 200, 'skipped' => true, 'banner' => $cn->get_banner_summary() ] );
+			wp_send_json_success( [ 'status' => 200, 'skipped' => true, 'banner' => $cn->get_banner_summary() ] + $this->pulled_privacy_policy_url_reply( $sync_policy ) );
 			return;
 		}
 
@@ -5553,10 +5908,16 @@ class Cookie_Notice_Welcome_API {
 			// Updates cookie_notice_app_blocking (GCM/GPC signal maps),
 			// fires cn_configuration_updated → clears page caches.
 			// Does NOT set cookie_notice_config_update transient (widget CDN cache).
+			//
+			// The privacy policy link this write carried is recorded first, and only now that
+			// the platform took it: a failed write leaves the record, so the next save retries.
+			if ( $policy_push && $policy_push['record'] )
+				Cookie_Notice_Store::set( self::PRIVACY_URL_PUSHED, [ 'app_id' => $app_id, 'url' => $policy_push['url'] ], $cn->is_network_options(), false );
+
 			$this->get_app_config( $app_id, true, true );
 
 			// After the pull: the banner as the pull left it (React's store adopts it, api/index.js).
-			wp_send_json_success( [ 'status' => 200, 'banner' => $cn->get_banner_summary() ] );
+			wp_send_json_success( [ 'status' => 200, 'banner' => $cn->get_banner_summary() ] + $this->pulled_privacy_policy_url_reply( $sync_policy ) );
 		} else {
 			$error = 'Design update failed.';
 
@@ -5573,6 +5934,80 @@ class Cookie_Notice_Welcome_API {
 
 			wp_send_json_error( [ 'error' => $error, 'apiSync' => false ] );
 		}
+	}
+
+	/**
+	 * The privacy policy link the connected Settings save writes to the banner, if any.
+	 *
+	 * The link is the Admin Portal's. The plugin writes WordPress's privacy policy address
+	 * (get_privacy_policy_url()), never an empty one, in two cases only:
+	 *
+	 *   Sync   "Sync with WordPress Privacy Page" is on with a page chosen (the test
+	 *          Settings::sync_privacy_policy_page() writes the WordPress page by) and the
+	 *          address differs from the one this plugin last wrote to this app — so when the
+	 *          page changes or Sync is turned on, never on every save. The caller records it
+	 *          (PRIVACY_URL_PUSHED) only once the write returns 200.
+	 *   Empty  whatever the Sync setting, the banner has no address in its default language
+	 *          (the last pull read an empty one), so a site whose only link came from the
+	 *          plugin keeps one. Pulled again first; written only if still empty. Never
+	 *          pulled (no key) is not empty.
+	 *
+	 * A save that leaves Sync off forgets the record, so turning Sync on again writes the
+	 * page even when its address has not changed.
+	 *
+	 * @param string $app_id The app written to.
+	 * @return array|null [ 'url' => string, 'record' => bool ], or null: nothing to write.
+	 */
+	private function privacy_policy_url_push( $app_id ) {
+		$cn      = Cookie_Notice();
+		$network = $cn->is_network_options();
+		$opt     = $cn->options['general']['see_more_opt'];
+		$sync    = ( $opt['link_type'] ?? '' ) === 'page' && ! empty( $opt['sync'] ) && (int) ( $opt['id'] ?? 0 ) > 0;
+		$url     = (string) get_privacy_policy_url();
+
+		if ( ! $sync )
+			Cookie_Notice_Store::delete( self::PRIVACY_URL_PUSHED, $network );
+
+		if ( $url === '' )
+			return null;
+
+		if ( $sync ) {
+			$last = Cookie_Notice_Store::get( self::PRIVACY_URL_PUSHED, [], $network );
+
+			if ( ! is_array( $last ) || ( $last['app_id'] ?? '' ) !== $app_id || ( $last['url'] ?? '' ) !== $url )
+				return [ 'url' => $url, 'record' => true ];
+		}
+
+		if ( $this->pulled_privacy_policy_url() !== '' )
+			return null;
+
+		$this->get_app_config( $app_id, true, true );
+
+		return $this->pulled_privacy_policy_url() === '' ? [ 'url' => $url, 'record' => $sync ] : null;
+	}
+
+	/**
+	 * The banner's privacy policy address in its default language, as the last config pull read
+	 * it (get_app_config(): cookie_notice_app_design.privacyPolicyUrl).
+	 *
+	 * @return string|null null when no pull has read it.
+	 */
+	private function pulled_privacy_policy_url() {
+		$design = Cookie_Notice_Store::get( 'cookie_notice_app_design', [], Cookie_Notice()->is_network_options() );
+
+		return is_array( $design ) && isset( $design['privacyPolicyUrl'] ) && is_string( $design['privacyPolicyUrl'] ) ? $design['privacyPolicyUrl'] : null;
+	}
+
+	/**
+	 * The Settings save's reply field: the address the banner links to, read only on screen.
+	 *
+	 * @param bool $sync_policy Whether this is the Settings save.
+	 * @return array [ 'privacyPolicyUrl' => string ], or [] when not the Settings save or never pulled.
+	 */
+	private function pulled_privacy_policy_url_reply( $sync_policy ) {
+		$url = $sync_policy ? $this->pulled_privacy_policy_url() : null;
+
+		return $url === null ? [] : [ 'privacyPolicyUrl' => $url ];
 	}
 
 	/**

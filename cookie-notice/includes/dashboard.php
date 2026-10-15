@@ -265,8 +265,32 @@ class Cookie_Notice_Dashboard {
 			// predicate here carried a surplus is_network_admin() conjunct, so a subsite
 			// read a row the pull never writes and every counter came back 0.
 			$analytics = Cookie_Notice_Store::get( 'cookie_notice_app_analytics', [], $cn->is_network_options() );
+			$chartdata = $this->activity_charts( $analytics );
+		}
 
-			$line_options = [
+		// prepare script data
+		$script_data = [
+			'ajaxURL'	=> admin_url( 'admin-ajax.php' ),
+			'charts'	=> $chartdata
+		];
+
+		wp_add_inline_script( 'cookie-notice-admin-dashboard', 'var cnDashboardArgs = ' . wp_json_encode( $script_data ) . ";\n", 'before' );
+	}
+
+	/**
+	 * The two 30-day charts the dashboard widget and the Overview tab both draw.
+	 *
+	 * Each label is one complete day before today (today is left out). A row whose day
+	 * is not among those thirty is dropped. Overview receives this same array.
+	 *
+	 * @param array $analytics The cookie_notice_app_analytics row.
+	 * @return array Chart configs, keyed consent-activity and privacy-consent-logs-activity.
+	 */
+	public function activity_charts( $analytics ) {
+		if ( ! is_array( $analytics ) )
+			$analytics = [];
+
+		$line_options = [
 				'maintainAspectRatio'	=> false,
 				'responsive'			=> true,
 				'scales'				=> [
@@ -391,16 +415,9 @@ class Cookie_Notice_Dashboard {
 				}
 			}
 
-			$chartdata['privacy-consent-logs-activity']['data'] = $privacy_consent_logs_activity_data;
-		}
+		$chartdata['privacy-consent-logs-activity']['data'] = $privacy_consent_logs_activity_data;
 
-		// prepare script data
-		$script_data = [
-			'ajaxURL'	=> admin_url( 'admin-ajax.php' ),
-			'charts'	=> $chartdata
-		];
-
-		wp_add_inline_script( 'cookie-notice-admin-dashboard', 'var cnDashboardArgs = ' . wp_json_encode( $script_data ) . ";\n", 'before' );
+		return $chartdata;
 	}
 
 	/**
@@ -543,6 +560,13 @@ class Cookie_Notice_Dashboard {
 		$microsoft_cm = ! empty( $blocking['microsoft_consent_default'] ) && is_array( $blocking['microsoft_consent_default'] );
 		$gpc          = ! empty( $blocking['gpc_support'] );
 
+		// CCPA and the other US state laws are the ones that expect a GPC signal.
+		// PIPEDA is opt-out too, and it is not one of them — same pair the settings
+		// card uses. A site that has not selected either is not failing by leaving
+		// GPC off.
+		$regulations = Cookie_Notice_Store::get( 'cookie_notice_app_regulations', [], $cn->is_network_options() );
+		$us_law      = is_array( $regulations ) && ! empty( array_intersect( $regulations, [ 'ccpa', 'otherus' ] ) );
+
 		// usage — object vs array vs root-only threshold: see read_cycle_usage_counters()
 		$counters  = $cn->welcome_api->read_cycle_usage_counters( $analytics );
 		$threshold = $counters['threshold'];
@@ -639,6 +663,7 @@ class Cookie_Notice_Dashboard {
 			'facebook_cm'    => $facebook_cm,
 			'microsoft_cm'   => $microsoft_cm,
 			'gpc'            => $gpc,
+			'us_law'         => $us_law,
 			'threshold'      => $threshold,
 			'visits'         => $visits,
 			'threshold_used' => $threshold_used,
@@ -797,8 +822,6 @@ class Cookie_Notice_Dashboard {
 	 */
 	protected function build_boxes( $state, $s ) {
 		$welcome_url = cn_get_welcome_url();
-
-		$pro_cta = [ 'label' => __( 'Turn on with Pro →', 'cookie-notice' ), 'url' => $welcome_url ];
 
 		$boxes = [];
 
@@ -970,13 +993,13 @@ class Cookie_Notice_Dashboard {
 		// ── End google consent mode box ──────────────────────────────────────
 
 		// ── Begin plan-scoped boxes ──────────────────────────────────────────
-		// Boxes 4 and 6 ask a PLAN question — "is this customer paying?" — so they read
-		// the tier, never the state. $state was a faithful plan proxy only while 'pro'
+		// Box 6 asks a PLAN question — "is this customer paying?" — so it reads the
+		// tier, never the state. $state was a faithful plan proxy only while 'pro'
 		// was the single Pro state; DEC-012 added engine_off and posture_gap, both of
 		// which a Pro customer reaches, and then `$state === 'pro'` started answering
 		// "no" about people who pay. build_hero() was given is_pro for exactly this and
-		// these were missed, so a Pro site with the blocking engine off rendered an
-		// upgrade pitch here and a "0 / 0 visits" bar in box 6.
+		// the visit box was missed, so a Pro site with the blocking engine off rendered
+		// a "0 / 0 visits" bar under a "Go unlimited →" CTA.
 		//
 		// Do NOT repair this by adding the two new names to the comparison. That is the
 		// patch this class already survived once — 8265ec5 fixed "never show 0 as the
@@ -984,15 +1007,30 @@ class Cookie_Notice_Dashboard {
 		// states re-opened it in the scorecard — and it breaks again on state number
 		// eight. The tier is the question; ask the tier.
 
-		// 4. Meta & Microsoft — green only for a paying plan with a mode configured.
-		// Consent-mode signalling reports what the visitor chose; it does not depend on
-		// the blocking engine, so this stays green with the engine off.
+		// 4. Meta & Microsoft — configured or not. Off is not a failure: plenty of
+		// sites run neither a Meta pixel nor a Microsoft tag, and painting "Off" red
+		// told those admins the missing signal was something they should turn on.
+		// Same rule as Google Consent Mode above. A site that does have one of those
+		// plugins is told under Next steps, from the detected-plugin list.
+		//
+		// Green only for a paying plan with a mode configured. The modes are Pro-only
+		// (Designer API downgradeLiveDefaults clears them on Free), and consent-mode
+		// signalling reports what the visitor chose — it does not depend on the
+		// blocking engine, so this stays green with the engine off. One mode on does
+		// not say the other is on.
 		if ( $s['tier'] === 'pro' && ( $s['facebook_cm'] || $s['microsoft_cm'] ) ) {
+			if ( $s['facebook_cm'] && $s['microsoft_cm'] )
+				$meta_value = __( 'On', 'cookie-notice' );
+			elseif ( $s['facebook_cm'] )
+				$meta_value = __( 'Meta only', 'cookie-notice' );
+			else
+				$meta_value = __( 'Microsoft only', 'cookie-notice' );
+
 			$boxes[] = [
 				'key'    => 'metams',
 				'title'  => __( 'Meta & Microsoft', 'cookie-notice' ),
 				'status' => 'ok',
-				'value'  => __( 'On', 'cookie-notice' ),
+				'value'  => $meta_value,
 				'pill'   => [ 'label' => __( 'On', 'cookie-notice' ), 'cls' => 'ok' ]
 			];
 		} elseif ( $state === 'banner_only' ) {
@@ -1007,11 +1045,9 @@ class Cookie_Notice_Dashboard {
 			$boxes[] = [
 				'key'    => 'metams',
 				'title'  => __( 'Meta & Microsoft', 'cookie-notice' ),
-				'status' => 'crit',
+				'status' => 'off',
 				'value'  => __( 'Off', 'cookie-notice' ),
-				'value_cls' => 'off',
-				'sub'    => esc_html__( 'Pixels uncovered', 'cookie-notice' ),
-				'cta'    => $pro_cta
+				'pill'   => [ 'label' => __( 'Not configured', 'cookie-notice' ), 'cls' => 'off' ]
 			];
 		}
 
@@ -1024,43 +1060,37 @@ class Cookie_Notice_Dashboard {
 				'value'  => __( 'Off', 'cookie-notice' ),
 				'pill'   => [ 'label' => __( 'Inactive', 'cookie-notice' ), 'cls' => 'off' ]
 			];
-		} elseif ( ! $s['blocking_engine'] || ( $s['tier'] !== 'pro' && $s['exceeded'] ) ) {
+		} elseif ( $s['gpc'] && ( ! $s['blocking_engine'] || ( $s['tier'] !== 'pro' && $s['exceeded'] ) ) ) {
 			// ── Begin GPC box engine gate ────────────────────────────────────
-			// This box is NOT plan-scoped, and that is the difference between it and
-			// boxes 4 and 6. Honouring Global Privacy Control means HOLDING scripts for
-			// a visitor who sends the signal, and app_blocking_engine off means nothing
-			// is held for anybody, in any region, whatever the visitor sends. So the
-			// answer here follows the engine and not the tier: a Pro site with the
-			// engine off is not honouring GPC, and printing "Honored · On" over it
-			// asserts we are doing something legally required that we are not doing.
+			// Only when the setting is ON. Paying does not turn GPC on, and a site
+			// that has not selected a US privacy law is not failing by leaving it
+			// off — those two are the branches below. This branch is what happens
+			// to a signal the site did switch on.
+			//
+			// Honouring it means HOLDING scripts for a visitor who sends the signal,
+			// and app_blocking_engine off means nothing is held for anybody. A Pro
+			// site with the engine off is not honouring GPC, and printing
+			// "Honored · On" over it asserts we are doing something we are not.
 			//
 			// BOTH conditions in one branch, and neither may be `$state`. An earlier
 			// revision had the quota case above as `$state === 'free_over'` and the
 			// engine case below it. derive_state() returns the FIRST state that applies
 			// and engine_off outranks free_over, so a Free site that was over quota AND
 			// had the engine off never reported free_over and was answered by the engine
-			// branch instead. Be precise about what that was: the severity it produced
-			// was the SAME warn this branch produces, so no site ever rendered wrongly
-			// because of it — the fix is that the box now says what it means. Asking
-			// $state is asking a lossy summary to re-answer a question it was derived
-			// from, and it only stays correct while derive_state()'s ordering does. Ask
-			// the signals: $s['exceeded'] is the quota verdict, $s['blocking_engine'] the
-			// master switch.
+			// branch instead. Asking $state is asking a lossy summary to re-answer a
+			// question it was derived from. Ask the signals: $s['exceeded'] is the quota
+			// verdict, $s['blocking_engine'] the master switch.
 			//
 			// The quota half is tier-guarded, exactly as the script-blocking box above
 			// is. threshold_exceeded() is a raw read of the stored platform row and is
 			// not plan-gated anywhere in the plugin, so a Pro site carrying a stale or
 			// spurious flag — left over from a Free period, or a platform quirk — would
 			// otherwise be told "Not honored · Off" about a plan that has no threshold
-			// to exceed. derive_state() is careful about this for the same reason (see
-			// its "Pro is decided on tier" note); reading the signal directly means
-			// carrying that care here rather than inheriting it.
+			// to exceed.
 			//
-			// Severity follows WHY nothing is held, because the two have different
-			// remedies and the hero already carries the headline. Quota is crit: it is
-			// the harsher message and the one with an upgrade path. Engine-off is warn,
-			// since the hero is already crit in that state (engine_off in $pres) and a
-			// second red box repeats it without adding anything.
+			// Severity follows WHY nothing is held. Quota is crit: it is the harsher
+			// message and the one with an upgrade path. Engine-off is warn, since the
+			// hero is already crit in that state and a second red box repeats it.
 			// ── End GPC box engine gate ──────────────────────────────────────
 			$engine_off = ! $s['blocking_engine'];
 
@@ -1074,7 +1104,7 @@ class Cookie_Notice_Dashboard {
 					: esc_html__( 'Not honored', 'cookie-notice' ),
 				'pill'   => [ 'label' => __( 'Off', 'cookie-notice' ), 'cls' => $engine_off ? 'warn' : 'crit' ]
 			];
-		} elseif ( $s['tier'] === 'pro' || $s['gpc'] ) {
+		} elseif ( $s['gpc'] ) {
 			$boxes[] = [
 				'key'    => 'gpc',
 				'title'  => __( 'GPC signal', 'cookie-notice' ),
@@ -1082,7 +1112,10 @@ class Cookie_Notice_Dashboard {
 				'value'  => __( 'Honored', 'cookie-notice' ),
 				'pill'   => [ 'label' => __( 'On', 'cookie-notice' ), 'cls' => 'ok' ]
 			];
-		} else {
+		} elseif ( ! empty( $s['us_law'] ) ) {
+			// The setting is off and a US privacy law is selected. Same pair as the
+			// settings card (CCPA, other US states): that is the case where off is a
+			// gap. Every other site leaves it off without being told to turn it on.
 			$boxes[] = [
 				'key'    => 'gpc',
 				'title'  => __( 'GPC signal', 'cookie-notice' ),
@@ -1090,6 +1123,14 @@ class Cookie_Notice_Dashboard {
 				'value'  => __( 'Off', 'cookie-notice' ),
 				'sub'    => esc_html__( 'Not honored', 'cookie-notice' ),
 				'pill'   => [ 'label' => __( 'Recommended', 'cookie-notice' ), 'cls' => 'warn' ]
+			];
+		} else {
+			$boxes[] = [
+				'key'    => 'gpc',
+				'title'  => __( 'GPC signal', 'cookie-notice' ),
+				'status' => 'off',
+				'value'  => __( 'Off', 'cookie-notice' ),
+				'pill'   => [ 'label' => __( 'Not configured', 'cookie-notice' ), 'cls' => 'off' ]
 			];
 		}
 

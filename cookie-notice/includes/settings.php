@@ -466,7 +466,7 @@ class Cookie_Notice_Settings {
 			// take over. The help block fades in via pure-CSS animation after 5s
 			// (no JS needed — survives a fully-failed bundle). Inline styles, so
 			// a CSS-load failure doesn't make the fallback ugly.
-			$support_url = esc_url( $cn->get_url( 'host' ) );
+			$support_url = esc_url( $cn->get_url( 'host', '/#/support' ) );
 
 			echo '
 			<style id="cn-react-fallback-styles">
@@ -496,7 +496,7 @@ class Cookie_Notice_Settings {
 							<li>' . esc_html__( 'Try opening this page in a private/incognito window with extensions disabled.', 'cookie-notice' ) . '</li>
 						</ul>
 						<p class="cn-react-fallback__body" style="margin-top:12px;text-align:left;">' . sprintf(
-							/* translators: %s: link to the Hu-manity support dashboard */
+							/* translators: %s: link to the Support page in the Admin Portal */
 							esc_html__( 'If the issue persists, %s.', 'cookie-notice' ),
 							'<a href="' . $support_url . '" target="_blank" rel="noopener noreferrer">' . esc_html__( 'open the Hu-manity dashboard to contact support', 'cookie-notice' ) . '</a>'
 						) . '</p>
@@ -3161,10 +3161,13 @@ class Cookie_Notice_Settings {
 				// reads window.wp.i18n at call time, and wp_set_script_translations() below
 				// loads this locale's strings into that same instance. Drop the dependency and
 				// every label silently falls back to English with nothing in the console.
+				// Overview draws the same charts as the WP dashboard widget, with this build.
+				wp_register_script( 'cookie-notice-admin-chartjs', COOKIE_NOTICE_URL . '/assets/chartjs/chart.min.js', [], '4.5.1', true );
+
 				wp_enqueue_script(
 					Cookie_Notice::REACT_ADMIN_HANDLE,
 					$cn->get_url( 'react-admin' ),
-					[ 'wp-i18n' ],
+					[ 'wp-i18n', 'cookie-notice-admin-chartjs' ],
 					$react_ver,
 					true
 				);

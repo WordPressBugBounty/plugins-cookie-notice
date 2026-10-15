@@ -514,6 +514,7 @@ class Cookie_Notice_Welcome {
 													<label for="cn_on_scroll"><input id="cn_on_scroll" type="checkbox" name="cn_on_scroll" value="1"><span>' . esc_html__( 'Consent on Scroll', 'cookie-notice' ) . '</span></label>
 													<label for="cn_on_click"><input id="cn_on_click" type="checkbox" name="cn_on_click" value="1"><span>' . esc_html__( 'Consent on Click', 'cookie-notice' ) . '</span></label>
 													<label for="cn_ui_blocking"><input id="cn_ui_blocking" type="checkbox" name="cn_ui_blocking" value="1"><span>' . esc_html__( 'UI Blocking', 'cookie-notice' ) . '</span></label>
+													<input type="hidden" name="cn_revoke_consent" value="0">
 													<label for="cn_revoke_consent"><input id="cn_revoke_consent" type="checkbox" name="cn_revoke_consent" value="1" checked><span>' . esc_html__( 'Update consent', 'cookie-notice' ) . '</span></label>
 												</div>
 											</div>' . 

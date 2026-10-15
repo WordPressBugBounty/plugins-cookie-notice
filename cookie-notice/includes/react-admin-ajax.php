@@ -277,6 +277,8 @@ class Cookie_Notice_React_Admin_Ajax {
 			// Normal reply only — the empty replies (send_empty_dashboard()) make no claim.
 			'scorecard'        => $scorecard,
 			'consents7d'       => $this->compute_consents_7d( isset( $analytics_raw['consentActivities'] ) ? $analytics_raw['consentActivities'] : [] ),
+			// The dashboard widget's two 30-day charts, built by the same method.
+			'activityCharts'   => $cn->dashboard->activity_charts( is_array( $analytics_raw ) ? $analytics_raw : [] ),
 			// When THIS SITE last fetched the analytics row ('Y-m-d H:i:s', GMT, no zone),
 			// not how old the figures are. Label it "fetched", never "as of"; '' = never.
 			'analyticsFetchedAt' => isset( $analytics_raw['lastUpdated'] ) ? (string) $analytics_raw['lastUpdated'] : '',

@@ -25,7 +25,8 @@
 		document.addEventListener( 'destroy.hu', function ( e ) {
 			var customOptions = {};
 
-			var revoke_option = $( parent.document ).find( 'input[name="cn_revoke_consent"]' );
+			// The checkbox, not the hidden 0 the welcome form sends ahead of it when unticked.
+			var revoke_option = $( parent.document ).find( 'input[name="cn_revoke_consent"][type="checkbox"]' );
 
 			if ( revoke_option.length > 0 ) {
 				var value = $( revoke_option[0] ).is( ':checked' );
@@ -58,7 +59,7 @@
 				onScroll: $( parent.document ).find( 'input[name="cn_on_scroll"]' ),
 				onClick: $( parent.document ).find( 'input[name="cn_on_click"]' ),
 				uiBlocking: $( parent.document ).find( 'input[name="cn_ui_blocking"]' ),
-				revokeConsent: $( parent.document ).find( 'input[name="cn_revoke_consent"]' )
+				revokeConsent: $( parent.document ).find( 'input[name="cn_revoke_consent"][type="checkbox"]' )
 			};
 
 			$.each( checkboxFields, function ( key, items ) {
@@ -116,7 +117,7 @@
 				onScroll: $( parent.document ).find( 'input[name="cn_on_scroll"]' ),
 				onClick: $( parent.document ).find( 'input[name="cn_on_click"]' ),
 				uiBlocking: $( parent.document ).find( 'input[name="cn_ui_blocking"]' ),
-				revokeConsent: $( parent.document ).find( 'input[name="cn_revoke_consent"]' )
+				revokeConsent: $( parent.document ).find( 'input[name="cn_revoke_consent"][type="checkbox"]' )
 			};
 
 			$.each( checkboxFields, function ( key, items ) {

@@ -4,7 +4,7 @@ Tags: gdpr, compliance, cookies, privacy, google consent mode
 Requires at least: 4.9.6
 Requires PHP: 7.4
 Tested up to: 7.1
-Stable tag: 3.1.16
+Stable tag: 3.1.17
 License: MIT License
 License URI: http://opensource.org/licenses/MIT
 
@@ -169,6 +169,14 @@ Yes. Point an MCP-capable assistant (Claude Code, Cursor, and others) at https:/
 4. Cookie Compliance settings
 
 == Changelog ==
+
+= 3.1.17 =
+* New: The Overview tab now shows your last 30 days of consent activity, the same charts as the WordPress dashboard widget.
+* New: On connected sites, Cookie Consent lets you set your company's country, saved to your Cookie Compliance account.
+* Fix: On connected sites, a privacy law's suggested settings apply when you first select that law. Later saves keep the banner choices you have made.
+* Fix: On the Overview tab, Meta, Microsoft, and Global Privacy Control show as optional when they are off. Global Privacy Control stays recommended for CCPA and other US state laws.
+* Fix: Support now opens in the Admin Portal with this domain already selected.
+* Improvement: Clearer banner and Privacy Consent screens. Standard and Compact appear with the New engine, "Can't see your banner?" sits with your banner, and Admin Portal links open this site.
 
 = 3.1.16 =
 * Improvement: Simpler, more reliable privacy policy link. On connected sites, choose your policy page and turn on Sync to use it on your banner; set the link text in the Admin Portal. In Banner Only mode, the policy button always opens your policy.
