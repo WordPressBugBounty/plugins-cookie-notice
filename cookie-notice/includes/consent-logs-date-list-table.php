@@ -23,7 +23,7 @@ class Cookie_Notice_Consent_Logs_Date_List_Table extends WP_List_Table {
 
 		$message = __( 'The table below shows the consent records from your website accumulated from the last thirty days.', 'cookie-notice' );
 		
-		$message .= ' ' . sprintf( __( 'View individual records by expanding a single row of data or sign in to the <a href="%s" target="_blank">Cookie Compliance</a> Admin Portal to export proof of consent.', 'cookie-notice' ), $login_url );
+		$message .= ' ' . sprintf( __( 'View individual records by expanding a single row of data or sign in to the <a href="%s" target="_blank">Cookie Compliance</a> dashboard to export proof of consent.', 'cookie-notice' ), $login_url );
 
 		// disable if basic plan and data older than 7 days
 		if ( $cn->get_subscription() === 'basic' )

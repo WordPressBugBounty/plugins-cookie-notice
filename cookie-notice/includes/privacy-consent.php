@@ -539,7 +539,7 @@ class Cookie_Notice_Privacy_Consent {
 					<div class="cn_compliance_status"><span class="cn-status-label">' . esc_html__( 'Connection', 'cookie-notice' ) . '</span>: <span class="cn-status cn-active"><span class="cn-icon"></span> ' . esc_html__( 'Connected', 'cookie-notice' ) . '</span></div>
 				</div>
 				<div id="cn_app_actions">
-					<a href="' . esc_url( $portal_url ) . '" class="button button-primary button-hero cn-button" target="_blank">' . esc_html__( 'Open Admin Portal', 'cookie-notice' ) . '</a>
+					<a href="' . esc_url( $portal_url ) . '" class="button button-primary button-hero cn-button" target="_blank">' . esc_html__( 'Open dashboard', 'cookie-notice' ) . '</a>
 				</div>';
 				break;
 
@@ -549,8 +549,8 @@ class Cookie_Notice_Privacy_Consent {
 					<div class="cn_compliance_status"><span class="cn-status-label">' . esc_html__( 'Connection', 'cookie-notice' ) . '</span>: <span class="cn-status cn-pending"><span class="cn-icon"></span> ' . esc_html__( 'Pending', 'cookie-notice' ) . '</span></div>
 				</div>
 				<div id="cn_app_actions">
-					<a href="' . esc_url( $portal_url ) . '" class="button button-primary button-hero cn-button" target="_blank">' . esc_html__( 'Open Admin Portal', 'cookie-notice' ) . '</a>
-					<p class="description">' . esc_html__( 'Sign in to the Cookie Compliance Admin Portal and complete the setup process.', 'cookie-notice' ) . '</p>
+					<a href="' . esc_url( $portal_url ) . '" class="button button-primary button-hero cn-button" target="_blank">' . esc_html__( 'Open dashboard', 'cookie-notice' ) . '</a>
+					<p class="description">' . esc_html__( 'Sign in to the Cookie Compliance dashboard and complete the setup process.', 'cookie-notice' ) . '</p>
 				</div>';
 				break;
 
@@ -560,7 +560,7 @@ class Cookie_Notice_Privacy_Consent {
 					<div class="cn_compliance_status"><span class="cn-status-label">' . esc_html__( 'Connection', 'cookie-notice' ) . '</span>: <span class="cn-status cn-inactive"><span class="cn-icon"></span> ' . esc_html__( 'Not confirmed', 'cookie-notice' ) . '</span></div>
 				</div>
 				<div id="cn_app_actions">
-					<a href="' . esc_url( $portal_url ) . '" class="button button-primary button-hero cn-button" target="_blank">' . esc_html__( 'Open Admin Portal', 'cookie-notice' ) . '</a>
+					<a href="' . esc_url( $portal_url ) . '" class="button button-primary button-hero cn-button" target="_blank">' . esc_html__( 'Open dashboard', 'cookie-notice' ) . '</a>
 				</div>';
 				break;
 

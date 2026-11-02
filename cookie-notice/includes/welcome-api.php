@@ -1530,7 +1530,7 @@ class Cookie_Notice_Welcome_API {
 		$methods   = $this->login_methods( $claims, $code_sent );
 
 		if ( ! $email || ! $methods )
-			return [ 'error' => esc_html__( 'Two-step verification is on for this account, but this plugin could not tell how to ask for the code. Connect with your App ID and App Secret Key from the Admin Portal.', 'cookie-notice' ) ];
+			return [ 'error' => esc_html__( 'Two-step verification is on for this account, but this plugin could not tell how to ask for the code. Connect with your App ID and App Secret Key from the Cookie Compliance dashboard.', 'cookie-notice' ) ];
 
 		// Signing in again must not be a way round the wrong-code limit.
 		if ( $this->login_locked_out( $email, $network ) ) {
@@ -5368,7 +5368,7 @@ class Cookie_Notice_Welcome_API {
 		// No design record: answered HTTP 200 with { status: 400, i18n_msg } — see above for why
 		// this does not fall back to quick_config.
 		if ( is_object( $result ) && isset( $result->i18n_msg ) && $result->i18n_msg === 'user_design_update_id_not_found' )
-			wp_send_json_error( [ 'error' => __( 'Publish your banner in the Admin Portal first, then choose a style.', 'cookie-notice' ) ] );
+			wp_send_json_error( [ 'error' => __( 'Publish your banner in the Cookie Compliance dashboard first, then choose a style.', 'cookie-notice' ) ] );
 
 		if ( ! is_object( $result ) || ! isset( $result->status ) || $result->status !== 200 ) {
 			$error = __( 'The banner style could not be saved. Please try again.', 'cookie-notice' );

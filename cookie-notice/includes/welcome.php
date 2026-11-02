@@ -406,7 +406,7 @@ class Cookie_Notice_Welcome {
 								<p>' . esc_html__( 'Sign in to your account and continue configuring your website.', 'cookie-notice' ) . '</p>
 							</div>
 							<div class="cn-buttons">
-								<a href="' . esc_url( $cn->get_url( 'host', '?utm_campaign=configure&utm_source=wordpress&utm_medium=button#/login' ) ) . '" class="cn-btn cn-btn-lg" target="_blank">' . esc_html__( 'Open Admin Portal', 'cookie-notice' ) . '</a>
+								<a href="' . esc_url( $cn->get_url( 'host', '?utm_campaign=configure&utm_source=wordpress&utm_medium=button#/login' ) ) . '" class="cn-btn cn-btn-lg" target="_blank">' . esc_html__( 'Open dashboard', 'cookie-notice' ) . '</a>
 							</div>
 						</div>
 					</div>

@@ -2008,15 +2008,10 @@ class Cookie_Notice_React_Admin_Ajax {
 				break;
 
 			case 'page':
-				$pages = get_pages( [ 'post_status' => [ 'publish', 'private', 'future' ] ] );
-				$front = (int) get_option( 'page_on_front' );
-				$blog  = (int) get_option( 'page_for_posts' );
-
-				foreach ( $pages as $page ) {
-					if ( $page->ID === $front || $page->ID === $blog ) {
-						continue;
-					}
-					$values[] = [ 'value' => (string) $page->ID, 'label' => $page->post_title ];
+				// The same list check_rule() validates a saved page rule against, so a page
+				// offered here is never dropped on save.
+				foreach ( Cookie_Notice()->settings->get_pages() as $page_id => $title ) {
+					$values[] = [ 'value' => (string) $page_id, 'label' => $title ];
 				}
 				break;
 

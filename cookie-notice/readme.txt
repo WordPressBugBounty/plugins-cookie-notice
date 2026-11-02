@@ -4,7 +4,7 @@ Tags: gdpr, compliance, cookies, privacy, google consent mode
 Requires at least: 4.9.6
 Requires PHP: 7.4
 Tested up to: 7.1
-Stable tag: 3.1.17
+Stable tag: 3.1.18
 License: MIT License
 License URI: http://opensource.org/licenses/MIT
 
@@ -159,7 +159,7 @@ No. Banner Only mode DOES NOT include technical compliance features such as auto
 Not by itself — it gives you what you need to configure it that way. Signed in to Cookie Compliance you get the technical compliance features — automatic script blocking, consent purpose categories and consent record storage — covering requirements for over 100 countries and legal jurisdictions. Whether your site is fully compliant depends on how you configure them and on how your site uses personal data.
 
 = Can I add Cookie Compliance with an AI assistant? =
-Yes. Point an MCP-capable assistant (Claude Code, Cursor, and others) at https://mcp.cookie-compliance.co/mcp — no account is required to start. On WordPress, keep using this plugin for placement rather than pasting a snippet. Details: https://cookie-compliance.co/mcp/
+Yes. Point an MCP-capable assistant (Claude Code, Cursor, and others) at https://mcp.cookie-compliance.co/mcp — no account is required to start. On WordPress, keep using this plugin for placement rather than pasting a snippet. Details: https://cookie-compliance.co/mcp/ — step-by-step platform recipes for AI coding assistants: https://manual.hu-manity.co/
 
 == Screenshots ==
 
@@ -169,6 +169,10 @@ Yes. Point an MCP-capable assistant (Claude Code, Cursor, and others) at https:/
 4. Cookie Compliance settings
 
 == Changelog ==
+
+= 3.1.18 =
+* Fix: On sites using Polylang, Conditional display lists pages in every language, and rules for those pages are kept when you save.
+* Improvement: The plugin now calls the Cookie Compliance web app your dashboard, the name you know it by.
 
 = 3.1.17 =
 * New: The Overview tab now shows your last 30 days of consent activity, the same charts as the WordPress dashboard widget.

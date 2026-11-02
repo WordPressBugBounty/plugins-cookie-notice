@@ -498,7 +498,7 @@ class Cookie_Notice_Settings {
 						<p class="cn-react-fallback__body" style="margin-top:12px;text-align:left;">' . sprintf(
 							/* translators: %s: link to the Support page in the Admin Portal */
 							esc_html__( 'If the issue persists, %s.', 'cookie-notice' ),
-							'<a href="' . $support_url . '" target="_blank" rel="noopener noreferrer">' . esc_html__( 'open the Hu-manity dashboard to contact support', 'cookie-notice' ) . '</a>'
+							'<a href="' . $support_url . '" target="_blank" rel="noopener noreferrer">' . esc_html__( 'open the Cookie Compliance dashboard to contact support', 'cookie-notice' ) . '</a>'
 						) . '</p>
 					</div>
 				</div>
@@ -1225,7 +1225,7 @@ class Cookie_Notice_Settings {
 					<div class="cn_compliance_status"><span class="cn-status-label">' . esc_html__( 'Cookie Consent Storage', 'cookie-notice' ) . '</span>: <span class="cn-status cn-active"><span class="cn-icon"></span> ' . esc_html__( 'Active', 'cookie-notice' ) . '</span></div>
 				</div>
 				<div id="cn_app_actions">
-					<a href="' . esc_url( $portal_url ) . '" class="button button-primary button-hero cn-button" target="_blank">' . esc_html__( 'Open Admin Portal', 'cookie-notice' ) . '</a>
+					<a href="' . esc_url( $portal_url ) . '" class="button button-primary button-hero cn-button" target="_blank">' . esc_html__( 'Open dashboard', 'cookie-notice' ) . '</a>
 				</div>';
 				break;
 
@@ -1238,8 +1238,8 @@ class Cookie_Notice_Settings {
 					<div class="cn_compliance_status"><span class="cn-status-label">' . esc_html__( 'Cookie Consent Storage', 'cookie-notice' ) . '</span>: <span class="cn-status cn-pending"><span class="cn-icon"></span> ' . esc_html__( 'Pending', 'cookie-notice' ) . '</span></div>
 				</div>
 				<div id="cn_app_actions">
-					<a href="' . esc_url( $portal_url ) . '" class="button button-primary button-hero cn-button" target="_blank">' . esc_html__( 'Open Admin Portal', 'cookie-notice' ) . '</a>
-					<p class="description">' . esc_html__( 'Sign in to the Cookie Compliance Admin Portal and complete the setup process.', 'cookie-notice' ) . '</p>
+					<a href="' . esc_url( $portal_url ) . '" class="button button-primary button-hero cn-button" target="_blank">' . esc_html__( 'Open dashboard', 'cookie-notice' ) . '</a>
+					<p class="description">' . esc_html__( 'Sign in to the Cookie Compliance dashboard and complete the setup process.', 'cookie-notice' ) . '</p>
 				</div>';
 				break;
 
@@ -1249,7 +1249,7 @@ class Cookie_Notice_Settings {
 					<div class="cn_compliance_status"><span class="cn-status-label">' . esc_html__( 'Connection', 'cookie-notice' ) . '</span>: <span class="cn-status cn-inactive"><span class="cn-icon"></span> ' . esc_html__( 'Not confirmed', 'cookie-notice' ) . '</span></div>
 				</div>
 				<div id="cn_app_actions">
-					<a href="' . esc_url( $portal_url ) . '" class="button button-primary button-hero cn-button" target="_blank">' . esc_html__( 'Open Admin Portal', 'cookie-notice' ) . '</a>
+					<a href="' . esc_url( $portal_url ) . '" class="button button-primary button-hero cn-button" target="_blank">' . esc_html__( 'Open dashboard', 'cookie-notice' ) . '</a>
 				</div>';
 				break;
 
@@ -1307,7 +1307,7 @@ class Cookie_Notice_Settings {
 					<div class="cn_compliance_status"><span class="cn-status-label">' . esc_html__( 'Privacy Consent Logs', 'cookie-notice' ) . '</span>: <span class="cn-status cn-active"><span class="cn-icon"></span> ' . esc_html__( 'Active', 'cookie-notice' ) . '</span></div>
 				</div>
 				<div id="cn_app_actions">
-					<a href="' . esc_url( $portal_url ) . '" class="button button-primary button-hero cn-button" target="_blank">' . esc_html__( 'Open Admin Portal', 'cookie-notice' ) . '</a>
+					<a href="' . esc_url( $portal_url ) . '" class="button button-primary button-hero cn-button" target="_blank">' . esc_html__( 'Open dashboard', 'cookie-notice' ) . '</a>
 				</div>';
 				break;
 
@@ -1318,8 +1318,8 @@ class Cookie_Notice_Settings {
 					<div class="cn_compliance_status"><span class="cn-status-label">' . esc_html__( 'Privacy Consent Logs', 'cookie-notice' ) . '</span>: <span class="cn-status cn-pending"><span class="cn-icon"></span> ' . esc_html__( 'Pending', 'cookie-notice' ) . '</span></div>
 				</div>
 				<div id="cn_app_actions">
-					<a href="' . esc_url( $portal_url ) . '" class="button button-primary button-hero cn-button" target="_blank">' . esc_html__( 'Open Admin Portal', 'cookie-notice' ) . '</a>
-					<p class="description">' . esc_html__( 'Sign in to the Cookie Compliance Admin Portal and complete the setup process.', 'cookie-notice' ) . '</p>
+					<a href="' . esc_url( $portal_url ) . '" class="button button-primary button-hero cn-button" target="_blank">' . esc_html__( 'Open dashboard', 'cookie-notice' ) . '</a>
+					<p class="description">' . esc_html__( 'Sign in to the Cookie Compliance dashboard and complete the setup process.', 'cookie-notice' ) . '</p>
 				</div>';
 				break;
 
@@ -1329,7 +1329,7 @@ class Cookie_Notice_Settings {
 					<div class="cn_compliance_status"><span class="cn-status-label">' . esc_html__( 'Connection', 'cookie-notice' ) . '</span>: <span class="cn-status cn-inactive"><span class="cn-icon"></span> ' . esc_html__( 'Not confirmed', 'cookie-notice' ) . '</span></div>
 				</div>
 				<div id="cn_app_actions">
-					<a href="' . esc_url( $portal_url ) . '" class="button button-primary button-hero cn-button" target="_blank">' . esc_html__( 'Open Admin Portal', 'cookie-notice' ) . '</a>
+					<a href="' . esc_url( $portal_url ) . '" class="button button-primary button-hero cn-button" target="_blank">' . esc_html__( 'Open dashboard', 'cookie-notice' ) . '</a>
 				</div>';
 				break;
 
@@ -3822,7 +3822,10 @@ class Cookie_Notice_Settings {
 			'suppress_filters'	=> false,
 			'no_found_rows'		=> true,
 			'cache_results'		=> false,
-			'post_status'		=> [ 'publish', 'private', 'future' ]
+			'post_status'		=> [ 'publish', 'private', 'future' ],
+			// a page rule may target a page in any language; multilingual plugins (e.g. Polylang)
+			// otherwise filter this by the current language and check_rule() drops the rest on save
+			'lang'				=> ''
 		];
 
 		// get static home pages
