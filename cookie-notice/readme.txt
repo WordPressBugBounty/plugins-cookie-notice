@@ -4,7 +4,7 @@ Tags: gdpr, compliance, cookies, privacy, google consent mode
 Requires at least: 4.9.6
 Requires PHP: 7.4
 Tested up to: 7.1
-Stable tag: 3.1.18
+Stable tag: 3.1.19
 License: MIT License
 License URI: http://opensource.org/licenses/MIT
 
@@ -169,6 +169,10 @@ Yes. Point an MCP-capable assistant (Claude Code, Cursor, and others) at https:/
 4. Cookie Compliance settings
 
 == Changelog ==
+
+= 3.1.19 =
+* Fix: When you connect the plugin to a different site in your Cookie Compliance account, the banner uses the new site's rules from the first page view, not the previous site's.
+* Fix: Terms of Service links in setup and checkout open the current terms on cookie-compliance.co. Also fixed Forgot password link.
 
 = 3.1.18 =
 * Fix: On sites using Polylang, Conditional display lists pages in every language, and rules for those pages are kept when you save.

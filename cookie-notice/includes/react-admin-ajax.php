@@ -1768,6 +1768,22 @@ class Cookie_Notice_React_Admin_Ajax {
 			$cn->options['general']['app_id']  = $new_app_id;
 			$cn->options['general']['app_key'] = $new_app_key;
 
+			// Stale the cached posture snapshot BEFORE the pull, so the app being left can never
+			// seed its rules ( geolocation, the region matrix, countryExceptions ) into the new
+			// app's pages. frontend.php seeds banner_config only while the row's lastUpdated is
+			// under 12 hours old; a blank stamp reads stale. A successful pull rewrites the row
+			// with a fresh stamp; a failed one leaves it stale, so no posture is seeded and the
+			// cold pageview decides on the top-level posture until the live config arrives, as
+			// on any stale snapshot, never on the old app's rules.
+			//
+			// Only the stamp, so it fails closed: the row also carries the custom patterns and
+			// providers ( the New banner reads them only from the page ) and the Consent Mode
+			// maps, and the regulations row drives the WP Consent API regime. Deleting them
+			// would release trackers and consent categories on a failed pull, i.e. fail open.
+			// Success is detectable ( the pull rewrites the row with a new stamp only when the
+			// platform answered ), but staling first is simpler and is safe whatever the pull does.
+			$cn->welcome_api->stale_cached_posture( $network );
+
 			$app_data = $cn->welcome_api->get_app_config( $new_app_id, true, false );
 
 			// get_app_config() returns the status_data array normally, but can

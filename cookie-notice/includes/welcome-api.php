@@ -2670,6 +2670,27 @@ class Cookie_Notice_Welcome_API {
 	}
 
 	/**
+	 * Mark the cached posture snapshot stale, so frontend.php seeds none of it ( it seeds
+	 * banner_config only while lastUpdated is under 12 hours old; a blank stamp reads stale ).
+	 * Only the stamp: the rest of the row ( custom patterns and providers, the Consent Mode maps )
+	 * stays in force until the next successful pull rewrites the row with a fresh stamp.
+	 *
+	 * For the React admin's App ID change ( react-admin-ajax.php save_options() ). No row, no write.
+	 *
+	 * @param bool $network The save's scope.
+	 *
+	 * @return void
+	 */
+	public function stale_cached_posture( $network ) {
+		$blocking = Cookie_Notice_Store::get( 'cookie_notice_app_blocking', [], $network );
+
+		if ( is_array( $blocking ) && ! empty( $blocking['lastUpdated'] ) ) {
+			$blocking['lastUpdated'] = '';
+			Cookie_Notice_Store::set( 'cookie_notice_app_blocking', $blocking, $network );
+		}
+	}
+
+	/**
 	 * The reply when the site now uses the chosen app but its config has not come in.
 	 *
 	 * @return object

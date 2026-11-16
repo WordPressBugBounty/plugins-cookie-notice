@@ -1072,6 +1072,20 @@ class Cookie_Notice_Frontend {
 						$seeded[$structural_key] = $posture_config[$structural_key];
 				}
 
+				// countryExceptions ( { hold: [], hide: [] }, New engine ): per-country overrides
+				// applied on top of the matched region rule. Seeded so a site on this plugin
+				// version holds an excepted visitor's trackers from the FIRST pageview, not only
+				// once the live config lands; the portal offers exceptions only to installs that
+				// carry them from page one, and this version is the one it names (option A).
+				//
+				// Verbatim, like the matrix: the plugin holds no copy of the shape. The banner
+				// validates each list on its own, drops bad codes and never throws, so the only
+				// check here is the one that keeps a scalar off the page. Not tied to the
+				// geolocation gate above: with geolocation unseeded the banner ignores the
+				// exceptions, exactly as it ignores the matrix. A Classic (v1) banner never reads it.
+				if ( isset( $posture_config['countryExceptions'] ) && is_array( $posture_config['countryExceptions'] ) )
+					$seeded['countryExceptions'] = $posture_config['countryExceptions'];
+
 				if ( ! empty( $seeded ) )
 					$options['config'] = ! empty( $options['config'] ) && is_array( $options['config'] ) ? array_merge( $options['config'], $seeded ) : $seeded;
 			}
