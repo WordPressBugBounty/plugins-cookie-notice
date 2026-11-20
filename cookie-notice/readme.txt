@@ -4,11 +4,11 @@ Tags: gdpr, compliance, cookies, privacy, google consent mode
 Requires at least: 4.9.6
 Requires PHP: 7.4
 Tested up to: 7.1
-Stable tag: 3.1.19
+Stable tag: 3.1.20
 License: MIT License
 License URI: http://opensource.org/licenses/MIT
 
-Consent management for WordPress — GDPR, CCPA & ePrivacy, autoblocking, Google Consent Mode, Microsoft Consent Mode (Pro), GPC & WP Consent API.
+Cookie consent for GDPR, CCPA, ePrivacy: autoblocking, Google Consent Mode, Microsoft Consent Mode (Pro), GPC (Pro), WP Consent API.
 
 == Description ==
 
@@ -43,7 +43,8 @@ Signed in to Cookie Compliance, on a free or paid plan, you also get:
 * <strong>Automatic script blocking</strong> — holds non-essential scripts and iframes until the visitor chooses. To be compliant, your site must record consent before setting or sending cookies.
 * <strong>Google Consent Mode v2</strong> (every plan) — adjusts how Google services (ad_storage, analytics_storage, ad_user_data, ad_personalization) behave according to visitor consent.
 * <strong>Facebook Consent Mode</strong> and <strong>Microsoft Consent Mode</strong> (Professional plan) — apply visitor choices to Meta and Microsoft advertising (UET) signals the same way.
-* <strong>Global Privacy Control (GPC) and Do Not Track</strong> — a visitor's browser-level opt-out is applied to the Marketing category as soon as the banner can read it, with no extra click.
+* <strong>Global Privacy Control (GPC)</strong> (Professional plan) — a visitor's browser-level opt-out is applied to the Marketing category as soon as the banner can read it, with no extra click.
+* <strong>Do Not Track</strong> (every plan) — when you switch it on, the browser's Do Not Track signal is applied to the Marketing category.
 * <strong>Consent record storage</strong> — every consent is recorded and available for export, supporting proof-of-consent requirements.
 * <strong>Consent analytics dashboard</strong> — visits, a "trust score" and a consent activity graph, so you can tune the banner and track your acceptance rate.
 * <strong>Default configurations</strong> for GDPR, CCPA and more, ready to deploy and fully customizable to match your site.
@@ -78,6 +79,7 @@ If you create a Cookie Compliance account from the Welcome screen (or log into a
 
 * Account sign-up and sign-in, and registering your site as an application.
 * Fetching and updating your banner configuration.
+* Asking, with your site's application credentials, whether your account has an unused Professional license and, only when you choose to, assigning one to this site.
 * Fetching consent analytics and individual consent records shown in the Audit Trail.
 * Processing subscription payments (Professional plans only).
 
@@ -169,6 +171,10 @@ Yes. Point an MCP-capable assistant (Claude Code, Cursor, and others) at https:/
 4. Cookie Compliance settings
 
 == Changelog ==
+
+= 3.1.20 =
+* New: On connected Free sites, Domain Info tells you when your Cookie Compliance account has an unused paid license, and lets you apply it to this site in one click — no sign-in needed.
+* Fix: In the sign-up color options, Primary and Border now say what they color: Primary for switches that are on and the reopen button, Border for switches that are off.
 
 = 3.1.19 =
 * Fix: When you connect the plugin to a different site in your Cookie Compliance account, the banner uses the new site's rules from the first page view, not the previous site's.

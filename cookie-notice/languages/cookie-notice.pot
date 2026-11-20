@@ -2693,7 +2693,7 @@ msgid "Adjust the banner color scheme"
 msgstr ""
 
 #: includes/welcome.php:540
-msgid "Color of the buttons and interactive elements."
+msgid "Color of switches that are on and the reopen button."
 msgstr ""
 
 #: includes/welcome.php:541
@@ -2705,7 +2705,7 @@ msgid "Color of the body text."
 msgstr ""
 
 #: includes/welcome.php:543
-msgid "Color of the borders and inactive elements."
+msgid "Color of switches that are off."
 msgstr ""
 
 #: includes/welcome.php:544

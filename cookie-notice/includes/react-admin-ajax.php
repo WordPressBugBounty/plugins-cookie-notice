@@ -1769,7 +1769,7 @@ class Cookie_Notice_React_Admin_Ajax {
 			$cn->options['general']['app_key'] = $new_app_key;
 
 			// Stale the cached posture snapshot BEFORE the pull, so the app being left can never
-			// seed its rules ( geolocation, the region matrix, countryExceptions ) into the new
+			// seed its rules ( geolocation, the region matrix, geoRules / countryExceptions ) into the new
 			// app's pages. frontend.php seeds banner_config only while the row's lastUpdated is
 			// under 12 hours old; a blank stamp reads stale. A successful pull rewrites the row
 			// with a fresh stamp; a failed one leaves it stale, so no posture is seeded and the

@@ -1072,19 +1072,30 @@ class Cookie_Notice_Frontend {
 						$seeded[$structural_key] = $posture_config[$structural_key];
 				}
 
-				// countryExceptions ( { hold: [], hide: [] }, New engine ): per-country overrides
-				// applied on top of the matched region rule. Seeded so a site on this plugin
-				// version holds an excepted visitor's trackers from the FIRST pageview, not only
-				// once the live config lands; the portal offers exceptions only to installs that
-				// carry them from page one, and this version is the one it names (option A).
+				// Per-place rules ( New engine ), applied on top of the matched region rule, under
+				// two keys: geoRules ( { optIn, optOut, noBanner } ), seeded from 3.1.20, and its
+				// older name countryExceptions ( { hold: [], hide: [] } ), seeded since 3.1.19.
+				// The API keeps the two in step during the transition; a banner that knows
+				// geoRules prefers it, and older banners read only countryExceptions. Seeded so
+				// a named visitor's trackers are held from the FIRST pageview, not only once the
+				// live config lands; the portal offers these rules only to installs that carry
+				// them from page one.
 				//
-				// Verbatim, like the matrix: the plugin holds no copy of the shape. The banner
+				// geoRules may also carry a third list, optOut; it is seeded with the rest, but the
+				// banner ignores a seeded optOut and reads that list only from the Designer API's
+				// answer ( live or cached ), because opting a place out loosens blocking and the
+				// seed cannot tell yet whether a law or the site owner's country rules it out.
+				//
+				// Verbatim, like the matrix: the plugin holds no copy of either shape. The banner
 				// validates each list on its own, drops bad codes and never throws, so the only
-				// check here is the one that keeps a scalar off the page. Not tied to the
-				// geolocation gate above: with geolocation unseeded the banner ignores the
-				// exceptions, exactly as it ignores the matrix. A Classic (v1) banner never reads it.
-				if ( isset( $posture_config['countryExceptions'] ) && is_array( $posture_config['countryExceptions'] ) )
-					$seeded['countryExceptions'] = $posture_config['countryExceptions'];
+				// check here is the one that keeps a scalar off the page. Each key is seeded on
+				// its own, whether or not the other is present. Not tied to the geolocation gate
+				// above: with geolocation unseeded the banner ignores these rules, exactly as it
+				// ignores the matrix. A Classic (v1) banner never reads them.
+				foreach ( ['geoRules', 'countryExceptions'] as $place_key ) {
+					if ( isset( $posture_config[$place_key] ) && is_array( $posture_config[$place_key] ) )
+						$seeded[$place_key] = $posture_config[$place_key];
+				}
 
 				if ( ! empty( $seeded ) )
 					$options['config'] = ! empty( $options['config'] ) && is_array( $options['config'] ) ? array_merge( $options['config'], $seeded ) : $seeded;

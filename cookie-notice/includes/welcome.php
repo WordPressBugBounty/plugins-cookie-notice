@@ -538,10 +538,10 @@ class Cookie_Notice_Welcome {
 											<div class="cn-field cn-fieldset">
 												<label>' . esc_html__( 'Adjust the banner color scheme', 'cookie-notice' ) . '​:</label>
 												<div class="cn-checkbox-wrapper cn-color-picker-wrapper">
-													<label for="cn_color_primary"><input id="cn_color_primary" class="cn-color-picker" type="checkbox" name="cn_color_primary" value="#20c19e"><span>' . esc_html__( 'Color of the buttons and interactive elements.', 'cookie-notice' ) . '</span></label>
+													<label for="cn_color_primary"><input id="cn_color_primary" class="cn-color-picker" type="checkbox" name="cn_color_primary" value="#20c19e"><span>' . esc_html__( 'Color of switches that are on and the reopen button.', 'cookie-notice' ) . '</span></label>
 													<label for="cn_color_background"><input id="cn_color_background" class="cn-color-picker" type="checkbox" name="cn_color_background" value="#ffffff"><span>' . esc_html__( 'Color of the banner background.', 'cookie-notice' ) . '</span></label>
 													<label for="cn_color_text"><input id="cn_color_text" class="cn-color-picker" type="checkbox" name="cn_color_text" value="#434f58"><span>' . esc_html__( 'Color of the body text.', 'cookie-notice' ) . '</span></label>
-													<label for="cn_color_border"><input id="cn_color_border" class="cn-color-picker" type="checkbox" name="cn_color_border" value="#5e6a74"><span>' . esc_html__( 'Color of the borders and inactive elements.', 'cookie-notice' ) . '</span></label>
+													<label for="cn_color_border"><input id="cn_color_border" class="cn-color-picker" type="checkbox" name="cn_color_border" value="#5e6a74"><span>' . esc_html__( 'Color of switches that are off.', 'cookie-notice' ) . '</span></label>
 													<label for="cn_color_heading"><input id="cn_color_heading" class="cn-color-picker" type="checkbox" name="cn_color_heading" value="#434f58"><span>' . esc_html__( 'Color of the heading text.', 'cookie-notice' ) . '</span></label>
 													<label for="cn_color_button_text"><input id="cn_color_button_text" class="cn-color-picker" type="checkbox" name="cn_color_button_text" value="#ffffff"><span>' . esc_html__( 'Color of the button text.', 'cookie-notice' ) . '</span></label>
 												</div>

@@ -89,6 +89,8 @@ class Cookie_Notice_Welcome_API {
 			add_action( 'wp_ajax_cn_react_apply_languages', [ $this, 'react_apply_languages' ] );
 			add_action( 'wp_ajax_cn_react_company_country', [ $this, 'react_company_country' ] );
 			add_action( 'wp_ajax_cn_react_save_company_country', [ $this, 'react_save_company_country' ] );
+			add_action( 'wp_ajax_cn_react_license_slots', [ $this, 'react_license_slots' ] );
+			add_action( 'wp_ajax_cn_react_use_license_slot', [ $this, 'react_use_license_slot' ] );
 		}
 	}
 
@@ -1435,7 +1437,9 @@ class Cookie_Notice_Welcome_API {
 					$response = [
 						'success' => true,
 						'message' => esc_html__( 'Configuration synced successfully.', 'cookie-notice' ),
-						'timestamp' => ! empty( $blocking['lastUpdated'] ) ? $blocking['lastUpdated'] : ''
+						'timestamp' => ! empty( $blocking['lastUpdated'] ) ? $blocking['lastUpdated'] : '',
+						// the plan the pull stored: 'basic' (Free) or 'pro' (the license card reads it)
+						'subscription' => isset( $status_data['subscription'] ) ? $status_data['subscription'] : ''
 					];
 				} else {
 					$response = [
@@ -2978,7 +2982,7 @@ class Cookie_Notice_Welcome_API {
 			// reads
 			'get_config', 'get_analytics', 'get_cookie_consent_logs', 'get_privacy_consent_logs',
 			'list_apps', 'get_token', 'get_customer', 'get_subscriptions',
-			'get_company_country', 'get_countries',
+			'get_company_country', 'get_countries', 'get_license_slots',
 			// bring a NEW app or session into existence rather than mutating a shared one
 			'register', 'login', 'app_create',
 			// the second step of a sign-in: no Bearer, no app, no change to anything shared
@@ -3416,6 +3420,37 @@ class Cookie_Notice_Welcome_API {
 					$params = [];
 				}
 				break;
+
+			// Unused licenses on the account, and spending one on this site. Both use the
+			// app id and secret the plugin keeps (no login token: a connected site holds
+			// none after a day). The platform decides everything: the company comes from
+			// the app, and it re-checks the plan, the free slot and this app's state. The
+			// read is safe for a shared app; the assign is not, so it stays off the safe list.
+			case 'get_license_slots':
+			case 'assign_license_slot':
+				$cred_id  = isset( $cn->options['general']['app_id'] ) ? (string) $cn->options['general']['app_id'] : '';
+				$cred_key = isset( $cn->options['general']['app_key'] ) ? (string) $cn->options['general']['app_key'] : '';
+
+				if ( $cred_id === '' || $cred_key === '' )
+					return [ 'error' => __( 'Connect this site to Cookie Compliance first.', 'cookie-notice' ) ];
+
+				$api_url = $cn->get_url( 'account_api', '/api/account/license/by-app' );
+				$api_args['headers']['app-id'] = $cred_id;
+				$api_args['headers']['app-secret-key'] = $cred_key;
+
+				if ( $request === 'assign_license_slot' ) {
+					$json = true;
+					$api_url .= '/assign';
+					$api_args['method'] = 'POST';
+					$api_args['headers']['Content-Type'] = 'application/json; charset=utf-8';
+					$params = [
+						'subscriptionID' => isset( $params['subscriptionID'] ) ? (int) $params['subscriptionID'] : 0,
+					];
+				} else {
+					$api_args['method'] = 'GET';
+					$params = [];
+				}
+				break;
 		}
 
 		// check if app id is required to avoid unneeded requests
@@ -3442,6 +3477,9 @@ class Cookie_Notice_Welcome_API {
 					$api_params[$key] = $param;
 				elseif ( is_array( $param ) )
 					$api_params[$key] = array_map( 'sanitize_text_field', $param );
+				// the platform's assign takes the subscription id as a number, not a string
+				elseif ( $key === 'subscriptionID' && $request === 'assign_license_slot' )
+					$api_params[$key] = (int) $param;
 				elseif ( $key === 'Password' && ( $request === 'register' || $request === 'login' ) )
 					$api_params[$key] = preg_replace( '/[^\w !"#$%&\'()*\+,\-.\/:;<=>?@\[\]^\`\{\|\}\~\\\\]/', '', $param );
 				else
@@ -5437,6 +5475,146 @@ class Cookie_Notice_Welcome_API {
 		$this->verify_react_request();
 		Cookie_Notice()->settings->verify_not_network_managed();
 		$this->save_company_country();
+	}
+
+	/**
+	 * Domain Info card: does this account have a license no site uses yet?
+	 *
+	 * The site's own app id and secret are the proof (no login token: a connected site holds none
+	 * after a day); the platform takes the company from the app and applies the same rules the
+	 * assign will. Only reads: it stores nothing and never pulls the config. An app that is
+	 * already on a plan only reports that, and the card decides what to do about it.
+	 *
+	 * Anything but a platform answer with success === true is "nothing to offer": the platform
+	 * answers HTTP 200 with success:false in maintenance, throttle and refusal, so the status is
+	 * never trusted, and an unreachable platform changes nothing and shows nothing.
+	 *
+	 * @return void
+	 */
+	public function react_license_slots() {
+		$this->verify_react_request();
+		Cookie_Notice()->settings->verify_not_network_managed();
+
+		$cn = Cookie_Notice();
+
+		if ( ! $this->app_credentials_present() )
+			wp_send_json_error( [ 'error' => __( 'Connect this site to Cookie Compliance first.', 'cookie-notice' ) ] );
+
+		// The Network Admin has no app of its own, and a shared app belongs to every site that
+		// serves it (network owners use the portal): nothing is offered and nobody is asked.
+		if ( $cn->is_network_admin() || $cn->is_network_shared_app( (string) $cn->options['general']['app_id'] ) )
+			wp_send_json_success( $this->license_slots_from_reply( null ) );
+
+		$result = $this->request( 'get_license_slots' );
+
+		wp_send_json_success( $this->license_slots_from_reply( $result ) );
+	}
+
+	/**
+	 * Domain Info card: spend one unused license on this site.
+	 *
+	 * Order is the guarantee. Every refusal this site can make by itself comes before the platform
+	 * is asked: nonce and capability, a managed site, no credentials, the Network Admin or a shared
+	 * app (a network owner's slot is not spent from a site), a site already stored as Pro. The
+	 * platform then re-checks everything (company, plan, free slot, this app's state) and answers
+	 * every refusal alike, so ONLY success === true counts; the reply's own words are never shown.
+	 *
+	 * After a success the plan is the platform's to name: ONE forced config pull, and
+	 * subscription='pro' is stored ONLY if that pull says so (a lost pull leaves the stored
+	 * status as it was; the next sync corrects it). Nothing else in the status row is touched.
+	 *
+	 * @return void
+	 */
+	public function react_use_license_slot() {
+		$this->verify_react_request();
+		Cookie_Notice()->settings->verify_not_network_managed();
+
+		$cn      = Cookie_Notice();
+		$network = $cn->is_network_admin();
+
+		if ( ! $this->app_credentials_present() )
+			wp_send_json_error( [ 'error' => __( 'Connect this site to Cookie Compliance first.', 'cookie-notice' ) ] );
+
+		$app_id = (string) $cn->options['general']['app_id'];
+
+		if ( $network || $cn->is_network_shared_app( $app_id ) )
+			wp_send_json_error( [ 'error' => $cn->network_scope_denied_message() ], 403 );
+
+		if ( $this->stored_subscription( $network ) === 'pro' )
+			wp_send_json_error( [ 'error' => __( 'This site is already on a paid plan.', 'cookie-notice' ) ] );
+
+		$posted = isset( $_POST['subscriptionID'] ) && is_string( $_POST['subscriptionID'] ) ? trim( wp_unslash( $_POST['subscriptionID'] ) ) : '';
+
+		if ( ! ctype_digit( $posted ) || (int) $posted < 1 )
+			wp_send_json_error( [ 'error' => __( 'Choose a plan to use.', 'cookie-notice' ) ] );
+
+		$result = $this->request( 'assign_license_slot', [ 'subscriptionID' => (int) $posted ] );
+
+		if ( ! is_object( $result ) || ! isset( $result->success ) || $result->success !== true )
+			wp_send_json_error( [ 'error' => __( 'We could not use a license for this site right now. Please try again later.', 'cookie-notice' ) ] );
+
+		// The platform assigned the license. Ask it what the site is now.
+		$pulled    = $this->get_app_config( $app_id, true, true );
+		$confirmed = is_array( $pulled ) && isset( $pulled['status'], $pulled['subscription'] ) && $pulled['status'] === 'active' && $pulled['subscription'] === 'pro';
+
+		if ( $confirmed && $this->stored_subscription( $network ) !== 'pro' ) {
+			$status_data = (array) Cookie_Notice_Store::get( 'cookie_notice_status', $cn->defaults['data'], $network );
+			$status_data['subscription'] = 'pro';
+
+			Cookie_Notice_Store::set( 'cookie_notice_status', $status_data, $network );
+		}
+
+		wp_send_json_success( [ 'assigned' => true, 'confirmed' => $confirmed, 'banner' => $cn->get_banner_summary() ] );
+	}
+
+	/**
+	 * The plan this site is stored as ('basic' = Free, 'pro'), read where get_app_config() writes it.
+	 *
+	 * @param bool $network The network row (true) or this site's row (false).
+	 * @return string
+	 */
+	private function stored_subscription( $network ) {
+		$row = Cookie_Notice_Store::get( 'cookie_notice_status', [], $network );
+
+		return is_array( $row ) && isset( $row['subscription'] ) && $row['subscription'] === 'pro' ? 'pro' : 'basic';
+	}
+
+	/**
+	 * What the card may show, from what request( 'get_license_slots' ) returned.
+	 *
+	 * Only an object with success === true and an object payload counts; anything else (an
+	 * unreachable platform, a 200 carrying success:false or status:503/429, a malformed body)
+	 * is nothing to offer. 'alreadyOnPlan' is true only as the boolean true, and then no plan is
+	 * listed. Each plan needs a positive whole-number id and a positive free count.
+	 *
+	 * @param mixed $result What request() returned, or null for "not asked".
+	 * @return array{alreadyOnPlan: bool, subscriptions: array<int, array{subscriptionID: int, availableLicense: int}>}
+	 */
+	private function license_slots_from_reply( $result ) {
+		$nothing = [ 'alreadyOnPlan' => false, 'subscriptions' => [] ];
+
+		if ( ! is_object( $result ) || ! isset( $result->success ) || $result->success !== true || ! isset( $result->data ) || ! is_object( $result->data ) )
+			return $nothing;
+
+		if ( isset( $result->data->alreadyOnPlan ) && $result->data->alreadyOnPlan === true )
+			return [ 'alreadyOnPlan' => true, 'subscriptions' => [] ];
+
+		if ( ! isset( $result->data->subscriptions ) || ! is_array( $result->data->subscriptions ) )
+			return $nothing;
+
+		$plans = [];
+
+		foreach ( $result->data->subscriptions as $row ) {
+			if ( ! is_object( $row ) || ! isset( $row->subscriptionID, $row->availableLicense ) || ! is_int( $row->subscriptionID ) || ! is_int( $row->availableLicense ) )
+				continue;
+
+			if ( $row->subscriptionID < 1 || $row->availableLicense < 1 )
+				continue;
+
+			$plans[] = [ 'subscriptionID' => $row->subscriptionID, 'availableLicense' => $row->availableLicense ];
+		}
+
+		return [ 'alreadyOnPlan' => false, 'subscriptions' => $plans ];
 	}
 
 	/**
