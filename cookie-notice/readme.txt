@@ -3,8 +3,8 @@ Contributors: humanityco
 Tags: gdpr, compliance, cookies, privacy, google consent mode
 Requires at least: 4.9.6
 Requires PHP: 7.4
-Tested up to: 7.1
-Stable tag: 3.1.20
+Tested up to: 7.1.5
+Stable tag: 3.1.21
 License: MIT License
 License URI: http://opensource.org/licenses/MIT
 
@@ -171,6 +171,11 @@ Yes. Point an MCP-capable assistant (Claude Code, Cursor, and others) at https:/
 4. Cookie Compliance settings
 
 == Changelog ==
+
+= 3.1.21 =
+* New: Sites on the Free plan can now choose the Popup banner position, along with the other positions.
+* Fix: If your Hu-manity sign-in expires while you are choosing a paid plan, signing back in now continues to payment for that plan instead of restarting the welcome wizard.
+* Tested up to WordPress 7.1.5.
 
 = 3.1.20 =
 * New: On connected Free sites, Domain Info tells you when your Cookie Compliance account has an unused paid license, and lets you apply it to this site in one click — no sign-in needed.
